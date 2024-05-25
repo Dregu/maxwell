@@ -106,7 +106,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     {
       D3D12_DESCRIPTOR_HEAP_DESC desc = {};
       desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-      desc.NumDescriptors = g_FrameBufferCount;
+      desc.NumDescriptors = g_FrameBufferCount + 1;
       desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
       if (pD3DDevice->CreateDescriptorHeap(
@@ -118,7 +118,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     {
       D3D12_DESCRIPTOR_HEAP_DESC desc;
       desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-      desc.NumDescriptors = g_FrameBufferCount;
+      desc.NumDescriptors = g_FrameBufferCount + 1;
       desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
       desc.NodeMask = 1;
 
@@ -166,6 +166,25 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
               IID_PPV_ARGS(&g_pD3DCommandList)) != S_OK ||
           g_pD3DCommandList->Close() != S_OK) {
         return OriginalPresent(pSwapChain, SyncInterval, Flags);
+      }
+
+      {
+        UINT handle_increment = pD3DDevice->GetDescriptorHandleIncrementSize(
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        int descriptor_index =
+            1; // The descriptor table index to use (not normally a hard-coded
+               // constant, but in this case we'll assume we have slot 1
+               // reserved for us)
+        g_UI->minimap_srv_cpu_handle =
+            g_pD3DSrvDescHeap->GetCPUDescriptorHandleForHeapStart();
+        g_UI->minimap_srv_cpu_handle.ptr +=
+            (handle_increment * descriptor_index);
+        g_UI->minimap_srv_gpu_handle =
+            g_pD3DSrvDescHeap->GetGPUDescriptorHandleForHeapStart();
+        g_UI->minimap_srv_gpu_handle.ptr +=
+            (handle_increment * descriptor_index);
+        g_UI->pD3DDevice = pD3DDevice;
+        g_UI->pSwapChain = pSwapChain;
       }
     }
 
