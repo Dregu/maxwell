@@ -5,6 +5,17 @@
 using State = size_t;
 using Minimap = size_t;
 using Slot = size_t;
+using Player = size_t;
+
+struct Coord {
+  int x;
+  int y;
+};
+
+struct fCoord {
+  float x;
+  float y;
+};
 
 struct Max {
   static Max &get();
@@ -12,4 +23,11 @@ struct Max {
   Minimap minimap();
   uint8_t slot_number();
   Slot slot();
+  Player player();
+  Coord *player_room();
+  fCoord *player_position();
+  Coord *warp_room();
+  Coord *warp_position();
+  int *player_layer();
+  uint8_t *player_flute();
 };

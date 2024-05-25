@@ -3,6 +3,7 @@
 
 #include "logger.h"
 #include "max.h"
+#include "memory.h"
 #include "search.h"
 #include "ui.h"
 
@@ -31,38 +32,54 @@ void DrawWarp() {
 }
 
 void UI::DrawMap() {
+  // ImGui::Text("CPU: %p", minimap_srv_cpu_handle);
+  // ImGui::Text("GPU: %p", minimap_srv_gpu_handle);
+  // ImGui::Text("TID: %p", minimap_texture);
+  static ImVec2 mapsize{800, 528};
   static Coord cpos{0, 0};
   static Coord wroom{0, 0};
   static Coord wpos{0, 0};
-  ImGui::InputInt2("Warp room", &wroom.x);
-  ImGui::InputInt2("Warp pos", &wpos.x);
-  ImGui::Text("CPU: %p", minimap_srv_cpu_handle);
-  ImGui::Text("GPU: %p", minimap_srv_gpu_handle);
-  ImGui::Text("TID: %p", minimap_texture);
-  if (ImGui::Button("Update map")) {
+  bool do_warp;
+  ImGui::PushItemWidth(250.f);
+  ImGui::InputInt2("Room", &wroom.x);
+  ImGui::SameLine(360.f);
+  ImGui::InputInt2("Position", &wpos.x);
+  ImGui::PopItemWidth();
+  ImGui::SameLine(mapsize.x - 60.f);
+  if (ImGui::Button("Update", ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
+                                     ImGui::GetTextLineHeightWithSpacing())) ||
+      !minimap_init) {
     CreateMap();
   }
   if (minimap_init) {
-    static ImVec2 mapsize{800, 528};
-    // static ImVec2 mapsize{ 1600, 1056 };
-    auto a = ImGui::GetCursorPos();
-    auto b = ImGui::GetMousePos();
-    auto c = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
-    auto d = ImGui::GetWindowPos();
-    cpos.x = (b.x - d.x) - a.x + c.x;
-    cpos.y = (b.y - d.y) - a.y + c.y;
-    wroom.x = cpos.x / mapsize.x * 800 / 40;
-    wroom.y = cpos.y / mapsize.y * 528 / 22;
-    wpos.x = ((int)(cpos.x / mapsize.x * 800) % 40) * 8;
-    wpos.y = ((int)(cpos.y / mapsize.y * 528) % 22) * 8;
+    ImGui::PushStyleColor(ImGuiCol_Button, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
     if (ImGui::ImageButton((ImTextureID)minimap_srv_gpu_handle.ptr, mapsize,
                            ImVec2(0, 0), ImVec2(1, 1), 0)) {
-      // room->x = wroom.x;
-      // room->y = wroom.y;
-      // pos->x = wpos.x;
-      // pos->y = wpos.y;
-      // do_warp = true;
+      do_warp = true;
     }
+    if (ImGui::IsItemHovered()) {
+      auto a = ImGui::GetCursorPos();
+      auto b = ImGui::GetMousePos();
+      auto c = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+      auto d = ImGui::GetWindowPos();
+      cpos.x = (b.x - d.x) - a.x + c.x;
+      cpos.y = (b.y - d.y) - a.y + c.y;
+      wroom.x = cpos.x / mapsize.x * 800 / 40;
+      wroom.y = cpos.y / mapsize.y * 528 / 22;
+      wpos.x = ((int)(cpos.x / mapsize.x * 800) % 40) * 8;
+      wpos.y = ((int)(cpos.y / mapsize.y * 528) % 22) * 8;
+    }
+    ImGui::PopStyleColor(3);
+  }
+
+  if (do_warp) {
+    *Max::get().warp_room() = wroom;
+    *Max::get().warp_position() = wpos;
+    write_mem_recoverable("warp", get_address("warp"), "\xEB"sv, true);
+  } else {
+    recover_mem("warp");
   }
 }
 
@@ -87,11 +104,18 @@ UI::UI() {
             [this]() { this->DrawOptions(); });
   NewWindow("Style", ImGuiKey_None, []() { ImGui::ShowStyleEditor(); });
   NewWindow("Debug", ImGuiKey_None, [this]() {
+    ImGui::Text("Check: %p", get_address("check"));
     ImGui::Text("State: %p", Max::get().state());
     ImGui::Text("Map: %p", Max::get().minimap());
     ImGui::Text("Slots: %p", get_address("slots"));
     ImGui::Text("Slot num: %d", Max::get().slot_number());
     ImGui::Text("Slot: %p", Max::get().slot());
+    ImGui::InputInt2("Player room", &Max::get().player_room()->x);
+    ImGui::InputFloat2("Player position", &Max::get().player_position()->x);
+    ImGui::InputInt("Layer", Max::get().player_layer());
+    ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
+    ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
+    ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
       ImGui::ShowMetricsWindow();
@@ -164,25 +188,23 @@ bool UI::Block() {
 }
 
 void UI::CreateMap() {
-  static size_t minimap = Max::get().minimap();
-  if (minimap == NULL)
+  auto *raw_map = (void *)Max::get().minimap();
+  if (raw_map == NULL)
     return;
 
   int image_width = 800;
   int image_height = 528;
-  unsigned char *image_data = (uint8_t *)minimap;
-  // unsigned char image_data[800 * 528 * 4];
-  // memcpy(image_data, (uint8_t*)minimap, 800 * 528 * 4);
+  int length = image_width * image_height * 4;
+  memcpy(minimap, raw_map, length);
 
   int i = 0;
   do {
-    // image_data[i] = minimap[i];
-    // image_data[i+1] = minimap[i+1];
-    // image_data[i+2] = minimap[i+2];
-    // image_data[i+3] = 0xff;
-    ((uint8_t *)minimap)[i + 3] = 0xff;
+    if (minimap[i + 3] == 0xf)
+      minimap[i + 3] = 0xff;
+    else
+      minimap[i + 3] = 0x33;
     i += 4;
-  } while (i < 800 * 528 * 4);
+  } while (i < length);
 
   auto d3d_device = pD3DDevice;
 
@@ -246,7 +268,7 @@ void UI::CreateMap() {
   IM_ASSERT(SUCCEEDED(hr));
   for (int y = 0; y < image_height; y++)
     memcpy((void *)((uintptr_t)mapped + y * uploadPitch),
-           image_data + y * image_width * 4, image_width * 4);
+           minimap + y * image_width * 4, image_width * 4);
   uploadBuffer->Unmap(0, &range);
 
   // Copy the upload resource content into the real resource

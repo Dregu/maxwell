@@ -287,6 +287,7 @@ void ResetState() {
   g_pD3DCommandList = nullptr;
   g_pD3DRtvDescHeap = nullptr;
   g_pD3DSrvDescHeap = nullptr;
+  g_UI->minimap_init = false;
 }
 
 long HookResizeBuffers(IDXGISwapChain3 *pSwapChain, UINT BufferCount,

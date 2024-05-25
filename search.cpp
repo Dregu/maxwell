@@ -455,7 +455,7 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe(),
     },
     {
-        // RE: Find out what writes 3 to player health at start, this is just
+        // RE: Check what writes 3 to player health at start, this is just
         // before that
         "slots"sv,
         PatternCommandBuffer{}
@@ -464,6 +464,23 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .decode_pc()
             .at_exe(),
     },
+    {
+        // RE: Check what keeps messing up with your edits
+        "check"sv,
+        PatternCommandBuffer{}
+            .find_inst("48 83 c3 10 48 81 fb 50 89 00 00"_gh)
+            .offset(-6)
+            .at_exe(),
+    },
+    {
+        // RE:
+        "warp"sv,
+        PatternCommandBuffer{}
+            .find_inst("4c 8d 6e 28 8a 86 1d 6b 02 00"_gh)
+            .offset(12)
+            .at_exe(),
+    },
+
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
 

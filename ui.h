@@ -10,16 +10,6 @@
 
 typedef int ImGuiKeyChord;
 
-struct Coord {
-  int x;
-  int y;
-};
-
-struct fCoord {
-  float x;
-  float y;
-};
-
 struct Window {
   std::string title;
   ImGuiKeyChord key;
@@ -62,4 +52,5 @@ public:
   D3D12_CPU_DESCRIPTOR_HANDLE minimap_srv_cpu_handle;
   D3D12_GPU_DESCRIPTOR_HANDLE minimap_srv_gpu_handle;
   bool minimap_init = false;
+  uint8_t minimap[800 * 528 * 4];
 };
