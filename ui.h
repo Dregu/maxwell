@@ -40,4 +40,5 @@ public:
   void Tooltip(std::string text);
   void DrawOptions();
   bool Option(std::string name);
+  bool Block();
 };

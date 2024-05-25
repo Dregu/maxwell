@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "hook.h"
-#include "logging.h"
+#include "logger.h"
 
 DWORD WINAPI CreateConsole() {
   AllocConsole();

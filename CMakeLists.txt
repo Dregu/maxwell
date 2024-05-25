@@ -52,26 +52,35 @@ endif()
 
 target_include_directories(detours PUBLIC detours/src)
 
+# fmt
+set(FMT_MASTER_PROJECT OFF)
+add_subdirectory(fmt)
+
 add_library(dll SHARED
     dllmain.cpp
     hook.cpp hook.h
     ui.cpp ui.h
-
-    # pattern.cpp pattern.h
+    max.cpp max.h
+    memory.cpp memory.h
+    search.cpp search.h
+    virtual_table.cpp virtual_table.h
     stb.h
-    logging.h
+    ghidra_byte_string.h
+    tokenize.h
+    logger.h
     font.h)
 
 target_link_libraries(dll PRIVATE
     detours
-    imgui)
+    imgui
+    fmt)
 
 # add_dependencies(dll exe)
 # set_target_properties(dll PROPERTIES OUTPUT_NAME MAXWELL)
 
 # add_executable(exe
 # main.cpp)
-# target_link_libraries(exe PUBLIC
+# target_link_libraries(exe PRIVATE
 # detours)
 # add_dependencies(exe dll)
 # set_target_properties(exe PROPERTIES OUTPUT_NAME MAXWELL)

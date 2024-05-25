@@ -4,3 +4,6 @@
 [submodule "detours"]
 	path = detours
 	url = git@github.com:microsoft/detours
+[submodule "fmt"]
+	path = fmt
+	url = git@github.com:fmtlib/fmt

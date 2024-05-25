@@ -15,7 +15,8 @@
 
 #include "font.h"
 #include "hook.h"
-#include "logging.h"
+#include "logger.h"
+#include "search.h"
 #include "ui.h"
 
 #pragma comment(lib, "dxgi.lib")

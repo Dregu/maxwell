@@ -1,7 +1,9 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include "../logging.h"
+#include "logger.h"
+#include "max.h"
+#include "search.h"
 #include "ui.h"
 
 namespace ImGui {
@@ -43,12 +45,24 @@ bool UI::Option(std::string name) {
 }
 
 UI::UI() {
+  Max::get();
+
   NewWindow("Warp", keys["tool_warp"], DrawWarp);
   NewWindow("Minimap", keys["tool_map"], DrawMap);
   NewWindow("Settings", keys["tool_settings"],
             [this]() { this->DrawOptions(); });
   NewWindow("Style", ImGuiKey_None, []() { ImGui::ShowStyleEditor(); });
-  LOG("MAXWELL UI INITIALIZED");
+  NewWindow("Debug", ImGuiKey_None, []() {
+    auto state = Max::get().state();
+    ImGui::Text("State: %p", state);
+
+    auto slot = get_address("slots");
+    ImGui::Text("Slot: %p", slot);
+
+    auto minimap = Max::get().minimap();
+    ImGui::Text("Map: %p", minimap);
+  });
+  DEBUG("MAXWELL UI INITIALIZED");
 }
 
 UI::~UI() {}
@@ -108,4 +122,9 @@ void UI::NewWindow(std::string title, ImGuiKeyChord key,
 void UI::Tooltip(std::string text) {
   if (options["tooltips"] && ImGui::IsItemHovered())
     ImGui::SetTooltip("Right click to detach a tool from the menu as window.");
+}
+
+bool UI::Block() {
+  ImGuiIO &io = ImGui::GetIO();
+  return io.WantCaptureKeyboard;
 }
