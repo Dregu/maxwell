@@ -24,3 +24,11 @@ State Max::state() {
 }
 
 Minimap Max::minimap() { return *(size_t *)get_address("slots") + 0x2490b8; }
+
+uint8_t Max::slot_number() {
+  return memory_read<uint8_t>(*(size_t *)get_address("slots") + 0x40c);
+}
+
+Slot Max::slot() {
+  return *(size_t *)get_address("slots") + SLOT_SIZE * slot_number();
+}

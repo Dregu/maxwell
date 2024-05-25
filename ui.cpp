@@ -52,15 +52,16 @@ UI::UI() {
   NewWindow("Settings", keys["tool_settings"],
             [this]() { this->DrawOptions(); });
   NewWindow("Style", ImGuiKey_None, []() { ImGui::ShowStyleEditor(); });
-  NewWindow("Debug", ImGuiKey_None, []() {
-    auto state = Max::get().state();
-    ImGui::Text("State: %p", state);
-
-    auto slot = get_address("slots");
-    ImGui::Text("Slot: %p", slot);
-
-    auto minimap = Max::get().minimap();
-    ImGui::Text("Map: %p", minimap);
+  NewWindow("Debug", ImGuiKey_None, [this]() {
+    ImGui::Text("State: %p", Max::get().state());
+    ImGui::Text("Map: %p", Max::get().minimap());
+    ImGui::Text("Slots: %p", get_address("slots"));
+    ImGui::Text("Slot num: %d", Max::get().slot_number());
+    ImGui::Text("Slot: %p", Max::get().slot());
+    if (!this->inMenu) {
+      ImGui::ShowDemoWindow();
+      ImGui::ShowMetricsWindow();
+    }
   });
   DEBUG("MAXWELL UI INITIALIZED");
 }
@@ -111,7 +112,6 @@ void UI::Draw() {
       ImGui::End();
     }
   }
-  ImGui::ShowDemoWindow();
 }
 
 void UI::NewWindow(std::string title, ImGuiKeyChord key,
