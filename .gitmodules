@@ -1,0 +1,6 @@
+[submodule "imgui"]
+	path = imgui
+	url = git@github.com:ocornut/imgui
+[submodule "detours"]
+	path = detours
+	url = git@github.com:microsoft/detours
