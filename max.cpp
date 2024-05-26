@@ -26,7 +26,7 @@ Max &Max::get() {
         write_mem_recoverable("check", off, "E9 01 03 00 00 90"_gh, true);
       }
     }
-    {
+    /*{
       g_update_game_trampoline = (UpdateGamePtr *)get_address("update_game"sv);
       DetourTransactionBegin();
       DetourUpdateThread(GetCurrentThread());
@@ -35,7 +35,7 @@ Max &Max::get() {
       if (error != NO_ERROR) {
         DEBUG("Failed hooking UpdateGame: {}\n", error);
       }
-    }
+    }*/
     get_is_init() = true;
   }
   return MAX;

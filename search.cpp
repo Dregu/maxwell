@@ -484,7 +484,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     {
         // RE: It's a call to GetKeyboardState...
         "keyboard"sv,
-        PatternCommandBuffer{}.from_exe_base(0x13aba),
+        PatternCommandBuffer{}
+            .find_after_inst(
+                "0f 11 .. .. .. .. .. 0f 11 .. .. .. .. .. .. 89 .."_gh)
+            .at_exe(),
     },
     {
         // RE:
@@ -515,15 +518,18 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
                 "c7 46 7c 00 00 00 00 c7 46 6c 00 00 00 00 8a 86 90 00 00 00"_gh)
             .at_exe(),
     },
-    {
+    /*{
         // RE:
         "update_game"sv,
         PatternCommandBuffer{}.from_exe_base(0x1b6c0),
-    },
+    },*/
     {
         // RE: WriteFile
         "save_game"sv,
-        PatternCommandBuffer{}.from_exe_base(0x77820),
+        PatternCommandBuffer{}
+            .find_inst("c7 82 80 54 07 00 01 00 00 00 48 81 c2 00 04 00 00"_gh)
+            .at_exe()
+            .function_start(),
     },
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;

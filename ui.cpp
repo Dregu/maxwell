@@ -135,10 +135,10 @@ void UI::DrawPlayer() {
                       0.1f);
   }
   if (ImGui::CollapsingHeader("Position")) {
-    ImGui::InputInt2("Spawn", &Max::get().spawn_room()->x);
     ImGui::InputInt2("Room", &Max::get().player_room()->x);
     ImGui::InputFloat2("Position", &Max::get().player_position()->x);
     ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
+    ImGui::InputInt2("Spawn room", &Max::get().spawn_room()->x);
     ImGui::InputInt2("Respawn room", &Max::get().respawn_room()->x);
     ImGui::InputInt2("Respawn tile", &Max::get().respawn_position()->x);
     ImGui::InputInt("Layer", Max::get().player_layer());
