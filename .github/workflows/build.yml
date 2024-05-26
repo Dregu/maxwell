@@ -28,8 +28,8 @@ jobs:
       - name: Create artifacts
         run: |
           mkdir MAXWELL
-          move build\bin\MAXWELL.dll MAXWELL\MAXWELL.dll
-          move build\bin\MAXWELL.exe MAXWELL\MAXWELL.exe
+          move build\Release\MAXWELL.dll MAXWELL\MAXWELL.dll
+          move build\Release\MAXWELL.exe MAXWELL\MAXWELL.exe
           move README.md MAXWELL\README.txt
           7z a MAXWELL.zip MAXWELL\
 
