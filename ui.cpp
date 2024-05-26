@@ -139,6 +139,8 @@ void UI::DrawPlayer() {
     ImGui::InputInt2("Room", &Max::get().player_room()->x);
     ImGui::InputFloat2("Position", &Max::get().player_position()->x);
     ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
+    ImGui::InputInt2("Respawn room", &Max::get().respawn_room()->x);
+    ImGui::InputInt2("Respawn tile", &Max::get().respawn_position()->x);
     ImGui::InputInt("Layer", Max::get().player_layer());
     ImGui::InputScalar("State", ImGuiDataType_U8, Max::get().player_state());
     ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());

@@ -73,6 +73,10 @@ int *Max::player_layer() {
                  *(uint32_t *)get_address("layer_offset"));
 }
 
+Coord *Max::respawn_room() { return (Coord *)(player() + 0x98); }
+
+Coord *Max::respawn_position() { return (Coord *)(player() + 0xa0); }
+
 Coord *Max::warp_room() { return (Coord *)(player() + 0x34); }
 
 Coord *Max::warp_position() { return (Coord *)(player() + 0x3c); }
