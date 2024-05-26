@@ -73,9 +73,14 @@ add_library(dll SHARED
 target_link_libraries(dll PRIVATE
     detours
     imgui
-    fmt)
+    fmt
+    toml11::toml11)
 
 set_target_properties(dll PROPERTIES OUTPUT_NAME MAXWELL)
+
+# toml
+option(toml11_BUILD_TEST OFF)
+add_subdirectory(toml11)
 
 add_executable(exe
     main.cpp

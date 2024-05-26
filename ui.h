@@ -51,15 +51,15 @@ private:
         "toggle_noclip"}},
       {"input_block",
        {true, "Block game input on UI input",
-        "Blocks keyboard interaction from game\n"
+        "Blocks keyboard input from game\n"
         "when typing or menus are open."}},
       {"input_mouse",
        {true, "Right click to teleport",
         "Right click or drag yourself around!"}},
       {"map_auto",
-       {false, "Auto-update minimap",
+       {false, "Constantly update minimap",
         "This can be choppy if map window is left open.\n"
-        "Default is to update map when window is appearing."}},
+        "Default is to update map when it's opened."}},
       {"map_small",
        {true, "Hide minimap borders",
         "There's nothing there really except some glitches."}},
@@ -70,9 +70,7 @@ private:
        {true, "Show helpful tooltips",
         "These are really helpful, why are you disabling them!?"}},
       {"ui_visible",
-       {true, "Show UI",
-        "Hide/show all MAXWELL windows."
-        "toggle_ui"}},
+       {true, "Show UI", "Hide/show all MAXWELL windows.", "toggle_ui"}},
   };
   bool doWarp = false;
   bool inMenu = false;
@@ -96,6 +94,10 @@ public:
   void DrawPlayer();
   void DrawMap();
   void DrawOptions();
+  bool Button(std::string name, std::string desc = "", std::string key = "");
+  void SaveINI(std::string file);
+  void LoadINI(std::string file);
+  void ScaleWindow();
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

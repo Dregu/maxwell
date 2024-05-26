@@ -88,6 +88,22 @@ bool HookGetKeyboardState(PBYTE lpKeyState) {
   return g_keyboard_trampoline(lpKeyState);
 }*/
 
+ImVec4 HueShift(ImVec4 in, float hue) {
+  float U = std::cos(hue * 3.14159265f / 180);
+  float W = std::sin(hue * 3.14159265f / 180);
+  ImVec4 out = ImVec4((.299f + .701f * U + .168f * W) * in.x +
+                          (.587f - .587f * U + .330f * W) * in.y +
+                          (.114f - .114f * U - .497f * W) * in.z,
+                      (.299f - .299f * U - .328f * W) * in.x +
+                          (.587f + .413f * U + .035f * W) * in.y +
+                          (.114f - .114f * U + .292f * W) * in.z,
+                      (.299f - .3f * U + 1.25f * W) * in.x +
+                          (.587f - .588f * U - 1.05f * W) * in.y +
+                          (.114f + .886f * U - .203f * W) * in.z,
+                      in.w);
+  return out;
+}
+
 long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
                             UINT Flags) {
   if (g_pD3DCommandQueue == nullptr || g_skipHook) {
@@ -203,7 +219,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
-    io.IniFilename = "MAXWELL.ini";
+    io.IniFilename = "MAXWELL_imgui.ini";
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // TODO: doesn't work
 
     io.Fonts->AddFontFromMemoryCompressedTTF(OLFont_compressed_data,
@@ -219,6 +235,41 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     style.GrabRounding = 0;
     style.TabRounding = 0;
     style.ScrollbarRounding = 0;
+    style.Alpha = 0.9f;
+
+    ImVec4 *colors = ImGui::GetStyle().Colors;
+    static std::array color_names{ImGuiCol_FrameBg,
+                                  ImGuiCol_FrameBgHovered,
+                                  ImGuiCol_FrameBgActive,
+                                  ImGuiCol_TitleBg,
+                                  ImGuiCol_TitleBgCollapsed,
+                                  ImGuiCol_TitleBgActive,
+                                  ImGuiCol_CheckMark,
+                                  ImGuiCol_SliderGrab,
+                                  ImGuiCol_SliderGrabActive,
+                                  ImGuiCol_Button,
+                                  ImGuiCol_ButtonHovered,
+                                  ImGuiCol_ButtonActive,
+                                  ImGuiCol_Header,
+                                  ImGuiCol_HeaderHovered,
+                                  ImGuiCol_HeaderActive,
+                                  ImGuiCol_Separator,
+                                  ImGuiCol_SeparatorHovered,
+                                  ImGuiCol_SeparatorActive,
+                                  ImGuiCol_ResizeGrip,
+                                  ImGuiCol_ResizeGripHovered,
+                                  ImGuiCol_ResizeGripActive,
+                                  ImGuiCol_Tab,
+                                  ImGuiCol_TabHovered,
+                                  ImGuiCol_TabActive,
+                                  ImGuiCol_DockingPreview,
+                                  ImGuiCol_TabUnfocused,
+                                  ImGuiCol_TabUnfocusedActive,
+                                  ImGuiCol_TextSelectedBg,
+                                  ImGuiCol_NavHighlight};
+    for (auto color : color_names) {
+      colors[color] = HueShift(colors[color], -120.f);
+    }
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(Window);

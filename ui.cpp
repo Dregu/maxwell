@@ -8,6 +8,7 @@
 #include "search.h"
 #include "ui.h"
 #include "version.h"
+#include <toml.hpp>
 
 std::array equipment_names{
     "Unknown", "Firecrackers", "Flute ",   "Lantern ", "Top ",
@@ -115,7 +116,7 @@ void UI::DrawPlayer() {
     Max::get().save_game();
   }
   Tooltip("This sets your current room as spawn and runs the save function "
-          "anywhere.\nYou in rooms without a telephone you will spawn near the "
+          "anywhere.\nIn rooms without a phone you will spawn near the "
           "top left corner.");
   if (ImGui::CollapsingHeader("Equipment"))
     Flags(equipment_names, Max::get().equipment(), false);
@@ -223,27 +224,37 @@ void UI::DrawMap() {
   }
 }
 
+void UI::ScaleWindow() {
+  RECT c;
+  RECT w;
+  GetClientRect(hWnd, &c);
+  GetWindowRect(hWnd, &w);
+  int dx = (w.right - w.left) - (c.right - c.left);
+  int dy = (w.bottom - w.top) - (c.bottom - c.top);
+  SetWindowPos(hWnd, NULL, 0, 0, windowScale * 320 + dx, windowScale * 180 + dy,
+               2);
+}
+
 void UI::DrawOptions() {
   ImGuiIO &io = ImGui::GetIO();
+  ImGui::PushItemWidth(120.f);
   bool noclip = options["cheat_noclip"].value;
   for (auto &[name, enabled] : options) {
     Option(name);
   }
   if (noclip && !options["cheat_noclip"].value)
     *Max::get().player_state() = 0;
-  if (ImGui::SliderInt("Window Scale", &windowScale, 1, 10)) {
-    RECT c;
-    RECT w;
-    GetClientRect(hWnd, &c);
-    GetWindowRect(hWnd, &w);
-    int dx = (w.right - w.left) - (c.right - c.left);
-    int dy = (w.bottom - w.top) - (c.bottom - c.top);
-    SetWindowPos(hWnd, NULL, 0, 0, windowScale * 320 + dx,
-                 windowScale * 180 + dy, 2);
+  if (ImGui::SliderInt("Window scale", &windowScale, 1, 10, "%dx")) {
+    ScaleWindow();
   }
   // ImGui::InputFloat2("Display", &io.DisplaySize.x, "%.0f",
   // ImGuiInputTextFlags_ReadOnly);
   ImGui::SliderFloat("Alpha", &ImGui::GetStyle().Alpha, 0.2f, 1.0f, "%.1f");
+  if (Button("Save settings"))
+    SaveINI("MAXWELL.ini");
+  if (Button("Load settings"))
+    LoadINI("MAXWELL.ini");
+  ImGui::PopItemWidth();
 }
 
 bool UI::Option(std::string name) {
@@ -259,12 +270,29 @@ bool UI::Option(std::string name) {
     ret = ImGui::MenuItem(title.c_str(), "", &options[name].value);
   else
     ret = ImGui::Checkbox(title.c_str(), &options[name].value);
-  Tooltip(options[name].desc.c_str());
+  Tooltip(options[name].desc);
+  return ret;
+}
+
+bool UI::Button(std::string name, std::string desc, std::string key) {
+  std::string title =
+      name + (key != ""
+                  ? " (" + std::string(ImGui::GetKeyChordName(keys[key])) + ")"
+                  : "");
+  bool ret = false;
+  if (inMenu)
+    ret = ImGui::MenuItem(title.c_str());
+  else
+    ret = ImGui::Button(title.c_str());
+  if (desc != "")
+    Tooltip(desc);
   return ret;
 }
 
 UI::UI() {
   Max::get();
+  LoadINI("MAXWELL.ini");
+  options["ui_visible"].value = true;
 
   NewWindow("F1 Player", keys["tool_player"], 0,
             [this]() { this->DrawPlayer(); });
@@ -275,7 +303,6 @@ UI::UI() {
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
-
     ImGui::Text("Check: %p", get_address("check"));
     ImGui::Text("State: %p", Max::get().state());
     ImGui::Text("Map: %p", Max::get().minimap());
@@ -292,6 +319,7 @@ UI::UI() {
       }
     }
   });
+
   DEBUG("MAXWELL UI INITIALIZED");
 }
 
@@ -314,6 +342,9 @@ bool UI::Keys() {
 }
 
 void UI::Draw() {
+  if (ImGui::GetFrameCount() == 10)
+    ScaleWindow();
+
   ImGuiIO &io = ImGui::GetIO();
   std::string version = fmt::format("MAXWELL {}", get_version());
   ImGui::GetBackgroundDrawList()->AddText(
@@ -592,4 +623,40 @@ void UI::CreateMap() {
   // Return results
   minimap_texture = pTexture;
   minimap_init = true;
+}
+
+void UI::SaveINI(std::string file) {
+  std::ofstream writeData(file);
+  writeData << "# MAXWELL options" << std::endl;
+
+  writeData << "\n[options] # 0 or 1 unless stated otherwise\n";
+  for (const auto &[name, opt] : options) {
+    writeData << name << " = " << std::dec << opt.value << std::endl;
+  }
+  writeData << "scale = " << std::dec << windowScale << " # int, 1 - 10"
+            << std::endl;
+  writeData.close();
+}
+
+void UI::LoadINI(std::string file) {
+  toml::value data;
+  try {
+    data = toml::parse(file);
+  } catch (std::exception &) {
+    SaveINI(file);
+    return;
+  }
+
+  toml::value opts;
+  try {
+    opts = toml::find(data, "options");
+  } catch (std::exception &) {
+    SaveINI(file);
+    return;
+  }
+  for (const auto &[name, opt] : options) {
+    options[name].value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
+  }
+  windowScale = toml::find_or<int>(opts, "scale", 4);
+  SaveINI(file);
 }

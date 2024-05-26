@@ -7,3 +7,6 @@
 [submodule "fmt"]
 	path = fmt
 	url = git@github.com:fmtlib/fmt
+[submodule "toml11"]
+	path = toml11
+	url = git@github.com:ToruNiina/toml11
