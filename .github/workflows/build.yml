@@ -1,0 +1,55 @@
+name: Autobuild
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+
+    runs-on: windows-latest
+    steps:
+      - uses: llvm/actions/install-ninja@main
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          submodules: true
+
+      - name: Remove Strawberry Perl from PATH
+        run: |
+          $env:PATH = $env:PATH -replace "C:\\Strawberry\\c\\bin;", ""
+          "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Get tags for release notes
+        shell: bash
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -GNinja
+          cmake --build . --config Release
+
+      - name: Create artifacts
+        run: |
+          mkdir MAXWELL
+          move build\bin\MAXWELL.dll MAXWELL\MAXWELL.dll
+          move build\bin\MAXWELL.exe MAXWELL\MAXWELL.exe
+          move README.md MAXWELL\README.txt
+          7z a MAXWELL.zip MAXWELL\
+
+      - name: Create release
+        uses: marvinpinto/action-automatic-releases@v1.1.0
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "autobuild"
+          prerelease: false
+          title: "Autobuild"
+          files: |
+            MAXWELL.zip
