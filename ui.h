@@ -39,6 +39,7 @@ private:
       {"escape", ImGuiKey_Escape},
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
+      {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{
@@ -63,9 +64,12 @@ private:
       {"map_small",
        {true, "Hide minimap borders",
         "There's nothing there really except some glitches."}},
-      {"map_reveal",
-       {false, "Reveal unseen minimap tiles",
+      {"map_show",
+       {false, "Show unseen minimap tiles in UI",
         "Shows what you haven't seen yet, but darker."}},
+      {"map_reveal",
+       {false, "Reveal unseen minimap tiles in game",
+        "Marks all tiles seen on the actual ingame map."}},
       {"ui_tooltips",
        {true, "Show helpful tooltips",
         "These are really helpful, why are you disabling them!?"}},

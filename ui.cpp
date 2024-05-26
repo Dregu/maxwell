@@ -147,7 +147,9 @@ void UI::DrawPlayer() {
     ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
     ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
     ImGui::InputInt("Warp layer", Max::get().warp_layer());
-    if (ImGui::Button("Warp now"))
+    if (ImGui::Button(
+            fmt::format("Warp {}", ImGui::GetKeyChordName(keys["warp"]))
+                .c_str()))
       doWarp = true;
     // TODO: Add saveable custom warp positions from current player/warp
     // position
@@ -214,14 +216,28 @@ void UI::DrawMap() {
       }
     }
     ImGui::PopStyleColor(3);
-    auto px = Max::get().player_room()->x * 40 +
-              (Max::get().player_position()->x / 320.f * 40.f);
-    auto py = Max::get().player_room()->y * 22 +
-              (Max::get().player_position()->y / 180.f * 22.f);
-    ImGui::GetWindowDrawList()->AddCircleFilled(
-        ImVec2(a.x + d.x + px - c.x - bordersize.x,
-               a.y + d.y + py - c.y - bordersize.y),
-        4.f, 0xee0000ee);
+
+    {
+      auto px = Max::get().warp_room()->x * 40 +
+                (Max::get().warp_position()->x / 320.f * 40.f);
+      auto py = Max::get().warp_room()->y * 22 +
+                (Max::get().warp_position()->y / 180.f * 22.f);
+      ImGui::GetWindowDrawList()->AddCircleFilled(
+          ImVec2(a.x + d.x + px - c.x - bordersize.x,
+                 a.y + d.y + py - c.y - bordersize.y),
+          4.f, 0xff00eeee);
+    }
+
+    {
+      auto px = Max::get().player_room()->x * 40 +
+                (Max::get().player_position()->x / 320.f * 40.f);
+      auto py = Max::get().player_room()->y * 22 +
+                (Max::get().player_position()->y / 180.f * 22.f);
+      ImGui::GetWindowDrawList()->AddCircleFilled(
+          ImVec2(a.x + d.x + px - c.x - bordersize.x,
+                 a.y + d.y + py - c.y - bordersize.y),
+          4.f, 0xee0000ee);
+    }
   }
 }
 
@@ -337,6 +353,8 @@ bool UI::Keys() {
       *Max::get().player_state() = 0;
   } else if (ImGui::IsKeyChordPressed(keys["toggle_godmode"]))
     options["cheat_godmode"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["warp"]))
+    doWarp = true;
   else
     return false;
   return true;
@@ -454,21 +472,30 @@ bool UI::Block() {
 }
 
 void UI::CreateMap() {
-  auto *raw_map = (void *)Max::get().minimap();
+  auto *raw_map = (uint8_t *)Max::get().minimap();
   if (raw_map == NULL)
     return;
 
   int image_width = 800;
   int image_height = 528;
   int length = image_width * image_height * 4;
-  memcpy(minimap, raw_map, length);
 
   int i = 0;
+  if (options["map_reveal"].value) {
+    do {
+      raw_map[i + 3] = 0xf;
+      i += 4;
+    } while (i < length);
+  }
+
+  memcpy(minimap, raw_map, length);
+
+  i = 0;
   do {
     if (minimap[i + 3] == 0xf)
       minimap[i + 3] = 0xff;
     else
-      minimap[i + 3] = options["map_reveal"].value ? 0x40 : minimap[i + 3];
+      minimap[i + 3] = options["map_show"].value ? 0x40 : minimap[i + 3];
     i += 4;
   } while (i < length);
 
