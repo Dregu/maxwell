@@ -50,19 +50,17 @@ fCoord *Max::player_position() { return (fCoord *)(player()); }
 
 fCoord *Max::player_velocity() { return (fCoord *)(player() + 0x8); }
 
+int *Max::player_layer() {
+  return (int *)(*(size_t *)get_address("layer_base") +
+                 *(uint32_t *)get_address("layer_offset"));
+}
+
 Coord *Max::warp_room() { return (Coord *)(player() + 0x34); }
 
 Coord *Max::warp_position() { return (Coord *)(player() + 0x3c); }
 
-int *Max::player_layer() { return (int *)(player() + 0x44); }
+int *Max::warp_layer() { return (int *)(player() + 0x44); }
 
 uint8_t *Max::player_state() { return (uint8_t *)(player() + 0x5d); }
 
 uint8_t *Max::player_flute() { return (uint8_t *)(player() + 0x8955); }
-
-/*      static uint8_t* flute = (uint8_t*)(player + 0x8955);
-        static Coord* room = (Coord*)(player + 0x34);
-        static Coord* pos = (Coord*)(player + 0x3c);
-        static fCoord* ppos = (fCoord*)(player);
-        static Coord* rpos = (Coord*)(player + 0x20);
-        static int* layer = (int*)(player + 0x44);*/

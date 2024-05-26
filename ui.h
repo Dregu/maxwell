@@ -13,6 +13,7 @@ typedef int ImGuiKeyChord;
 struct Window {
   std::string title;
   ImGuiKeyChord key;
+  ImGuiWindowFlags flags;
   std::function<void()> cb;
   bool detached;
 };
@@ -43,7 +44,7 @@ public:
 
   void Draw();
   bool Keys();
-  void NewWindow(std::string title, ImGuiKeyChord key,
+  void NewWindow(std::string title, ImGuiKeyChord key, ImGuiWindowFlags flags,
                  std::function<void()> cb);
   void Tooltip(std::string text);
   bool Option(std::string name);

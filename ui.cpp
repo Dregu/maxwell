@@ -46,6 +46,7 @@ void UI::DrawPlayer() {
   ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
   ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
   ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
+  ImGui::InputInt("Warp layer", Max::get().warp_layer());
   if (ImGui::Button("Warp now"))
     doWarp = true;
 }
@@ -73,13 +74,13 @@ void UI::DrawMap() {
     lastMinimapFrame = ImGui::GetFrameCount();
   }
   if (minimap_init) {
-    ImGui::PushStyleColor(ImGuiCol_Button, 0);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
     auto a = ImGui::GetCursorPos();
     auto b = ImGui::GetMousePos();
     auto c = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
     auto d = ImGui::GetWindowPos();
+    ImGui::PushStyleColor(ImGuiCol_Button, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
     ImGui::ImageButton((ImTextureID)minimap_srv_gpu_handle.ptr, mapsize,
                        ImVec2(0, 0), ImVec2(1, 1), 0);
     Tooltip("Right click on the map to warp anywhere!");
@@ -100,6 +101,12 @@ void UI::DrawMap() {
       }
     }
     ImGui::PopStyleColor(3);
+    auto px = Max::get().player_room()->x * 40 +
+              (Max::get().player_position()->x / 320.f * 40.f);
+    auto py = Max::get().player_room()->y * 22 +
+              (Max::get().player_position()->y / 180.f * 22.f);
+    ImGui::GetWindowDrawList()->AddCircleFilled(
+        ImVec2(a.x + d.x + px - c.x, a.y + d.y + py - c.y), 4.f, 0xee0000ee);
   }
 }
 
@@ -118,8 +125,9 @@ void UI::DrawOptions() {
     SetWindowPos(hWnd, NULL, 0, 0, windowScale * 320 + dx,
                  windowScale * 180 + dy, 2);
   }
-  ImGui::InputFloat2("Display", &io.DisplaySize.x, "%.0f",
-                     ImGuiInputTextFlags_ReadOnly);
+  // ImGui::InputFloat2("Display", &io.DisplaySize.x, "%.0f",
+  // ImGuiInputTextFlags_ReadOnly);
+  ImGui::SliderFloat("Alpha", &ImGui::GetStyle().Alpha, 0.2f, 1.0f, "%.1f");
 }
 
 bool UI::Option(std::string name) {
@@ -131,11 +139,12 @@ bool UI::Option(std::string name) {
 UI::UI() {
   Max::get();
 
-  NewWindow("Player", keys["tool_player"], [this]() { this->DrawPlayer(); });
-  NewWindow("Minimap", keys["tool_map"], [this]() { this->DrawMap(); });
-  NewWindow("Settings", keys["tool_settings"],
+  NewWindow("Player", keys["tool_player"], ImGuiWindowFlags_HorizontalScrollbar,
+            [this]() { this->DrawPlayer(); });
+  NewWindow("Minimap", keys["tool_map"], 0, [this]() { this->DrawMap(); });
+  NewWindow("Settings", 0, keys["tool_settings"],
             [this]() { this->DrawOptions(); });
-  NewWindow("Debug", ImGuiKey_None, [this]() {
+  NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
 
     ImGui::Text("Check: %p", get_address("check"));
@@ -143,6 +152,8 @@ UI::UI() {
     ImGui::Text("Map: %p", Max::get().minimap());
     ImGui::Text("Slots: %p", get_address("slots"));
     ImGui::Text("Slot: %p", Max::get().slot());
+    ImGui::Text("Layer: %p", get_address("layer_base"));
+    ImGui::Text("Layer: %p", get_address("layer_offset"));
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
       ImGui::ShowMetricsWindow();
@@ -199,7 +210,7 @@ void UI::Draw() {
   for (auto *window : windows) {
     if (!window->detached)
       continue;
-    if (ImGui::Begin(window->title.c_str(), &window->detached)) {
+    if (ImGui::Begin(window->title.c_str(), &window->detached, window->flags)) {
       window->cb();
       ImGui::End();
     }
@@ -243,9 +254,9 @@ void UI::Draw() {
   }
 }
 
-void UI::NewWindow(std::string title, ImGuiKeyChord key,
+void UI::NewWindow(std::string title, ImGuiKeyChord key, ImGuiWindowFlags flags,
                    std::function<void()> cb) {
-  windows.push_back(new Window{title, key, cb});
+  windows.push_back(new Window{title, key, flags, cb});
 }
 
 void UI::Tooltip(std::string text) {

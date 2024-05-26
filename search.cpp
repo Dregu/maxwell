@@ -485,6 +485,27 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         "keyboard"sv,
         PatternCommandBuffer{}.from_exe_base(0x13aba),
     },
+    {
+        // RE:
+        "layer_base"sv,
+        PatternCommandBuffer{}
+            .find_inst("4c 8b 35 .. .. .. .. 48 8d 9e 10 36 03 00"_gh)
+            .offset(14)
+            .decode_call()
+            .find_next_inst("48 8b 05"_gh)
+            .decode_pc()
+            .at_exe(),
+    },
+    {
+        // RE:
+        "layer_offset"sv,
+        PatternCommandBuffer{}
+            .find_inst("4c 8b 35 .. .. .. .. 48 8d 9e 10 36 03 00"_gh)
+            .offset(14)
+            .decode_call()
+            .find_after_inst("8b 80"_gh)
+            .at_exe(),
+    },
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
 
