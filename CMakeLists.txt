@@ -64,7 +64,7 @@ add_library(dll SHARED
     memory.cpp memory.h
     search.cpp search.h
     virtual_table.cpp virtual_table.h
-    stb.h
+    version.cpp version.h
     ghidra_byte_string.h
     tokenize.h
     logger.h
@@ -75,14 +75,32 @@ target_link_libraries(dll PRIVATE
     imgui
     fmt)
 
-# add_dependencies(dll exe)
-# set_target_properties(dll PROPERTIES OUTPUT_NAME MAXWELL)
+set_target_properties(dll PROPERTIES OUTPUT_NAME MAXWELL)
 
-# add_executable(exe
-# main.cpp)
-# target_link_libraries(exe PRIVATE
-# detours)
-# add_dependencies(exe dll)
-# set_target_properties(exe PROPERTIES OUTPUT_NAME MAXWELL)
+add_executable(exe
+    main.cpp
+    injector.cpp injector.h
+    cmd_line.cpp cmd_line.h
+    version.cpp version.h
+    logger.h)
+target_link_libraries(exe PRIVATE
+    detours
+    fmt)
+add_dependencies(exe dll)
+set_target_properties(exe PROPERTIES OUTPUT_NAME MAXWELL)
+
 add_compile_definitions(NOMINMAX)
 add_compile_definitions(WIN32_LEAN_AND_MEAN)
+
+execute_process(
+    COMMAND git describe --always --dirty=-modified
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE MAXWELL_GIT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+target_compile_definitions(exe PRIVATE
+    GIT_VERSION=${MAXWELL_GIT_VERSION}
+)
+target_compile_definitions(dll PRIVATE
+    GIT_VERSION=${MAXWELL_GIT_VERSION}
+)

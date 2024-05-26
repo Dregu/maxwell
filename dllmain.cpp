@@ -4,6 +4,7 @@
 
 #include "hook.h"
 #include "logger.h"
+#include "version.h"
 
 DWORD WINAPI CreateConsole() {
   AllocConsole();
@@ -39,4 +40,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
   }
   }
   return TRUE;
+}
+
+extern "C" __declspec(dllexport) const char *dll_version() {
+  return get_version_cstr();
 }
