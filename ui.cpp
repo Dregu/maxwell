@@ -144,29 +144,43 @@ void UI::DrawPlayer() {
     ImGui::InputInt("Warp layer", Max::get().warp_layer());
     if (ImGui::Button("Warp now"))
       doWarp = true;
+    // TODO: Add saveable custom warp positions from current player/warp
+    // position
   }
   ImGui::PopItemWidth();
 }
 
+// TODO: Add option to hide border rooms
 void UI::DrawMap() {
   // ImGui::Text("CPU: %p", minimap_srv_cpu_handle);
   // ImGui::Text("GPU: %p", minimap_srv_gpu_handle);
   // ImGui::Text("TID: %p", minimap_texture);
   ImGuiIO &io = ImGui::GetIO();
-  static ImVec2 mapsize{800, 528};
+  static const ImVec2 realmapsize{800, 528};
+  ImVec2 bordersize{realmapsize.x / 20 * 2, realmapsize.y / 24 * 4};
+  ImVec2 mapsize{realmapsize.x - bordersize.x * 2,
+                 realmapsize.y - bordersize.y * 2};
+  ImVec2 uv0{bordersize.x / realmapsize.x, bordersize.y / realmapsize.y};
+  ImVec2 uv1{1 - uv0.x, 1 - uv0.y};
+  if (!options["noborder"].value) {
+    mapsize = realmapsize;
+    bordersize = {0, 0};
+    uv0 = {0, 0};
+    uv1 = {1, 1};
+  }
   static Coord cpos{0, 0};
   static Coord wroom{0, 0};
   static Coord wpos{0, 0};
-  ImGui::PushItemWidth(250.f);
+  ImGui::PushItemWidth(0.3f * mapsize.x);
   ImGui::InputInt2("Room", &wroom.x);
-  ImGui::SameLine(360.f);
+  ImGui::SameLine(0.45f * mapsize.x);
   ImGui::InputInt2("Position", &wpos.x);
   ImGui::PopItemWidth();
   ImGui::SameLine(mapsize.x - 60.f);
   if (ImGui::Button("Update", ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
                                      ImGui::GetTextLineHeightWithSpacing())) ||
       (options["automap"].value &&
-       ImGui::GetFrameCount() > lastMinimapFrame + 30) ||
+       ImGui::GetFrameCount() > lastMinimapFrame + 15) ||
       !minimap_init) {
     CreateMap();
     lastMinimapFrame = ImGui::GetFrameCount();
@@ -179,16 +193,16 @@ void UI::DrawMap() {
     ImGui::PushStyleColor(ImGuiCol_Button, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
-    ImGui::ImageButton((ImTextureID)minimap_srv_gpu_handle.ptr, mapsize,
-                       ImVec2(0, 0), ImVec2(1, 1), 0);
+    ImGui::ImageButton((ImTextureID)minimap_srv_gpu_handle.ptr, mapsize, uv0,
+                       uv1, 0);
     Tooltip("Right click on the map to warp anywhere!");
     if (ImGui::IsItemHovered()) {
-      cpos.x = (b.x - d.x) - a.x + c.x;
-      cpos.y = (b.y - d.y) - a.y + c.y;
-      wroom.x = cpos.x / mapsize.x * 800 / 40;
-      wroom.y = cpos.y / mapsize.y * 528 / 22;
-      wpos.x = ((int)(cpos.x / mapsize.x * 800) % 40) * 8;
-      wpos.y = ((int)(cpos.y / mapsize.y * 528) % 22) * 8;
+      cpos.x = (b.x - d.x) - a.x + c.x + bordersize.x;
+      cpos.y = (b.y - d.y) - a.y + c.y + bordersize.y;
+      wroom.x = cpos.x / realmapsize.x * 800 / 40;
+      wroom.y = cpos.y / realmapsize.y * 528 / 22;
+      wpos.x = ((int)(cpos.x / realmapsize.x * 800) % 40) * 8;
+      wpos.y = ((int)(cpos.y / realmapsize.y * 528) % 22) * 8;
       if (io.MouseDown[1]) {
         *Max::get().player_state() = 18;
         *Max::get().warp_room() = wroom;
@@ -204,7 +218,9 @@ void UI::DrawMap() {
     auto py = Max::get().player_room()->y * 22 +
               (Max::get().player_position()->y / 180.f * 22.f);
     ImGui::GetWindowDrawList()->AddCircleFilled(
-        ImVec2(a.x + d.x + px - c.x, a.y + d.y + py - c.y), 4.f, 0xee0000ee);
+        ImVec2(a.x + d.x + px - c.x - bordersize.x,
+               a.y + d.y + py - c.y - bordersize.y),
+        4.f, 0xee0000ee);
   }
 }
 
@@ -248,9 +264,10 @@ UI::UI() {
   Max::get();
 
   NewWindow("Player", keys["tool_player"], 0, [this]() { this->DrawPlayer(); });
-  NewWindow("Minimap", keys["tool_map"], ImGuiWindowFlags_HorizontalScrollbar,
+  NewWindow("Minimap", keys["tool_map"], ImGuiWindowFlags_AlwaysAutoResize,
             [this]() { this->DrawMap(); });
-  NewWindow("Settings", keys["tool_settings"], 0,
+  NewWindow("Settings", keys["tool_settings"],
+            ImGuiWindowFlags_AlwaysAutoResize,
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();

@@ -39,14 +39,16 @@ private:
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
   };
+  // TODO: Save to ini
   std::map<std::string, Setting> options{
       {"visible", {true, "Show UI", "toggle_ui"}},
-      {"tooltips", {true, "Show tooltips"}},
+      {"tooltips", {false, "Show tooltips"}},
       {"automap", {true, "Auto-update minimap"}},
-      {"mouse", {true, "Right click teleport"}},
-      {"block_input", {true, "Block game input on text input"}},
+      {"mouse", {true, "Right click game area to teleport"}},
+      {"block_input", {true, "Block game input on UI input"}},
       {"noclip", {false, "Noclip", "toggle_noclip"}},
       {"godmode", {false, "Godmode", "toggle_godmode"}},
+      {"noborder", {true, "Hide minimap borders"}},
   };
   bool doWarp = false;
   bool inMenu = false;
