@@ -4,8 +4,8 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <functional>
+#include <map>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 typedef int ImGuiKeyChord;
@@ -29,7 +29,7 @@ ImVec2 Normalize(ImVec2 pos);
 class UI {
 private:
   std::vector<Window *> windows;
-  std::unordered_map<std::string, ImGuiKeyChord> keys{
+  std::map<std::string, ImGuiKeyChord> keys{
       {"toggle_ui", ImGuiKey_F10},
       {"tool_player", ImGuiKey_F1},
       {"tool_map", ImGuiKey_F2},
@@ -38,7 +38,7 @@ private:
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
   };
-  std::unordered_map<std::string, Setting> options{
+  std::map<std::string, Setting> options{
       {"visible", {true, "Show UI", "toggle_ui"}},
       {"tooltips", {true, "Show tooltips"}},
       {"automap", {true, "Auto-update minimap"}},

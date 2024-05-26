@@ -514,7 +514,16 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
                 "c7 46 7c 00 00 00 00 c7 46 6c 00 00 00 00 8a 86 90 00 00 00"_gh)
             .at_exe(),
     },
-
+    {
+        // RE:
+        "update_game"sv,
+        PatternCommandBuffer{}.from_exe_base(0x1b6c0),
+    },
+    {
+        // RE: WriteFile
+        "save_game"sv,
+        PatternCommandBuffer{}.from_exe_base(0x77820),
+    },
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
 

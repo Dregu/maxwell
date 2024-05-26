@@ -21,7 +21,7 @@ struct Max {
   static Max &get();
   static State state();
   Minimap minimap();
-  uint8_t slot_number();
+  uint8_t *slot_number();
   Slot slot();
   Player player();
   Coord *player_room();
@@ -34,4 +34,6 @@ struct Max {
   uint8_t *player_flute();
   uint8_t *player_state();
   uint8_t *player_hp();
+  Coord *spawn_room();
+  void save_game();
 };

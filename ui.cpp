@@ -37,8 +37,17 @@ ImVec2 Normalize(ImVec2 pos) {
 }
 
 void UI::DrawPlayer() {
-  ImGui::Text("Save slot number: %d", Max::get().slot_number());
+  ImGui::PushItemWidth(120.f);
+  ImGui::InputScalar("Slot", ImGuiDataType_U8, Max::get().slot_number(), NULL,
+                     NULL, "%d", ImGuiInputTextFlags_ReadOnly);
+  ImGui::SameLine();
+  if (ImGui::Button("Save game")) {
+    *Max::get().spawn_room() = *Max::get().player_room();
+    Max::get().save_game();
+  }
+
   ImGui::InputScalar("Health", ImGuiDataType_U8, Max::get().player_hp());
+  ImGui::InputInt2("Spawn", &Max::get().spawn_room()->x);
   ImGui::InputInt2("Room", &Max::get().player_room()->x);
   ImGui::InputFloat2("Position", &Max::get().player_position()->x);
   ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
@@ -50,6 +59,7 @@ void UI::DrawPlayer() {
   ImGui::InputInt("Warp layer", Max::get().warp_layer());
   if (ImGui::Button("Warp now"))
     doWarp = true;
+  ImGui::PopItemWidth();
 }
 
 void UI::DrawMap() {
@@ -154,7 +164,7 @@ UI::UI() {
   NewWindow("Player", keys["tool_player"], 0, [this]() { this->DrawPlayer(); });
   NewWindow("Minimap", keys["tool_map"], ImGuiWindowFlags_HorizontalScrollbar,
             [this]() { this->DrawMap(); });
-  NewWindow("Settings", 0, keys["tool_settings"],
+  NewWindow("Settings", keys["tool_settings"], 0,
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
@@ -202,35 +212,35 @@ void UI::Draw() {
   doWarp = false;
   Keys();
   io.MouseDrawCursor = options["visible"].value;
-  if (!options["visible"].value)
-    return;
-
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-  if (ImGui::BeginMainMenuBar()) {
-    ImGui::PopStyleVar(2);
-    for (auto *window : windows) {
-      if (window->detached)
-        continue;
-      inMenu = true;
-      if (ImGui::BeginMenu(window->title.c_str(), window->key)) {
-        window->cb();
-        lastMenuFrame = ImGui::GetFrameCount();
-        ImGui::EndMenu();
+  if (options["visible"].value) {
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+    if (ImGui::BeginMainMenuBar()) {
+      ImGui::PopStyleVar(2);
+      for (auto *window : windows) {
+        if (window->detached)
+          continue;
+        inMenu = true;
+        if (ImGui::BeginMenu(window->title.c_str(), window->key)) {
+          window->cb();
+          lastMenuFrame = ImGui::GetFrameCount();
+          ImGui::EndMenu();
+        }
+        Tooltip("Right click to detach a tool from the menu as window.");
+        inMenu = false;
+        if (io.MouseClicked[1] && ImGui::IsItemHovered())
+          window->detached = true;
       }
-      Tooltip("Right click to detach a tool from the menu as window.");
-      inMenu = false;
-      if (io.MouseClicked[1] && ImGui::IsItemHovered())
-        window->detached = true;
+      ImGui::EndMainMenuBar();
     }
-    ImGui::EndMainMenuBar();
-  }
-  for (auto *window : windows) {
-    if (!window->detached)
-      continue;
-    if (ImGui::Begin(window->title.c_str(), &window->detached, window->flags)) {
-      window->cb();
-      ImGui::End();
+    for (auto *window : windows) {
+      if (!window->detached)
+        continue;
+      if (ImGui::Begin(window->title.c_str(), &window->detached,
+                       window->flags)) {
+        window->cb();
+        ImGui::End();
+      }
     }
   }
 

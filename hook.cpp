@@ -204,7 +204,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.IniFilename = "MAXWELL.ini";
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // TODO: doesn't work
 
     io.Fonts->AddFontFromMemoryCompressedTTF(OLFont_compressed_data,
                                              OLFont_compressed_size, 14.0f);
@@ -487,8 +487,9 @@ Status Unhook(uint16_t _index, void **_original, void *_function) {
 }
 
 LRESULT APIENTRY WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-  if (g_Initialized)
-    ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
+  if (g_Initialized &&
+      ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+    return true;
   return CallWindowProc(OriginalWndProc, hWnd, msg, wParam, lParam);
 }
 
