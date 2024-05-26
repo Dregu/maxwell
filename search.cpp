@@ -446,10 +446,11 @@ using AddressRule = std::function<std::optional<size_t>(
 std::unordered_map<std::string_view, AddressRule> g_address_rules{
     {
         // RE: Used in setupGame and updateGame
+        // 48 89 35 54 58 be 02 e8 7f 8b 04 00 48 81 c6 08 1c b0 00
         "get_state_func"sv,
         PatternCommandBuffer{}
             .find_inst(
-                "48 89 35 54 58 be 02 e8 7f 8b 04 00 48 81 c6 08 1c b0 00"_gh)
+                "48 89 35 .. .. .. .. e8 .. .. .. .. 48 81 c6 .. .. .. .. 48 89 f1"_gh)
             .offset(7)
             .decode_call()
             .at_exe(),
