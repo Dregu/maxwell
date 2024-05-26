@@ -1,3 +1,4 @@
+#include <array>
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -6,6 +7,56 @@
 #include "memory.h"
 #include "search.h"
 #include "ui.h"
+#include "version.h"
+
+std::array equipment_names{
+    "Unknown", "Firecrackers", "Flute ",   "Lantern ", "Top ",
+    "Disc ",   "BWand ",       "Yoyo ",    "Slink ",   "Remote ",
+    "Ball ",   "Wheel ",       "UVLight ",
+};
+
+std::array item_names{
+    "MockDisc",  "SMedal",  "Cake",   "HouseKey",
+    "OfficeKey", "CageKey", "EMedal", "FPack",
+};
+
+std::array misc_names{
+    "HouseOpened",
+    "OfficeOpened",
+    "ClosetOpened",
+    "Unknown",
+    "Unknown",
+    "Unknown",
+    "Unknown",
+    "Unknown",
+
+    "SwitchState",
+    "MapCollected",
+    "StampsCollected",
+    "PencilCollected",
+    "ChameleonDefeated",
+    "CRingCollected",
+    "EatenByChameleon",
+    "InsertedSMedal",
+
+    "EMedalInserted",
+    "WingsAcquired",
+    "WokeUp",
+    "BBWandUpgrade",
+    "ManticoreEgg65",
+    "AllCandlesLit",
+    "SingularityActive",
+    "ManticoreEggPlaced",
+
+    "BatDefeated",
+    "OstrichFreed",
+    "OstrichDefeated",
+    "EelFightActive",
+    "EelDefeated",
+    "NoDiscInShrine",
+    "NoDiscInStatue",
+    "Unknown",
+};
 
 namespace ImGui {
 // Wrapper for menu that can be opened with a global shortcut
@@ -22,6 +73,24 @@ inline bool MenuItem(const char *label, const ImGuiKeyChord key) {
   return ImGui::MenuItem(label, shortcut) || ImGui::IsKeyChordPressed(key);
 }
 } // namespace ImGui
+
+template <std::size_t SIZE, typename T>
+void Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
+           bool show_number = true) {
+  for (int idx{0}; idx < SIZE && idx < sizeof(T) * 8; ++idx) {
+    T value = (T)std::pow(2, idx);
+    bool on = (*flag_field & value) == value;
+
+    if (names_array[idx][0] != '\0' &&
+        ImGui::Checkbox(
+            show_number
+                ? fmt::format("{}: {}", idx + 1, names_array[idx]).c_str()
+                : names_array[idx],
+            &on)) {
+      *flag_field ^= value;
+    }
+  }
+}
 
 ImVec2 Normalize(ImVec2 pos) {
   ImGuiIO &io = ImGui::GetIO();
@@ -45,20 +114,37 @@ void UI::DrawPlayer() {
     *Max::get().spawn_room() = *Max::get().player_room();
     Max::get().save_game();
   }
+  if (ImGui::CollapsingHeader("Equipment"))
+    Flags(equipment_names, Max::get().equipment(), false);
+  if (ImGui::CollapsingHeader("Items"))
+    Flags(item_names, Max::get().items(), false);
+  if (ImGui::CollapsingHeader("Miscellaneous"))
+    Flags(misc_names, Max::get().upgrades(), false);
 
-  ImGui::InputScalar("Health", ImGuiDataType_U8, Max::get().player_hp());
-  ImGui::InputInt2("Spawn", &Max::get().spawn_room()->x);
-  ImGui::InputInt2("Room", &Max::get().player_room()->x);
-  ImGui::InputFloat2("Position", &Max::get().player_position()->x);
-  ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
-  ImGui::InputInt("Layer", Max::get().player_layer());
-  ImGui::InputScalar("State", ImGuiDataType_U8, Max::get().player_state());
-  ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
-  ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
-  ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
-  ImGui::InputInt("Warp layer", Max::get().warp_layer());
-  if (ImGui::Button("Warp now"))
-    doWarp = true;
+  if (ImGui::CollapsingHeader("Consumables")) {
+    ImGui::InputScalar("Health", ImGuiDataType_U8, Max::get().player_hp());
+    ImGui::InputScalar("More health", ImGuiDataType_U8,
+                       Max::get().player_hp() + 1);
+    ImGui::InputScalar("Keys", ImGuiDataType_U8, Max::get().keys());
+    ImGui::InputScalar("Matches", ImGuiDataType_U8, Max::get().keys() + 1);
+    ImGui::InputScalar("Firecrackers", ImGuiDataType_U8, Max::get().keys() + 2);
+  }
+  if (ImGui::CollapsingHeader("Position")) {
+    ImGui::InputInt2("Spawn", &Max::get().spawn_room()->x);
+    ImGui::InputInt2("Room", &Max::get().player_room()->x);
+    ImGui::InputFloat2("Position", &Max::get().player_position()->x);
+    ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
+    ImGui::InputInt("Layer", Max::get().player_layer());
+    ImGui::InputScalar("State", ImGuiDataType_U8, Max::get().player_state());
+    ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
+  }
+  if (ImGui::CollapsingHeader("Warp")) {
+    ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
+    ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
+    ImGui::InputInt("Warp layer", Max::get().warp_layer());
+    if (ImGui::Button("Warp now"))
+      doWarp = true;
+  }
   ImGui::PopItemWidth();
 }
 
@@ -208,7 +294,12 @@ bool UI::Keys() {
 
 void UI::Draw() {
   ImGuiIO &io = ImGui::GetIO();
-
+  std::string version = fmt::format("MAXWELL {}", get_version());
+  ImGui::GetBackgroundDrawList()->AddText(
+      ImVec2(io.DisplaySize.x / 2.f -
+                 ImGui::CalcTextSize(version.c_str()).x / 2.f,
+             io.DisplaySize.y - ImGui::GetTextLineHeightWithSpacing()),
+      0x99999999, version.c_str());
   doWarp = false;
   Keys();
   io.MouseDrawCursor = options["visible"].value;

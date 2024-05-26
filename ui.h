@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include <array>
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <functional>

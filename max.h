@@ -17,6 +17,7 @@ struct fCoord {
   float y;
 };
 
+// TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
   static State state();
@@ -35,5 +36,9 @@ struct Max {
   uint8_t *player_state();
   uint8_t *player_hp();
   Coord *spawn_room();
+  uint16_t *equipment();
+  uint8_t *items();
+  uint32_t *upgrades();
+  uint8_t *keys();
   void save_game();
 };

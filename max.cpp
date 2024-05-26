@@ -51,11 +51,11 @@ State Max::state() {
 Minimap Max::minimap() { return *(size_t *)get_address("slots") + 0x2490b8; }
 
 uint8_t *Max::slot_number() {
-  return (uint8_t *)((size_t *)get_address("slots") + 0x40c);
+  return (uint8_t *)(*(size_t *)get_address("slots") + 0x40c);
 }
 
 Slot Max::slot() {
-  return *(size_t *)get_address("slots") + SLOT_SIZE * *slot_number();
+  return *(size_t *)get_address("slots") + SLOT_SIZE * (*slot_number());
 }
 
 Player Max::player() {
@@ -86,6 +86,14 @@ uint8_t *Max::player_flute() { return (uint8_t *)(player() + 0x8955); }
 uint8_t *Max::player_hp() { return (uint8_t *)(slot() + 0x5cc); }
 
 Coord *Max::spawn_room() { return (Coord *)(slot() + 0x5ec); }
+
+uint16_t *Max::equipment() { return (uint16_t *)(slot() + 0x5f4); }
+
+uint8_t *Max::items() { return (uint8_t *)(slot() + 0x5f6); }
+
+uint32_t *Max::upgrades() { return (uint32_t *)(slot() + 0x604); }
+
+uint8_t *Max::keys() { return (uint8_t *)(slot() + 0x5c9); }
 
 void Max::save_game() {
   using SaveGameFunc = void();
