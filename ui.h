@@ -18,6 +18,12 @@ struct Window {
   bool detached;
 };
 
+struct Setting {
+  bool value;
+  std::string name;
+  std::string key;
+};
+
 ImVec2 Normalize(ImVec2 pos);
 
 class UI {
@@ -32,10 +38,14 @@ private:
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
   };
-  std::unordered_map<std::string, bool> options{
-      {"visible", true},  {"tooltips", true},    {"automap", true},
-      {"mouse", true},    {"block_input", true}, {"noclip", false},
-      {"godmode", false},
+  std::unordered_map<std::string, Setting> options{
+      {"visible", {true, "Show UI", "toggle_ui"}},
+      {"tooltips", {true, "Show tooltips"}},
+      {"automap", {true, "Auto-update minimap"}},
+      {"mouse", {true, "Right click teleport"}},
+      {"block_input", {true, "Block game input on text input"}},
+      {"noclip", {false, "Noclip", "toggle_noclip"}},
+      {"godmode", {false, "Godmode", "toggle_godmode"}},
   };
   bool doWarp = false;
   bool inMenu = false;

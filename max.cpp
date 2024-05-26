@@ -64,3 +64,5 @@ int *Max::warp_layer() { return (int *)(player() + 0x44); }
 uint8_t *Max::player_state() { return (uint8_t *)(player() + 0x5d); }
 
 uint8_t *Max::player_flute() { return (uint8_t *)(player() + 0x8955); }
+
+uint8_t *Max::player_hp() { return (uint8_t *)(slot() + 0x5cc); }

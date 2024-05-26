@@ -38,6 +38,7 @@ ImVec2 Normalize(ImVec2 pos) {
 
 void UI::DrawPlayer() {
   ImGui::Text("Save slot number: %d", Max::get().slot_number());
+  ImGui::InputScalar("Health", ImGuiDataType_U8, Max::get().player_hp());
   ImGui::InputInt2("Room", &Max::get().player_room()->x);
   ImGui::InputFloat2("Position", &Max::get().player_position()->x);
   ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
@@ -68,7 +69,8 @@ void UI::DrawMap() {
   ImGui::SameLine(mapsize.x - 60.f);
   if (ImGui::Button("Update", ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
                                      ImGui::GetTextLineHeightWithSpacing())) ||
-      (options["automap"] && ImGui::GetFrameCount() > lastMinimapFrame + 30) ||
+      (options["automap"].value &&
+       ImGui::GetFrameCount() > lastMinimapFrame + 30) ||
       !minimap_init) {
     CreateMap();
     lastMinimapFrame = ImGui::GetFrameCount();
@@ -112,11 +114,11 @@ void UI::DrawMap() {
 
 void UI::DrawOptions() {
   ImGuiIO &io = ImGui::GetIO();
-  bool noclip = options["noclip"];
+  bool noclip = options["noclip"].value;
   for (auto &[name, enabled] : options) {
     Option(name);
   }
-  if (noclip && !options["noclip"])
+  if (noclip && !options["noclip"].value)
     *Max::get().player_state() = 0;
   if (ImGui::SliderInt("Window Scale", &windowScale, 1, 10)) {
     RECT c;
@@ -134,9 +136,16 @@ void UI::DrawOptions() {
 }
 
 bool UI::Option(std::string name) {
+  std::string desc =
+      options[name].name +
+      (options[name].key != ""
+           ? " (" +
+                 std::string(ImGui::GetKeyChordName(keys[options[name].key])) +
+                 ")"
+           : "");
   if (inMenu)
-    return ImGui::MenuItem(name.c_str(), "", &options[name]);
-  return ImGui::Checkbox(name.c_str(), &options[name]);
+    return ImGui::MenuItem(desc.c_str(), "", &options[name].value);
+  return ImGui::Checkbox(desc.c_str(), &options[name].value);
 }
 
 UI::UI() {
@@ -175,13 +184,13 @@ bool UI::Keys() {
   if (ImGui::IsKeyReleased((ImGuiKey)keys["escape"]))
     ImGui::SetWindowFocus(nullptr);
   else if (ImGui::IsKeyChordPressed(keys["toggle_ui"]))
-    options["visible"] ^= true;
+    options["visible"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_noclip"])) {
-    options["noclip"] ^= true;
-    if (!options["noclip"])
+    options["noclip"].value ^= true;
+    if (!options["noclip"].value)
       *Max::get().player_state() = 0;
   } else if (ImGui::IsKeyChordPressed(keys["toggle_godmode"]))
-    options["godmode"] ^= true;
+    options["godmode"].value ^= true;
   else
     return false;
   return true;
@@ -192,8 +201,8 @@ void UI::Draw() {
 
   doWarp = false;
   Keys();
-  io.MouseDrawCursor = options["visible"];
-  if (!options["visible"])
+  io.MouseDrawCursor = options["visible"].value;
+  if (!options["visible"].value)
     return;
 
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
@@ -234,7 +243,7 @@ void UI::Draw() {
 
     bool inbound = x > 0 && x < 320 && y > 0 && y < 180;
 
-    if (options["mouse"] && io.MouseDown[1] && !io.WantCaptureMouse &&
+    if (options["mouse"].value && io.MouseDown[1] && !io.WantCaptureMouse &&
         ImGui::IsMousePosValid()) {
       if (inbound || (ImGui::GetFrameCount() % 10) == 0) {
         Max::get().player_position()->x = x - 4;
@@ -254,7 +263,7 @@ void UI::Draw() {
     recover_mem("warp");
   }
 
-  if (options["block_input"]) {
+  if (options["block_input"].value) {
     if (Block()) {
       write_mem_recoverable("block", get_address("keyboard"), get_nop(6), true);
     } else {
@@ -262,13 +271,13 @@ void UI::Draw() {
     }
   }
 
-  if (options["godmode"]) {
+  if (options["godmode"].value) {
     write_mem_recoverable("god", get_address("damage"), get_nop(6), true);
   } else {
     recover_mem("god");
   }
 
-  if (options["noclip"]) {
+  if (options["noclip"].value) {
     *Max::get().player_state() = 18;
   }
 }
@@ -279,7 +288,7 @@ void UI::NewWindow(std::string title, ImGuiKeyChord key, ImGuiWindowFlags flags,
 }
 
 void UI::Tooltip(std::string text) {
-  if (options["tooltips"] && ImGui::IsItemHovered())
+  if (options["tooltips"].value && ImGui::IsItemHovered())
     ImGui::SetTooltip(text.c_str());
 }
 

@@ -33,4 +33,5 @@ struct Max {
   int *warp_layer();
   uint8_t *player_flute();
   uint8_t *player_state();
+  uint8_t *player_hp();
 };
