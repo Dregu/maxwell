@@ -27,11 +27,7 @@ jobs:
 
       - name: Create artifacts
         run: |
-          mkdir MAXWELL
-          move build\Release\MAXWELL.dll MAXWELL\MAXWELL.dll
-          move build\Release\MAXWELL.exe MAXWELL\MAXWELL.exe
-          move README.md MAXWELL\README.txt
-          7z a MAXWELL.zip MAXWELL\
+          7z a MAXWELL.zip build\
 
       - name: Create release
         uses: marvinpinto/action-automatic-releases@v1.1.0
