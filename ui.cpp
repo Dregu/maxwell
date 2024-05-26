@@ -23,23 +23,28 @@ inline bool MenuItem(const char *label, const ImGuiKeyChord key) {
 }
 } // namespace ImGui
 
-void DrawWarp() {
-  ImGui::Text("Warping here");
-  ImGui::Text("Warping here");
-  ImGui::Text("Warping here");
-  ImGui::Text("Warping here");
-  ImGui::Text("Warping here");
+void UI::DrawPlayer() {
+  ImGui::InputInt2("Room", &Max::get().player_room()->x);
+  ImGui::InputFloat2("Position", &Max::get().player_position()->x);
+  ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
+  ImGui::InputInt("Layer", Max::get().player_layer());
+  ImGui::InputScalar("State", ImGuiDataType_U8, Max::get().player_state());
+  ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
+  ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
+  ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
+  if (ImGui::Button("Warp now"))
+    doWarp = true;
 }
 
 void UI::DrawMap() {
   // ImGui::Text("CPU: %p", minimap_srv_cpu_handle);
   // ImGui::Text("GPU: %p", minimap_srv_gpu_handle);
   // ImGui::Text("TID: %p", minimap_texture);
+  ImGuiIO &io = ImGui::GetIO();
   static ImVec2 mapsize{800, 528};
   static Coord cpos{0, 0};
   static Coord wroom{0, 0};
   static Coord wpos{0, 0};
-  bool do_warp;
   ImGui::PushItemWidth(250.f);
   ImGui::InputInt2("Room", &wroom.x);
   ImGui::SameLine(360.f);
@@ -48,38 +53,39 @@ void UI::DrawMap() {
   ImGui::SameLine(mapsize.x - 60.f);
   if (ImGui::Button("Update", ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
                                      ImGui::GetTextLineHeightWithSpacing())) ||
+      (options["automap"] && ImGui::GetFrameCount() > lastMinimapFrame + 300) ||
       !minimap_init) {
     CreateMap();
+    lastMinimapFrame = ImGui::GetFrameCount();
   }
   if (minimap_init) {
     ImGui::PushStyleColor(ImGuiCol_Button, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, 0);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
-    if (ImGui::ImageButton((ImTextureID)minimap_srv_gpu_handle.ptr, mapsize,
-                           ImVec2(0, 0), ImVec2(1, 1), 0)) {
-      do_warp = true;
-    }
+    auto a = ImGui::GetCursorPos();
+    auto b = ImGui::GetMousePos();
+    auto c = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+    auto d = ImGui::GetWindowPos();
+    ImGui::ImageButton((ImTextureID)minimap_srv_gpu_handle.ptr, mapsize,
+                       ImVec2(0, 0), ImVec2(1, 1), 0);
+    Tooltip("Right click on the map to warp anywhere!");
     if (ImGui::IsItemHovered()) {
-      auto a = ImGui::GetCursorPos();
-      auto b = ImGui::GetMousePos();
-      auto c = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
-      auto d = ImGui::GetWindowPos();
       cpos.x = (b.x - d.x) - a.x + c.x;
       cpos.y = (b.y - d.y) - a.y + c.y;
       wroom.x = cpos.x / mapsize.x * 800 / 40;
       wroom.y = cpos.y / mapsize.y * 528 / 22;
       wpos.x = ((int)(cpos.x / mapsize.x * 800) % 40) * 8;
       wpos.y = ((int)(cpos.y / mapsize.y * 528) % 22) * 8;
+      if (io.MouseDown[1]) {
+        *Max::get().player_state() = 18;
+        *Max::get().warp_room() = wroom;
+        *Max::get().warp_position() = wpos;
+        doWarp = true;
+      } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
+        *Max::get().player_state() = 0;
+      }
     }
     ImGui::PopStyleColor(3);
-  }
-
-  if (do_warp) {
-    *Max::get().warp_room() = wroom;
-    *Max::get().warp_position() = wpos;
-    write_mem_recoverable("warp", get_address("warp"), "\xEB"sv, true);
-  } else {
-    recover_mem("warp");
   }
 }
 
@@ -98,11 +104,10 @@ bool UI::Option(std::string name) {
 UI::UI() {
   Max::get();
 
-  NewWindow("Warp", keys["tool_warp"], DrawWarp);
+  NewWindow("Player", keys["tool_player"], [this]() { this->DrawPlayer(); });
   NewWindow("Minimap", keys["tool_map"], [this]() { this->DrawMap(); });
   NewWindow("Settings", keys["tool_settings"],
             [this]() { this->DrawOptions(); });
-  NewWindow("Style", ImGuiKey_None, []() { ImGui::ShowStyleEditor(); });
   NewWindow("Debug", ImGuiKey_None, [this]() {
     ImGui::Text("Check: %p", get_address("check"));
     ImGui::Text("State: %p", Max::get().state());
@@ -110,15 +115,13 @@ UI::UI() {
     ImGui::Text("Slots: %p", get_address("slots"));
     ImGui::Text("Slot num: %d", Max::get().slot_number());
     ImGui::Text("Slot: %p", Max::get().slot());
-    ImGui::InputInt2("Player room", &Max::get().player_room()->x);
-    ImGui::InputFloat2("Player position", &Max::get().player_position()->x);
-    ImGui::InputInt("Layer", Max::get().player_layer());
-    ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
-    ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
-    ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
       ImGui::ShowMetricsWindow();
+      if (ImGui::Begin("Styles")) {
+        ImGui::ShowStyleEditor();
+        ImGui::End();
+      }
     }
   });
   DEBUG("MAXWELL UI INITIALIZED");
@@ -127,7 +130,7 @@ UI::UI() {
 UI::~UI() {}
 
 bool UI::Keys() {
-  if (ImGui::IsKeyChordPressed(keys["escape"]))
+  if (ImGui::IsKeyReleased((ImGuiKey)keys["escape"]))
     ImGui::SetWindowFocus(nullptr);
   else if (ImGui::IsKeyChordPressed(keys["toggle_ui"]))
     options["visible"] = !options["visible"];
@@ -137,6 +140,7 @@ bool UI::Keys() {
 }
 
 void UI::Draw() {
+  doWarp = false;
   Keys();
   ImGuiIO &io = ImGui::GetIO();
   io.MouseDrawCursor = options["visible"];
@@ -153,10 +157,11 @@ void UI::Draw() {
       inMenu = true;
       if (ImGui::BeginMenu(window->title.c_str(), window->key)) {
         window->cb();
+        lastMenuFrame = ImGui::GetFrameCount();
         ImGui::EndMenu();
       }
-      inMenu = false;
       Tooltip("Right click to detach a tool from the menu as window.");
+      inMenu = false;
       if (io.MouseClicked[1] && ImGui::IsItemHovered())
         window->detached = true;
     }
@@ -170,6 +175,43 @@ void UI::Draw() {
       ImGui::End();
     }
   }
+
+  {
+    auto mpos = io.MousePos;
+    int x = floor(mpos.x / 4);
+    int y = floor(mpos.y / 4);
+    int rx = x / 8;
+    int ry = y / 8;
+
+    bool inbound = x > 0 && x < 320 && y > 0 && y < 180;
+
+    if (options["mouse"] && io.MouseDown[1] && !io.WantCaptureMouse &&
+        ImGui::IsMousePosValid()) {
+      if (inbound || (ImGui::GetFrameCount() % 10) == 0) {
+        Max::get().player_position()->x = x - 4;
+        Max::get().player_position()->y = y - 4;
+      }
+      Max::get().player_velocity()->x = 0;
+      Max::get().player_velocity()->y = 0;
+      *Max::get().player_state() = 18;
+    } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
+      *Max::get().player_state() = 0;
+    }
+  }
+
+  if (doWarp) {
+    write_mem_recoverable("warp", get_address("warp"), "\xEB"sv, true);
+  } else {
+    recover_mem("warp");
+  }
+
+  if (options["block"]) {
+    if (Block()) {
+      write_mem_recoverable("block", get_address("keyboard"), get_nop(6), true);
+    } else {
+      recover_mem("block");
+    }
+  }
 }
 
 void UI::NewWindow(std::string title, ImGuiKeyChord key,
@@ -179,12 +221,12 @@ void UI::NewWindow(std::string title, ImGuiKeyChord key,
 
 void UI::Tooltip(std::string text) {
   if (options["tooltips"] && ImGui::IsItemHovered())
-    ImGui::SetTooltip("Right click to detach a tool from the menu as window.");
+    ImGui::SetTooltip(text.c_str());
 }
 
 bool UI::Block() {
   ImGuiIO &io = ImGui::GetIO();
-  return io.WantCaptureKeyboard;
+  return io.WantCaptureKeyboard || ImGui::GetFrameCount() < lastMenuFrame + 10;
 }
 
 void UI::CreateMap() {

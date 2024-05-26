@@ -1,11 +1,15 @@
 #define UNICODE
 
+#include "hook.h"
+
+#include <Windows.h>
+#include <detours.h>
+
 #include <atlbase.h>
 #include <backends/imgui_impl_dx12.h>
 #include <backends/imgui_impl_win32.h>
 #include <chrono>
 #include <d3d12.h>
-#include <detours.h>
 #include <dxgi1_4.h>
 #include <fstream>
 #include <imgui.h>
@@ -14,7 +18,6 @@
 #include <thread>
 
 #include "font.h"
-#include "hook.h"
 #include "logger.h"
 #include "search.h"
 #include "ui.h"
@@ -76,6 +79,14 @@ static bool g_Initialized = false;
 
 static UI *g_UI;
 static bool g_skipHook = false;
+
+/*using GetKeyboardStatePtr = bool(PBYTE lpKeyState);
+static GetKeyboardStatePtr *g_keyboard_trampoline{nullptr};
+bool HookGetKeyboardState(PBYTE lpKeyState) {
+  if (ImGui::GetIO().WantCaptureKeyboard)
+    return true;
+  return g_keyboard_trampoline(lpKeyState);
+}*/
 
 long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
                             UINT Flags) {
@@ -487,6 +498,17 @@ Status InstallHooks() {
   Hook(140, (void **)&OriginalPresent, HookPresent);
   Hook(145, (void **)&OriginalResizeBuffers, HookResizeBuffers);
 
+  /*{
+    g_keyboard_trampoline = (GetKeyboardStatePtr *)get_address("keyboard"sv);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach((void **)&g_keyboard_trampoline, HookGetKeyboardState);
+    const LONG error = DetourTransactionCommit();
+    if (error != NO_ERROR) {
+      DEBUG("Failed hooking GetKeyboardState: {}\n", error);
+    }
+  }*/
+
   g_UI = new UI();
 
   return Status::Success;
@@ -496,6 +518,16 @@ Status RemoveHooks() {
   Unhook(54, (void **)&OriginalExecuteCommandLists, HookExecuteCommandLists);
   Unhook(140, (void **)&OriginalPresent, HookPresent);
   Unhook(145, (void **)&OriginalResizeBuffers, HookResizeBuffers);
+
+  /*{
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((void **)&g_keyboard_trampoline, HookGetKeyboardState);
+    const LONG error = DetourTransactionCommit();
+    if (error != NO_ERROR) {
+      DEBUG("Failed unhooking GetKeyboardState: {}\n", error);
+    }
+  }*/
 
   if (Window && OriginalWndProc) {
     SetWindowLongPtr(Window, GWLP_WNDPROC,

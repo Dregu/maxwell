@@ -26,8 +26,10 @@ struct Max {
   Player player();
   Coord *player_room();
   fCoord *player_position();
+  fCoord *player_velocity();
   Coord *warp_room();
   Coord *warp_position();
   int *player_layer();
   uint8_t *player_flute();
+  uint8_t *player_state();
 };

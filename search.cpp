@@ -480,7 +480,11 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .offset(12)
             .at_exe(),
     },
-
+    {
+        // RE: It's a call to GetKeyboardState...
+        "keyboard"sv,
+        PatternCommandBuffer{}.from_exe_base(0x13aba),
+    },
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
 

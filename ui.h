@@ -21,15 +21,18 @@ class UI {
 private:
   std::vector<Window *> windows;
   std::unordered_map<std::string, ImGuiKeyChord> keys{
-      {"toggle_ui", ImGuiKey_F10}, {"tool_warp", ImGuiKey_F1},
+      {"toggle_ui", ImGuiKey_F10}, {"tool_player", ImGuiKey_F1},
       {"tool_map", ImGuiKey_F2},   {"tool_settings", ImGuiKey_F9},
       {"escape", ImGuiKey_Escape},
   };
   std::unordered_map<std::string, bool> options{
-      {"visible", true},
-      {"tooltips", true},
+      {"visible", true}, {"tooltips", true}, {"automap", true},
+      {"mouse", true},   {"block", true},
   };
+  bool doWarp = false;
   bool inMenu = false;
+  int lastMenuFrame = 0;
+  int lastMinimapFrame = 0;
 
 public:
   UI();
@@ -40,11 +43,13 @@ public:
   void NewWindow(std::string title, ImGuiKeyChord key,
                  std::function<void()> cb);
   void Tooltip(std::string text);
-  void DrawOptions();
   bool Option(std::string name);
   bool Block();
   void CreateMap();
+
+  void DrawPlayer();
   void DrawMap();
+  void DrawOptions();
 
   ID3D12Device *pD3DDevice = NULL;
   IDXGISwapChain3 *pSwapChain = NULL;

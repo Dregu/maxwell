@@ -48,11 +48,15 @@ Coord *Max::player_room() { return (Coord *)(player() + 0x20); }
 
 fCoord *Max::player_position() { return (fCoord *)(player()); }
 
+fCoord *Max::player_velocity() { return (fCoord *)(player() + 0x8); }
+
 Coord *Max::warp_room() { return (Coord *)(player() + 0x34); }
 
 Coord *Max::warp_position() { return (Coord *)(player() + 0x3c); }
 
 int *Max::player_layer() { return (int *)(player() + 0x44); }
+
+uint8_t *Max::player_state() { return (uint8_t *)(player() + 0x5d); }
 
 uint8_t *Max::player_flute() { return (uint8_t *)(player() + 0x8955); }
 
