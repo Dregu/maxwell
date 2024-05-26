@@ -105,6 +105,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
       DXGI_SWAP_CHAIN_DESC desc;
       pSwapChain->GetDesc(&desc);
       Window = desc.OutputWindow;
+      g_UI->hWnd = Window;
       if (!OriginalWndProc) {
         OriginalWndProc = (WNDPROC)SetWindowLongPtr(
             Window, GWLP_WNDPROC, (__int3264)(LONG_PTR)WndProc);

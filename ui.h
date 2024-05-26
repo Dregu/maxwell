@@ -17,6 +17,8 @@ struct Window {
   bool detached;
 };
 
+ImVec2 Normalize(ImVec2 pos);
+
 class UI {
 private:
   std::vector<Window *> windows;
@@ -33,6 +35,7 @@ private:
   bool inMenu = false;
   int lastMenuFrame = 0;
   int lastMinimapFrame = 0;
+  int windowScale = 4;
 
 public:
   UI();
@@ -51,6 +54,7 @@ public:
   void DrawMap();
   void DrawOptions();
 
+  HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;
   IDXGISwapChain3 *pSwapChain = NULL;
   ID3D12Resource *minimap_texture = NULL;

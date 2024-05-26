@@ -23,7 +23,21 @@ inline bool MenuItem(const char *label, const ImGuiKeyChord key) {
 }
 } // namespace ImGui
 
+ImVec2 Normalize(ImVec2 pos) {
+  ImGuiIO &io = ImGui::GetIO();
+  ImVec2 res = io.DisplaySize;
+  if (res.x / res.y > 1.78) {
+    pos.x -= (res.x - res.y / 9 * 16) / 2;
+    res.x = res.y / 9 * 16;
+  } else if (res.x / res.y < 1.77) {
+    pos.y -= (res.y - res.x / 16 * 9) / 2;
+    res.y = res.x / 16 * 9;
+  }
+  return ImVec2(pos.x / res.x * 320.f, pos.y / res.y * 180.f);
+}
+
 void UI::DrawPlayer() {
+  ImGui::Text("Save slot number: %d", Max::get().slot_number());
   ImGui::InputInt2("Room", &Max::get().player_room()->x);
   ImGui::InputFloat2("Position", &Max::get().player_position()->x);
   ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
@@ -90,9 +104,22 @@ void UI::DrawMap() {
 }
 
 void UI::DrawOptions() {
+  ImGuiIO &io = ImGui::GetIO();
   for (auto &[name, enabled] : options) {
     Option(name);
   }
+  if (ImGui::SliderInt("Window Scale", &windowScale, 1, 10)) {
+    RECT c;
+    RECT w;
+    GetClientRect(hWnd, &c);
+    GetWindowRect(hWnd, &w);
+    int dx = (w.right - w.left) - (c.right - c.left);
+    int dy = (w.bottom - w.top) - (c.bottom - c.top);
+    SetWindowPos(hWnd, NULL, 0, 0, windowScale * 320 + dx,
+                 windowScale * 180 + dy, 2);
+  }
+  ImGui::InputFloat2("Display", &io.DisplaySize.x, "%.0f",
+                     ImGuiInputTextFlags_ReadOnly);
 }
 
 bool UI::Option(std::string name) {
@@ -109,11 +136,12 @@ UI::UI() {
   NewWindow("Settings", keys["tool_settings"],
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, [this]() {
+    ImGuiIO &io = ImGui::GetIO();
+
     ImGui::Text("Check: %p", get_address("check"));
     ImGui::Text("State: %p", Max::get().state());
     ImGui::Text("Map: %p", Max::get().minimap());
     ImGui::Text("Slots: %p", get_address("slots"));
-    ImGui::Text("Slot num: %d", Max::get().slot_number());
     ImGui::Text("Slot: %p", Max::get().slot());
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
@@ -140,9 +168,10 @@ bool UI::Keys() {
 }
 
 void UI::Draw() {
+  ImGuiIO &io = ImGui::GetIO();
+
   doWarp = false;
   Keys();
-  ImGuiIO &io = ImGui::GetIO();
   io.MouseDrawCursor = options["visible"];
   if (!options["visible"])
     return;
@@ -177,9 +206,9 @@ void UI::Draw() {
   }
 
   {
-    auto mpos = io.MousePos;
-    int x = floor(mpos.x / 4);
-    int y = floor(mpos.y / 4);
+    auto mpos = Normalize(io.MousePos);
+    int x = mpos.x;
+    int y = mpos.y;
     int rx = x / 8;
     int ry = y / 8;
 
