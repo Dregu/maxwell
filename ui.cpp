@@ -114,6 +114,9 @@ void UI::DrawPlayer() {
     *Max::get().spawn_room() = *Max::get().player_room();
     Max::get().save_game();
   }
+  Tooltip("This sets your current room as spawn and runs the save function "
+          "anywhere.\nYou in rooms without a telephone you will spawn near the "
+          "top left corner.");
   if (ImGui::CollapsingHeader("Equipment"))
     Flags(equipment_names, Max::get().equipment(), false);
   if (ImGui::CollapsingHeader("Items"))
@@ -150,11 +153,7 @@ void UI::DrawPlayer() {
   ImGui::PopItemWidth();
 }
 
-// TODO: Add option to hide border rooms
 void UI::DrawMap() {
-  // ImGui::Text("CPU: %p", minimap_srv_cpu_handle);
-  // ImGui::Text("GPU: %p", minimap_srv_gpu_handle);
-  // ImGui::Text("TID: %p", minimap_texture);
   ImGuiIO &io = ImGui::GetIO();
   static const ImVec2 realmapsize{800, 528};
   ImVec2 bordersize{realmapsize.x / 20 * 2, realmapsize.y / 24 * 4};
@@ -162,7 +161,7 @@ void UI::DrawMap() {
                  realmapsize.y - bordersize.y * 2};
   ImVec2 uv0{bordersize.x / realmapsize.x, bordersize.y / realmapsize.y};
   ImVec2 uv1{1 - uv0.x, 1 - uv0.y};
-  if (!options["noborder"].value) {
+  if (!options["map_small"].value) {
     mapsize = realmapsize;
     bordersize = {0, 0};
     uv0 = {0, 0};
@@ -179,9 +178,9 @@ void UI::DrawMap() {
   ImGui::SameLine(mapsize.x - 60.f);
   if (ImGui::Button("Update", ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
                                      ImGui::GetTextLineHeightWithSpacing())) ||
-      (options["automap"].value &&
-       ImGui::GetFrameCount() > lastMinimapFrame + 15) ||
-      !minimap_init) {
+      (((options["map_auto"].value || io.MouseDown[1]) &&
+        ImGui::GetFrameCount() > lastMinimapFrame + 15)) ||
+      ImGui::IsWindowAppearing() || !minimap_init) {
     CreateMap();
     lastMinimapFrame = ImGui::GetFrameCount();
   }
@@ -195,7 +194,7 @@ void UI::DrawMap() {
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, 0);
     ImGui::ImageButton((ImTextureID)minimap_srv_gpu_handle.ptr, mapsize, uv0,
                        uv1, 0);
-    Tooltip("Right click on the map to warp anywhere!");
+    Tooltip("Right click the map to warp\nanywhere on current layer.");
     if (ImGui::IsItemHovered()) {
       cpos.x = (b.x - d.x) - a.x + c.x + bordersize.x;
       cpos.y = (b.y - d.y) - a.y + c.y + bordersize.y;
@@ -226,11 +225,11 @@ void UI::DrawMap() {
 
 void UI::DrawOptions() {
   ImGuiIO &io = ImGui::GetIO();
-  bool noclip = options["noclip"].value;
+  bool noclip = options["cheat_noclip"].value;
   for (auto &[name, enabled] : options) {
     Option(name);
   }
-  if (noclip && !options["noclip"].value)
+  if (noclip && !options["cheat_noclip"].value)
     *Max::get().player_state() = 0;
   if (ImGui::SliderInt("Window Scale", &windowScale, 1, 10)) {
     RECT c;
@@ -248,23 +247,28 @@ void UI::DrawOptions() {
 }
 
 bool UI::Option(std::string name) {
-  std::string desc =
+  std::string title =
       options[name].name +
       (options[name].key != ""
            ? " (" +
                  std::string(ImGui::GetKeyChordName(keys[options[name].key])) +
                  ")"
            : "");
+  bool ret = false;
   if (inMenu)
-    return ImGui::MenuItem(desc.c_str(), "", &options[name].value);
-  return ImGui::Checkbox(desc.c_str(), &options[name].value);
+    ret = ImGui::MenuItem(title.c_str(), "", &options[name].value);
+  else
+    ret = ImGui::Checkbox(title.c_str(), &options[name].value);
+  Tooltip(options[name].desc.c_str());
+  return ret;
 }
 
 UI::UI() {
   Max::get();
 
-  NewWindow("Player", keys["tool_player"], 0, [this]() { this->DrawPlayer(); });
-  NewWindow("Minimap", keys["tool_map"], ImGuiWindowFlags_AlwaysAutoResize,
+  NewWindow("F1 Player", keys["tool_player"], 0,
+            [this]() { this->DrawPlayer(); });
+  NewWindow("F2 Minimap", keys["tool_map"], ImGuiWindowFlags_AlwaysAutoResize,
             [this]() { this->DrawMap(); });
   NewWindow("Settings", keys["tool_settings"],
             ImGuiWindowFlags_AlwaysAutoResize,
@@ -297,13 +301,13 @@ bool UI::Keys() {
   if (ImGui::IsKeyReleased((ImGuiKey)keys["escape"]))
     ImGui::SetWindowFocus(nullptr);
   else if (ImGui::IsKeyChordPressed(keys["toggle_ui"]))
-    options["visible"].value ^= true;
+    options["ui_visible"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_noclip"])) {
-    options["noclip"].value ^= true;
-    if (!options["noclip"].value)
+    options["cheat_noclip"].value ^= true;
+    if (!options["cheat_noclip"].value)
       *Max::get().player_state() = 0;
   } else if (ImGui::IsKeyChordPressed(keys["toggle_godmode"]))
-    options["godmode"].value ^= true;
+    options["cheat_godmode"].value ^= true;
   else
     return false;
   return true;
@@ -319,8 +323,8 @@ void UI::Draw() {
       0x99999999, version.c_str());
   doWarp = false;
   Keys();
-  io.MouseDrawCursor = options["visible"].value;
-  if (options["visible"].value) {
+  io.MouseDrawCursor = options["ui_visible"].value;
+  if (options["ui_visible"].value) {
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
     if (ImGui::BeginMainMenuBar()) {
@@ -334,7 +338,7 @@ void UI::Draw() {
           lastMenuFrame = ImGui::GetFrameCount();
           ImGui::EndMenu();
         }
-        Tooltip("Right click to detach a tool from the menu as window.");
+        Tooltip("Right click to detach a\nwindow from the menu bar.");
         inMenu = false;
         if (io.MouseClicked[1] && ImGui::IsItemHovered())
           window->detached = true;
@@ -361,8 +365,8 @@ void UI::Draw() {
 
     bool inbound = x > 0 && x < 320 && y > 0 && y < 180;
 
-    if (options["mouse"].value && io.MouseDown[1] && !io.WantCaptureMouse &&
-        ImGui::IsMousePosValid()) {
+    if (options["input_mouse"].value && io.MouseDown[1] &&
+        !io.WantCaptureMouse && ImGui::IsMousePosValid()) {
       if (inbound || (ImGui::GetFrameCount() % 10) == 0) {
         Max::get().player_position()->x = x - 4;
         Max::get().player_position()->y = y - 4;
@@ -381,21 +385,23 @@ void UI::Draw() {
     recover_mem("warp");
   }
 
-  if (options["block_input"].value) {
+  if (options["input_block"].value) {
     if (Block()) {
       write_mem_recoverable("block", get_address("keyboard"), get_nop(6), true);
     } else {
       recover_mem("block");
     }
+  } else {
+    recover_mem("block");
   }
 
-  if (options["godmode"].value) {
+  if (options["cheat_godmode"].value) {
     write_mem_recoverable("god", get_address("damage"), get_nop(6), true);
   } else {
     recover_mem("god");
   }
 
-  if (options["noclip"].value) {
+  if (options["cheat_noclip"].value) {
     *Max::get().player_state() = 18;
   }
 }
@@ -406,7 +412,7 @@ void UI::NewWindow(std::string title, ImGuiKeyChord key, ImGuiWindowFlags flags,
 }
 
 void UI::Tooltip(std::string text) {
-  if (options["tooltips"].value && ImGui::IsItemHovered())
+  if (options["ui_tooltips"].value && ImGui::IsItemHovered())
     ImGui::SetTooltip(text.c_str());
 }
 
@@ -430,7 +436,7 @@ void UI::CreateMap() {
     if (minimap[i + 3] == 0xf)
       minimap[i + 3] = 0xff;
     else
-      minimap[i + 3] = 0x33;
+      minimap[i + 3] = options["map_reveal"].value ? 0x40 : minimap[i + 3];
     i += 4;
   } while (i < length);
 

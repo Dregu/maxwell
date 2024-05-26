@@ -22,6 +22,7 @@ struct Window {
 struct Setting {
   bool value;
   std::string name;
+  std::string desc;
   std::string key;
 };
 
@@ -41,14 +42,37 @@ private:
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{
-      {"visible", {true, "Show UI", "toggle_ui"}},
-      {"tooltips", {false, "Show tooltips"}},
-      {"automap", {true, "Auto-update minimap"}},
-      {"mouse", {true, "Right click game area to teleport"}},
-      {"block_input", {true, "Block game input on UI input"}},
-      {"noclip", {false, "Noclip", "toggle_noclip"}},
-      {"godmode", {false, "Godmode", "toggle_godmode"}},
-      {"noborder", {true, "Hide minimap borders"}},
+      {"cheat_godmode",
+       {false, "Godmode",
+        "Disables taking any damage, but\nkeeps knockback, drowning etc.",
+        "toggle_godmode"}},
+      {"cheat_noclip",
+       {false, "Noclip", "Do the cring thing without the cring.",
+        "toggle_noclip"}},
+      {"input_block",
+       {true, "Block game input on UI input",
+        "Blocks keyboard interaction from game\n"
+        "when typing or menus are open."}},
+      {"input_mouse",
+       {true, "Right click to teleport",
+        "Right click or drag yourself around!"}},
+      {"map_auto",
+       {false, "Auto-update minimap",
+        "This can be choppy if map window is left open.\n"
+        "Default is to update map when window is appearing."}},
+      {"map_small",
+       {true, "Hide minimap borders",
+        "There's nothing there really except some glitches."}},
+      {"map_reveal",
+       {false, "Reveal unseen minimap tiles",
+        "Shows what you haven't seen yet, but darker."}},
+      {"ui_tooltips",
+       {true, "Show helpful tooltips",
+        "These are really helpful, why are you disabling them!?"}},
+      {"ui_visible",
+       {true, "Show UI",
+        "Hide/show all MAXWELL windows."
+        "toggle_ui"}},
   };
   bool doWarp = false;
   bool inMenu = false;
