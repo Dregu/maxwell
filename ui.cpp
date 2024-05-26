@@ -126,12 +126,13 @@ void UI::DrawPlayer() {
     Flags(misc_names, Max::get().upgrades(), false);
 
   if (ImGui::CollapsingHeader("Consumables")) {
-    ImGui::InputScalar("Health", ImGuiDataType_U8, Max::get().player_hp());
-    ImGui::InputScalar("More health", ImGuiDataType_U8,
-                       Max::get().player_hp() + 1);
-    ImGui::InputScalar("Keys", ImGuiDataType_U8, Max::get().keys());
-    ImGui::InputScalar("Matches", ImGuiDataType_U8, Max::get().keys() + 1);
-    ImGui::InputScalar("Firecrackers", ImGuiDataType_U8, Max::get().keys() + 2);
+    ImGui::DragScalar("Health", ImGuiDataType_S8, Max::get().player_hp(), 0.1f);
+    ImGui::DragScalar("More health", ImGuiDataType_S8,
+                      Max::get().player_hp() + 1, 0.1f);
+    ImGui::DragScalar("Keys", ImGuiDataType_U8, Max::get().keys(), 0.1f);
+    ImGui::DragScalar("Matches", ImGuiDataType_U8, Max::get().keys() + 1, 0.1f);
+    ImGui::DragScalar("Firecrackers", ImGuiDataType_U8, Max::get().keys() + 2,
+                      0.1f);
   }
   if (ImGui::CollapsingHeader("Position")) {
     ImGui::InputInt2("Spawn", &Max::get().spawn_room()->x);

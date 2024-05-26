@@ -34,7 +34,7 @@ struct Max {
   int *warp_layer();
   uint8_t *player_flute();
   uint8_t *player_state();
-  uint8_t *player_hp();
+  int8_t *player_hp();
   Coord *spawn_room();
   uint16_t *equipment();
   uint8_t *items();
