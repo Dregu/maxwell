@@ -24,13 +24,18 @@ class UI {
 private:
   std::vector<Window *> windows;
   std::unordered_map<std::string, ImGuiKeyChord> keys{
-      {"toggle_ui", ImGuiKey_F10}, {"tool_player", ImGuiKey_F1},
-      {"tool_map", ImGuiKey_F2},   {"tool_settings", ImGuiKey_F9},
+      {"toggle_ui", ImGuiKey_F10},
+      {"tool_player", ImGuiKey_F1},
+      {"tool_map", ImGuiKey_F2},
+      {"tool_settings", ImGuiKey_F9},
       {"escape", ImGuiKey_Escape},
+      {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
+      {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
   };
   std::unordered_map<std::string, bool> options{
-      {"visible", true}, {"tooltips", true}, {"automap", true},
-      {"mouse", true},   {"block", true},
+      {"visible", true},  {"tooltips", true},    {"automap", true},
+      {"mouse", true},    {"block_input", true}, {"noclip", false},
+      {"godmode", false},
   };
   bool doWarp = false;
   bool inMenu = false;

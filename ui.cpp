@@ -68,7 +68,7 @@ void UI::DrawMap() {
   ImGui::SameLine(mapsize.x - 60.f);
   if (ImGui::Button("Update", ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
                                      ImGui::GetTextLineHeightWithSpacing())) ||
-      (options["automap"] && ImGui::GetFrameCount() > lastMinimapFrame + 300) ||
+      (options["automap"] && ImGui::GetFrameCount() > lastMinimapFrame + 30) ||
       !minimap_init) {
     CreateMap();
     lastMinimapFrame = ImGui::GetFrameCount();
@@ -112,9 +112,12 @@ void UI::DrawMap() {
 
 void UI::DrawOptions() {
   ImGuiIO &io = ImGui::GetIO();
+  bool noclip = options["noclip"];
   for (auto &[name, enabled] : options) {
     Option(name);
   }
+  if (noclip && !options["noclip"])
+    *Max::get().player_state() = 0;
   if (ImGui::SliderInt("Window Scale", &windowScale, 1, 10)) {
     RECT c;
     RECT w;
@@ -139,9 +142,9 @@ bool UI::Option(std::string name) {
 UI::UI() {
   Max::get();
 
-  NewWindow("Player", keys["tool_player"], ImGuiWindowFlags_HorizontalScrollbar,
-            [this]() { this->DrawPlayer(); });
-  NewWindow("Minimap", keys["tool_map"], 0, [this]() { this->DrawMap(); });
+  NewWindow("Player", keys["tool_player"], 0, [this]() { this->DrawPlayer(); });
+  NewWindow("Minimap", keys["tool_map"], ImGuiWindowFlags_HorizontalScrollbar,
+            [this]() { this->DrawMap(); });
   NewWindow("Settings", 0, keys["tool_settings"],
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
@@ -172,7 +175,13 @@ bool UI::Keys() {
   if (ImGui::IsKeyReleased((ImGuiKey)keys["escape"]))
     ImGui::SetWindowFocus(nullptr);
   else if (ImGui::IsKeyChordPressed(keys["toggle_ui"]))
-    options["visible"] = !options["visible"];
+    options["visible"] ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_noclip"])) {
+    options["noclip"] ^= true;
+    if (!options["noclip"])
+      *Max::get().player_state() = 0;
+  } else if (ImGui::IsKeyChordPressed(keys["toggle_godmode"]))
+    options["godmode"] ^= true;
   else
     return false;
   return true;
@@ -245,12 +254,22 @@ void UI::Draw() {
     recover_mem("warp");
   }
 
-  if (options["block"]) {
+  if (options["block_input"]) {
     if (Block()) {
       write_mem_recoverable("block", get_address("keyboard"), get_nop(6), true);
     } else {
       recover_mem("block");
     }
+  }
+
+  if (options["godmode"]) {
+    write_mem_recoverable("god", get_address("damage"), get_nop(6), true);
+  } else {
+    recover_mem("god");
+  }
+
+  if (options["noclip"]) {
+    *Max::get().player_state() = 18;
   }
 }
 

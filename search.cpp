@@ -506,6 +506,15 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .find_after_inst("8b 80"_gh)
             .at_exe(),
     },
+    {
+        // RE: take damage
+        "damage"sv,
+        PatternCommandBuffer{}
+            .find_after_inst(
+                "c7 46 7c 00 00 00 00 c7 46 6c 00 00 00 00 8a 86 90 00 00 00"_gh)
+            .at_exe(),
+    },
+
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
 
