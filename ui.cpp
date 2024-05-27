@@ -151,7 +151,7 @@ void UI::DrawPlayer() {
     ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
     ImGui::InputInt("Warp layer", Max::get().warp_layer());
     if (ImGui::Button(
-            fmt::format("Warp {}", ImGui::GetKeyChordName(keys["warp"]))
+            fmt::format("Warp ({})", ImGui::GetKeyChordName(keys["warp"]))
                 .c_str()))
       doWarp = true;
     // TODO: Add saveable custom warp positions from current player/warp
