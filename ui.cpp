@@ -415,6 +415,21 @@ void UI::Draw() {
     }
   }
 
+  if (windowScale > 2) {
+    std::string hud = fmt::format(
+        "{}{}{} ROOM:{},{} POS:{:.0f},{:.0f}",
+        options["cheat_damage"].value ? " DAMAGE" : "",
+        options["cheat_noclip"].value ? " NOCLIP" : "",
+        options["cheat_godmode"].value ? " GOD" : "",
+        Max::get().player_room()->x, Max::get().player_room()->y,
+        Max::get().player_position()->x, Max::get().player_position()->y);
+    ImGui::GetForegroundDrawList()->AddText(
+        ImVec2(io.DisplaySize.x - ImGui::CalcTextSize(hud.c_str()).x -
+                   ImGui::GetStyle().WindowPadding.x,
+               0),
+        0xffffffff, hud.c_str());
+  }
+
   {
     using namespace std::chrono_literals;
     auto now = std::chrono::system_clock::now();
