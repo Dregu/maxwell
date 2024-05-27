@@ -39,13 +39,19 @@ private:
       {"escape", ImGuiKey_Escape},
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
+      {"toggle_damage", ImGuiMod_Ctrl | ImGuiKey_D},
       {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{
-      {"cheat_godmode",
-       {false, "Godmode",
+      {"cheat_damage",
+       {false, "No damage",
         "Disables taking any damage, but\nkeeps knockback, drowning etc.",
+        "toggle_damage"}},
+      {"cheat_godmode",
+       {false, "God mode",
+        "Disables taking any damage or knockback,\nsimply walk through most "
+        "threats.",
         "toggle_godmode"}},
       {"cheat_noclip",
        {false, "Noclip", "Do the cring thing without the cring.",

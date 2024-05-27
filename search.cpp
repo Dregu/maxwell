@@ -511,11 +511,18 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe(),
     },
     {
-        // RE: take damage
+        // RE: take damage, this one just subs hearts
         "damage"sv,
         PatternCommandBuffer{}
             .find_after_inst(
                 "c7 46 7c 00 00 00 00 c7 46 6c 00 00 00 00 8a 86 90 00 00 00"_gh)
+            .at_exe(),
+    },
+    {
+        // RE: take damage, this skips the whole if (jne -> jmp)
+        "god"sv,
+        PatternCommandBuffer{}
+            .find_after_inst("80 be 90 00 00 00 00 48 8b 7c 24 48"_gh)
             .at_exe(),
     },
     /*{

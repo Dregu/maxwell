@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include "ghidra_byte_string.h"
 #include "logger.h"
 #include "max.h"
 #include "memory.h"
@@ -359,6 +360,8 @@ bool UI::Keys() {
       *Max::get().player_state() = 0;
   } else if (ImGui::IsKeyChordPressed(keys["toggle_godmode"]))
     options["cheat_godmode"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_damage"]))
+    options["cheat_damage"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["warp"]))
     doWarp = true;
   else
@@ -471,8 +474,15 @@ void UI::Draw() {
     recover_mem("block");
   }
 
+  if (options["cheat_damage"].value) {
+    write_mem_recoverable("damage", get_address("damage"), get_nop(6), true);
+  } else {
+    recover_mem("damage");
+  }
+
   if (options["cheat_godmode"].value) {
-    write_mem_recoverable("god", get_address("damage"), get_nop(6), true);
+    write_mem_recoverable("god", get_address("god"), "E9 79 01 00 00 90"_gh,
+                          true);
   } else {
     recover_mem("god");
   }
