@@ -40,6 +40,9 @@ private:
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
       {"toggle_damage", ImGuiMod_Ctrl | ImGuiKey_D},
+      {"toggle_darkness", ImGuiMod_Ctrl | ImGuiKey_L},
+      {"toggle_gameboy", ImGuiMod_Ctrl | ImGuiKey_K},
+      {"toggle_hud", ImGuiMod_Ctrl | ImGuiKey_H},
       {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
   };
   // TODO: Save to ini
@@ -56,6 +59,18 @@ private:
       {"cheat_noclip",
        {false, "Noclip", "Do the cring thing without the cring.",
         "toggle_noclip"}},
+      {"cheat_darkness",
+       {false, "Remove darkness",
+        "Removes the fog of war effect, see through walls.",
+        "toggle_darkness"}},
+      {"cheat_gameboy",
+       {false, "Gameboy mode",
+        "Party like it's 1989! Enable the B&W death screen shader all the "
+        "time.",
+        "toggle_gameboy"}},
+      {"cheat_hud",
+       {false, "Hide ingame HUD",
+        "Removes all HUD elements, including the menus.", "toggle_hud"}},
       {"input_block",
        {true, "Block game input on UI input",
         "Blocks keyboard input from game\n"

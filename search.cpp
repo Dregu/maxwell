@@ -538,6 +538,18 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe()
             .function_start(),
     },
+    {
+        // RE: L"Visibility", 7E -> EB
+        "darkness"sv, PatternCommandBuffer{}.from_exe_base(0x12ae73), // TODO
+    },
+    {
+        // RE: L"Visibility", 7F 0E -> EB 0E
+        "gameboy"sv, PatternCommandBuffer{}.from_exe_base(0x12c11a), // TODO
+    },
+    {
+        // RE: L"Visibility", 7E 19 -> EB 19
+        "hud"sv, PatternCommandBuffer{}.from_exe_base(0x12c40d), // TODO
+    },
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
 

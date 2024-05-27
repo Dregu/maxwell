@@ -362,6 +362,12 @@ bool UI::Keys() {
     options["cheat_godmode"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_damage"]))
     options["cheat_damage"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_darkness"]))
+    options["cheat_darkness"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_gameboy"]))
+    options["cheat_gameboy"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_hud"]))
+    options["cheat_hud"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["warp"]))
     doWarp = true;
   else
@@ -500,6 +506,25 @@ void UI::Draw() {
                           true);
   } else {
     recover_mem("god");
+  }
+
+  if (options["cheat_darkness"].value) {
+    write_mem_recoverable("darkness", get_address("darkness"), "\xEB\x19",
+                          true);
+  } else {
+    recover_mem("darkness");
+  }
+
+  if (options["cheat_gameboy"].value) {
+    write_mem_recoverable("gameboy", get_address("gameboy"), "\xEB\x0E", true);
+  } else {
+    recover_mem("gameboy");
+  }
+
+  if (options["cheat_hud"].value) {
+    write_mem_recoverable("hud", get_address("hud"), "\xEB\x19", true);
+  } else {
+    recover_mem("hud");
   }
 
   if (options["cheat_noclip"].value) {
