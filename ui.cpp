@@ -342,6 +342,8 @@ std::string TimestampFile() {
   return ss.str();
 }
 
+void UI::ScreenShot() { screenShotNextFrame = "snap_" + TimestampFile(); }
+
 UI::UI() {
   Max::get();
   LoadINI();
@@ -405,6 +407,8 @@ bool UI::Keys() {
     options["cheat_hud"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["warp"]))
     doWarp = true;
+  else if (ImGui::IsKeyChordPressed(keys["screenshot"]))
+    ScreenShot();
   else
     return false;
   return true;
@@ -412,7 +416,7 @@ bool UI::Keys() {
 
 void UI::Draw() {
   if (screenShotThisFrame != "") {
-    Shot(screenShotThisFrame);
+    SaveScreenShot(screenShotThisFrame);
     screenShotThisFrame = "";
   }
   if (screenShotNextFrame != "") {
@@ -816,7 +820,7 @@ void UI::LoadINI() {
   SaveINI();
 }
 
-void UI::Shot(std::string name) {
+void UI::SaveScreenShot(std::string name) {
   // Get the device and command queue
   // pDevice,
   ID3D12Device *pDevice = pD3DDevice;

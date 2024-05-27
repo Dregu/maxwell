@@ -44,6 +44,7 @@ private:
       {"toggle_gameboy", ImGuiMod_Ctrl | ImGuiKey_K},
       {"toggle_hud", ImGuiMod_Ctrl | ImGuiKey_H},
       {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
+      {"screenshot", ImGuiKey_Slash},
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{
@@ -131,7 +132,7 @@ public:
   void SaveINI();
   void LoadINI();
   void ScaleWindow();
-  void Shot(std::string name);
+  void SaveScreenShot(std::string name);
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;
