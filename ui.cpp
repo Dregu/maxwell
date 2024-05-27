@@ -483,7 +483,7 @@ void UI::Draw() {
   }
 
   if (doWarp && get_address("warp")) {
-    write_mem_recoverable("warp", get_address("warp"), "\xEB"sv, true);
+    write_mem_recoverable("warp", get_address("warp"), "EB"_gh, true);
   } else {
     recover_mem("warp");
   }
@@ -513,21 +513,21 @@ void UI::Draw() {
 
   if (options["cheat_darkness"].value && get_address("render_darkness")) {
     write_mem_recoverable("render_darkness", get_address("render_darkness"),
-                          "\xEB\x19", true);
+                          "EB 19"_gh, true);
   } else {
     recover_mem("render_darkness");
   }
 
   if (options["cheat_gameboy"].value && get_address("render_gameboy")) {
     write_mem_recoverable("render_gameboy", get_address("render_gameboy"),
-                          "\xEB\x0E", true);
+                          "EB 0E"_gh, true);
   } else {
     recover_mem("render_gameboy");
   }
 
   if (options["cheat_hud"].value && get_address("render_hud")) {
     write_mem_recoverable(
-        "render_hud", get_address("render_hud"), "\xEB\x74",
+        "render_hud", get_address("render_hud"), "EB 74"_gh,
         true); // jmp over this and the next if that renders some more text
   } else {
     recover_mem("render_hud");

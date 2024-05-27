@@ -554,8 +554,11 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         // iVar2 = FUN_00017ae0(0x29);
         // if (0 < iVar2) { <-
         "render_hud"sv,
-        PatternCommandBuffer{}.set_optional(true).from_exe_base(
-            0x12c3ed), // TODO
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_after_inst("8b 8f 48 0d 00 00 ff 56 20 b9 29 00 00 00"_gh)
+            .offset(7)
+            .at_exe(),
     },
     {
         // RE: L"Visibility", 7E -> EB, inside render_game
