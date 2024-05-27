@@ -6,6 +6,7 @@ using State = size_t;
 using Minimap = size_t;
 using Slot = size_t;
 using Player = size_t;
+using Options = size_t;
 
 struct Coord {
   int x;
@@ -42,5 +43,6 @@ struct Max {
   uint8_t *items();
   uint32_t *upgrades();
   uint8_t *keys();
+  uint8_t *options();
   void save_game();
 };

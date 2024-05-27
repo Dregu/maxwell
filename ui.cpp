@@ -1,4 +1,5 @@
 #include <array>
+#include <chrono>
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -244,6 +245,8 @@ void UI::DrawMap() {
 }
 
 void UI::ScaleWindow() {
+  if (*Max::get().options() & 2) // FS
+    return;
   RECT c;
   RECT w;
   GetClientRect(hWnd, &c);
@@ -329,6 +332,7 @@ UI::UI() {
     ImGui::Text("Slot: %p", Max::get().slot());
     ImGui::Text("Layer: %p", get_address("layer_base"));
     ImGui::Text("Layer: %p", get_address("layer_offset"));
+    ImGui::Text("Options: %p", Max::get().options());
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
       ImGui::ShowMetricsWindow();
@@ -405,6 +409,18 @@ void UI::Draw() {
         window->cb();
         ImGui::End();
       }
+    }
+  }
+
+  {
+    using namespace std::chrono_literals;
+    auto now = std::chrono::system_clock::now();
+    if (io.MousePos.x != lastMousePos.x || io.MousePos.y != lastMousePos.y) {
+      lastMouseActivity = now;
+      lastMousePos = io.MousePos;
+      io.MouseDrawCursor = true;
+    } else if (lastMouseActivity + 2s < now) {
+      ImGui::SetMouseCursor(ImGuiMouseCursor_None);
     }
   }
 

@@ -99,6 +99,10 @@ uint32_t *Max::upgrades() { return (uint32_t *)(slot() + 0x604); }
 
 uint8_t *Max::keys() { return (uint8_t *)(slot() + 0x5c9); }
 
+uint8_t *Max::options() {
+  return (uint8_t *)(*(size_t *)get_address("slots") + 0x400 + 0x75048);
+}
+
 void Max::save_game() {
   using SaveGameFunc = void();
   static SaveGameFunc *save = (SaveGameFunc *)get_address("save_game");

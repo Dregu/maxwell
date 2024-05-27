@@ -80,6 +80,9 @@ private:
   bool inMenu = false;
   int lastMenuFrame = 0;
   int lastMinimapFrame = 0;
+  std::chrono::system_clock::time_point lastMouseActivity =
+      std::chrono::system_clock::now();
+  ImVec2 lastMousePos = ImVec2(0, 0);
   int windowScale = 4;
 
 public:
