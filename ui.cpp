@@ -424,7 +424,7 @@ void UI::Draw() {
     }
   }
 
-  {
+  if (ImGui::IsMousePosValid()) {
     auto mpos = Normalize(io.MousePos);
     int x = mpos.x;
     int y = mpos.y;
@@ -434,7 +434,7 @@ void UI::Draw() {
     bool inbound = x > 0 && x < 320 && y > 0 && y < 180;
 
     if (options["input_mouse"].value && io.MouseDown[1] &&
-        !io.WantCaptureMouse && ImGui::IsMousePosValid()) {
+        !io.WantCaptureMouse) {
       if (inbound || (ImGui::GetFrameCount() % 10) == 0) {
         Max::get().player_position()->x = x - 4;
         Max::get().player_position()->y = y - 4;
@@ -444,6 +444,14 @@ void UI::Draw() {
       *Max::get().player_state() = 18;
     } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
       *Max::get().player_state() = 0;
+    }
+
+    if (options["ui_coords"].value && inbound &&
+        ImGui::GetMouseCursor() != ImGuiMouseCursor_None &&
+        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+      std::string coord =
+          fmt::format("Screen: {},{}\n  Tile: {},{}", x, y, rx, ry);
+      ImGui::SetTooltip(coord.c_str());
     }
   }
 
@@ -486,7 +494,7 @@ void UI::Tooltip(std::string text) {
 
 bool UI::Block() {
   ImGuiIO &io = ImGui::GetIO();
-  return io.WantCaptureKeyboard || ImGui::GetFrameCount() < lastMenuFrame + 10;
+  return io.WantCaptureKeyboard || ImGui::GetFrameCount() < lastMenuFrame + 5;
 }
 
 void UI::CreateMap() {
