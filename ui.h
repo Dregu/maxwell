@@ -129,6 +129,7 @@ public:
   void SaveINI(std::string file);
   void LoadINI(std::string file);
   void ScaleWindow();
+  void Shot();
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

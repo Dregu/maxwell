@@ -477,6 +477,7 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         // RE:
         "warp"sv,
         PatternCommandBuffer{}
+            .set_optional(true)
             .find_inst("4c 8d 6e 28 8a 86 1d 6b 02 00"_gh)
             .offset(12)
             .at_exe(),
@@ -485,6 +486,7 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         // RE: It's a call to GetKeyboardState...
         "keyboard"sv,
         PatternCommandBuffer{}
+            .set_optional(true)
             .find_after_inst(
                 "0f 11 .. .. .. .. .. 0f 11 .. .. .. .. .. .. 89 .."_gh)
             .at_exe(),
@@ -514,6 +516,7 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         // RE: take damage, this one just subs hearts
         "damage"sv,
         PatternCommandBuffer{}
+            .set_optional(true)
             .find_after_inst(
                 "c7 46 7c 00 00 00 00 c7 46 6c 00 00 00 00 8a 86 90 00 00 00"_gh)
             .at_exe(),
@@ -522,6 +525,7 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         // RE: take damage, this skips the whole if (jne -> jmp)
         "god"sv,
         PatternCommandBuffer{}
+            .set_optional(true)
             .find_after_inst("80 be 90 00 00 00 00 48 8b 7c 24 48"_gh)
             .at_exe(),
     },
@@ -540,18 +544,28 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     },
     {
         // RE: L"Visibility", 7E -> EB
-        "darkness"sv, PatternCommandBuffer{}.from_exe_base(0x12ae73), // TODO
+        "darkness"sv,
+        PatternCommandBuffer{}.set_optional(true).from_exe_base(
+            0x12ae73), // TODO
     },
     {
         // RE: L"Visibility", 7F 0E -> EB 0E
-        "gameboy"sv, PatternCommandBuffer{}.from_exe_base(0x12c11a), // TODO
+        "gameboy"sv,
+        PatternCommandBuffer{}.set_optional(true).from_exe_base(
+            0x12c11a), // TODO
     },
     {
         // RE: L"Visibility", 7E 19 -> EB 19
-        "hud"sv, PatternCommandBuffer{}.from_exe_base(0x12c40d), // TODO
+        "hud"sv,
+        PatternCommandBuffer{}.set_optional(true).from_exe_base(
+            0x12c40d), // TODO
     },
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
+
+std::unordered_map<std::string_view, size_t> &get_addresses() {
+  return g_cached_addresses;
+}
 
 void preload_addresses() {
   Memory mem = Memory::get();

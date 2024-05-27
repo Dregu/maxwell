@@ -161,6 +161,7 @@ void UI::DrawPlayer() {
   ImGui::PopItemWidth();
 }
 
+// TODO: Option to hilight important overlapping other world rooms
 void UI::DrawMap() {
   ImGuiIO &io = ImGui::GetIO();
   static const ImVec2 realmapsize{800, 528};
@@ -326,14 +327,16 @@ UI::UI() {
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
-    ImGui::Text("Check: %p", get_address("check"));
-    ImGui::Text("State: %p", Max::get().state());
-    ImGui::Text("Map: %p", Max::get().minimap());
-    ImGui::Text("Slots: %p", get_address("slots"));
-    ImGui::Text("Slot: %p", Max::get().slot());
-    ImGui::Text("Layer: %p", get_address("layer_base"));
-    ImGui::Text("Layer: %p", get_address("layer_offset"));
-    ImGui::Text("Options: %p", Max::get().options());
+    ImGui::SeparatorText("Patterns");
+    for (auto &[name, addr] : get_addresses()) {
+      if (!addr)
+        ImGui::PushStyleColor(ImGuiCol_Text, 0xff0000ff);
+      ImGui::InputScalar(name.data(), ImGuiDataType_U64, &addr, NULL, NULL,
+                         "%p", ImGuiInputTextFlags_ReadOnly);
+      if (!addr)
+        ImGui::PopStyleColor();
+    }
+
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
       ImGui::ShowMetricsWindow();
@@ -479,13 +482,13 @@ void UI::Draw() {
     }
   }
 
-  if (doWarp) {
+  if (doWarp && get_address("warp")) {
     write_mem_recoverable("warp", get_address("warp"), "\xEB"sv, true);
   } else {
     recover_mem("warp");
   }
 
-  if (options["input_block"].value) {
+  if (options["input_block"].value && get_address("keyboard")) {
     if (Block()) {
       write_mem_recoverable("block", get_address("keyboard"), get_nop(6), true);
     } else {
@@ -495,33 +498,33 @@ void UI::Draw() {
     recover_mem("block");
   }
 
-  if (options["cheat_damage"].value) {
+  if (options["cheat_damage"].value && get_address("damage")) {
     write_mem_recoverable("damage", get_address("damage"), get_nop(6), true);
   } else {
     recover_mem("damage");
   }
 
-  if (options["cheat_godmode"].value) {
+  if (options["cheat_godmode"].value && get_address("god")) {
     write_mem_recoverable("god", get_address("god"), "E9 79 01 00 00 90"_gh,
                           true);
   } else {
     recover_mem("god");
   }
 
-  if (options["cheat_darkness"].value) {
+  if (options["cheat_darkness"].value && get_address("darkness")) {
     write_mem_recoverable("darkness", get_address("darkness"), "\xEB\x19",
                           true);
   } else {
     recover_mem("darkness");
   }
 
-  if (options["cheat_gameboy"].value) {
+  if (options["cheat_gameboy"].value && get_address("gameboy")) {
     write_mem_recoverable("gameboy", get_address("gameboy"), "\xEB\x0E", true);
   } else {
     recover_mem("gameboy");
   }
 
-  if (options["cheat_hud"].value) {
+  if (options["cheat_hud"].value && get_address("hud")) {
     write_mem_recoverable("hud", get_address("hud"), "\xEB\x19", true);
   } else {
     recover_mem("hud");
@@ -763,4 +766,25 @@ void UI::LoadINI(std::string file) {
   }
   windowScale = toml::find_or<int>(opts, "scale", 4);
   SaveINI(file);
+}
+
+void UI::Shot() {
+  /*m_screenshot = m_deviceResources->GetRenderTarget();
+
+  m_deviceResources->Present();
+
+  if (m_screenshot)
+  {
+      DX::ThrowIfFailed(
+          SaveDDSTextureToFile(m_deviceResources->GetCommandQueue(),
+  m_screenshot.Get(), L"screenshot.dds", D3D12_RESOURCE_STATE_PRESENT,
+  D3D12_RESOURCE_STATE_PRESENT)
+          );
+
+      DX::ThrowIfFailed(
+          SaveWICTextureToFile(m_deviceResources->GetCommandQueue(),
+  m_screenshot.Get(), GUID_ContainerFormatJpeg, L"screenshot.jpg",
+              D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_PRESENT)
+          );
+  }   */
 }

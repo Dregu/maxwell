@@ -5,6 +5,7 @@
 #include <optional>    // for optional, nullopt
 #include <string>      // for string
 #include <string_view> // for operator""sv, string_view, string_view_literals
+#include <unordered_map>
 
 using namespace std::string_view_literals;
 
@@ -28,3 +29,4 @@ void preload_addresses();
 size_t get_address(std::string_view address_name);
 
 void register_application_version(std::string s);
+std::unordered_map<std::string_view, size_t> &get_addresses();
