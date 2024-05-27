@@ -511,23 +511,26 @@ void UI::Draw() {
     recover_mem("god");
   }
 
-  if (options["cheat_darkness"].value && get_address("darkness")) {
-    write_mem_recoverable("darkness", get_address("darkness"), "\xEB\x19",
-                          true);
+  if (options["cheat_darkness"].value && get_address("render_darkness")) {
+    write_mem_recoverable("render_darkness", get_address("render_darkness"),
+                          "\xEB\x19", true);
   } else {
-    recover_mem("darkness");
+    recover_mem("render_darkness");
   }
 
-  if (options["cheat_gameboy"].value && get_address("gameboy")) {
-    write_mem_recoverable("gameboy", get_address("gameboy"), "\xEB\x0E", true);
+  if (options["cheat_gameboy"].value && get_address("render_gameboy")) {
+    write_mem_recoverable("render_gameboy", get_address("render_gameboy"),
+                          "\xEB\x0E", true);
   } else {
-    recover_mem("gameboy");
+    recover_mem("render_gameboy");
   }
 
-  if (options["cheat_hud"].value && get_address("hud")) {
-    write_mem_recoverable("hud", get_address("hud"), "\xEB\x19", true);
+  if (options["cheat_hud"].value && get_address("render_hud")) {
+    write_mem_recoverable(
+        "render_hud", get_address("render_hud"), "\xEB\x74",
+        true); // jmp over this and the next if that renders some more text
   } else {
-    recover_mem("hud");
+    recover_mem("render_hud");
   }
 
   if (options["cheat_noclip"].value) {

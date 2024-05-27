@@ -140,6 +140,8 @@ void recover_mem(std::string name, size_t addr) {
       }
     }
   }
+  if (!original_memory[name].dirty)
+    original_memory.erase(name);
 }
 
 bool mem_written(std::string name) {

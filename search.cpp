@@ -526,7 +526,8 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         "god"sv,
         PatternCommandBuffer{}
             .set_optional(true)
-            .find_after_inst("80 be 90 00 00 00 00 48 8b 7c 24 48"_gh)
+            .find_inst("c7 86 88 00 00 00 00 00 00 00"_gh)
+            .find_next_inst("0f 84"_gh)
             .at_exe(),
     },
     /*{
@@ -543,22 +544,37 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .function_start(),
     },
     {
-        // RE: L"Visibility", 7E -> EB
-        "darkness"sv,
+        // RE: L"Render Game"
+        "render_game"sv,
         PatternCommandBuffer{}.set_optional(true).from_exe_base(
-            0x12ae73), // TODO
+            0x12a760), // TODO, unused
     },
     {
-        // RE: L"Visibility", 7F 0E -> EB 0E
-        "gameboy"sv,
+        // RE: called from main render function shortly after L"Map"
+        // iVar2 = FUN_00017ae0(0x29);
+        // if (0 < iVar2) { <-
+        "render_hud"sv,
         PatternCommandBuffer{}.set_optional(true).from_exe_base(
-            0x12c11a), // TODO
+            0x12c3ed), // TODO
     },
     {
-        // RE: L"Visibility", 7E 19 -> EB 19
-        "hud"sv,
-        PatternCommandBuffer{}.set_optional(true).from_exe_base(
-            0x12c40d), // TODO
+        // RE: L"Visibility", 7E -> EB, inside render_game
+        "render_darkness"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_inst("48 8b be b0 00 00 00 b9 24 00 00 00"_gh)
+            .offset(-4)
+            .at_exe(),
+    },
+    {
+        // RE: L"Visibility", 7F 0E -> EB 0E, inside render_game
+        "render_gameboy"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_inst(
+                "b9 31 00 00 00 e8 .. .. .. .. 85 c0 7f 0e b9 32 00 00 00"_gh)
+            .offset(12)
+            .at_exe(),
     },
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
