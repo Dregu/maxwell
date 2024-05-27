@@ -108,6 +108,8 @@ private:
       std::chrono::system_clock::now();
   ImVec2 lastMousePos = ImVec2(0, 0);
   int windowScale = 4;
+  std::string screenShotNextFrame;
+  std::string screenShotThisFrame;
 
 public:
   UI();
@@ -126,10 +128,10 @@ public:
   void DrawMap();
   void DrawOptions();
   bool Button(std::string name, std::string desc = "", std::string key = "");
-  void SaveINI(std::string file);
-  void LoadINI(std::string file);
+  void SaveINI();
+  void LoadINI();
   void ScaleWindow();
-  void Shot();
+  void Shot(std::string name);
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

@@ -219,7 +219,8 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
-    io.IniFilename = "MAXWELL_imgui.ini";
+    CreateDirectory(L"MAXWELL", NULL);
+    io.IniFilename = "MAXWELL\\MAXWELL_imgui.ini";
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // TODO: doesn't work
 
     io.Fonts->AddFontFromMemoryCompressedTTF(OLFont_compressed_data,

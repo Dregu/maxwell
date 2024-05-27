@@ -1,7 +1,12 @@
+#define UNICODE
+
 #include <array>
 #include <chrono>
+#include <d3d12.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <iostream>
+#include <toml.hpp>
 
 #include "ghidra_byte_string.h"
 #include "logger.h"
@@ -10,7 +15,11 @@
 #include "search.h"
 #include "ui.h"
 #include "version.h"
-#include <toml.hpp>
+
+// #define STB_IMAGE_IMPLEMENTATION
+// #include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 std::array equipment_names{
     "Unknown", "Firecrackers", "Flute ",   "Lantern ", "Top ",
@@ -275,9 +284,9 @@ void UI::DrawOptions() {
   // ImGuiInputTextFlags_ReadOnly);
   ImGui::SliderFloat("Alpha", &ImGui::GetStyle().Alpha, 0.2f, 1.0f, "%.1f");
   if (Button("Save settings"))
-    SaveINI("MAXWELL.ini");
+    SaveINI();
   if (Button("Load settings"))
-    LoadINI("MAXWELL.ini");
+    LoadINI();
   ImGui::PopItemWidth();
 }
 
@@ -313,9 +322,29 @@ bool UI::Button(std::string name, std::string desc, std::string key) {
   return ret;
 }
 
+std::string Timestamp() {
+  using namespace std::chrono;
+  auto now = system_clock::now();
+  auto in_time_t = system_clock::to_time_t(now);
+  std::stringstream ss;
+  ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X");
+  return ss.str();
+}
+
+std::string TimestampFile() {
+  using namespace std::chrono;
+  auto now = system_clock::now();
+  auto in_time_t = system_clock::to_time_t(now);
+  auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+  std::stringstream ss;
+  ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%H-%M-%S");
+  ss << '_' << std::setfill('0') << std::setw(3) << ms.count();
+  return ss.str();
+}
+
 UI::UI() {
   Max::get();
-  LoadINI("MAXWELL.ini");
+  LoadINI();
   options["ui_visible"].value = true;
 
   NewWindow("F1 Player", keys["tool_player"], 0,
@@ -327,6 +356,9 @@ UI::UI() {
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
+    if (ImGui::Button("Snap")) {
+      screenShotNextFrame = "snap_" + TimestampFile();
+    }
     ImGui::SeparatorText("Patterns");
     for (auto &[name, addr] : get_addresses()) {
       if (!addr)
@@ -379,6 +411,15 @@ bool UI::Keys() {
 }
 
 void UI::Draw() {
+  if (screenShotThisFrame != "") {
+    Shot(screenShotThisFrame);
+    screenShotThisFrame = "";
+  }
+  if (screenShotNextFrame != "") {
+    screenShotThisFrame = screenShotNextFrame;
+    screenShotNextFrame = "";
+    return;
+  }
   if (ImGui::GetFrameCount() == 10)
     ScaleWindow();
 
@@ -425,13 +466,14 @@ void UI::Draw() {
   }
 
   if (windowScale > 2) {
-    std::string hud = fmt::format(
-        "{}{}{} ROOM:{},{} POS:{:.0f},{:.0f}",
-        options["cheat_damage"].value ? " DAMAGE" : "",
-        options["cheat_noclip"].value ? " NOCLIP" : "",
-        options["cheat_godmode"].value ? " GOD" : "",
-        Max::get().player_room()->x, Max::get().player_room()->y,
-        Max::get().player_position()->x, Max::get().player_position()->y);
+    std::string hud =
+        fmt::format("{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
+                    options["cheat_damage"].value ? " DAMAGE" : "",
+                    options["cheat_noclip"].value ? " NOCLIP" : "",
+                    options["cheat_godmode"].value ? " GOD" : "",
+                    Max::get().player_room()->x, Max::get().player_room()->y,
+                    Max::get().player_position()->x,
+                    Max::get().player_position()->y, Timestamp());
     ImGui::GetForegroundDrawList()->AddText(
         ImVec2(io.DisplaySize.x - ImGui::CalcTextSize(hud.c_str()).x -
                    ImGui::GetStyle().WindowPadding.x,
@@ -735,7 +777,9 @@ void UI::CreateMap() {
   minimap_init = true;
 }
 
-void UI::SaveINI(std::string file) {
+void UI::SaveINI() {
+  CreateDirectory(L"MAXWELL", NULL);
+  std::string file = "MAXWELL\\MAXWELL.ini";
   std::ofstream writeData(file);
   writeData << "# MAXWELL options" << std::endl;
 
@@ -748,12 +792,13 @@ void UI::SaveINI(std::string file) {
   writeData.close();
 }
 
-void UI::LoadINI(std::string file) {
+void UI::LoadINI() {
+  std::string file = "MAXWELL\\MAXWELL.ini";
   toml::value data;
   try {
     data = toml::parse(file);
   } catch (std::exception &) {
-    SaveINI(file);
+    SaveINI();
     return;
   }
 
@@ -761,33 +806,219 @@ void UI::LoadINI(std::string file) {
   try {
     opts = toml::find(data, "options");
   } catch (std::exception &) {
-    SaveINI(file);
+    SaveINI();
     return;
   }
   for (const auto &[name, opt] : options) {
     options[name].value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
   }
   windowScale = toml::find_or<int>(opts, "scale", 4);
-  SaveINI(file);
+  SaveINI();
 }
 
-void UI::Shot() {
-  /*m_screenshot = m_deviceResources->GetRenderTarget();
+void UI::Shot(std::string name) {
+  // Get the device and command queue
+  // pDevice,
+  ID3D12Device *pDevice = pD3DDevice;
+  HRESULT hr = pSwapChain->GetDevice(__uuidof(ID3D12Device), (void **)&pDevice);
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to get device" << std::endl;
+    return;
+  }
 
-  m_deviceResources->Present();
+  ID3D12CommandQueue *pCommandQueue = nullptr;
+  D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+  queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-  if (m_screenshot)
-  {
-      DX::ThrowIfFailed(
-          SaveDDSTextureToFile(m_deviceResources->GetCommandQueue(),
-  m_screenshot.Get(), L"screenshot.dds", D3D12_RESOURCE_STATE_PRESENT,
-  D3D12_RESOURCE_STATE_PRESENT)
-          );
+  hr = pDevice->CreateCommandQueue(&queueDesc, __uuidof(ID3D12CommandQueue),
+                                   (void **)&pCommandQueue);
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to create command queue"
+              << std::endl;
+    return;
+  }
 
-      DX::ThrowIfFailed(
-          SaveWICTextureToFile(m_deviceResources->GetCommandQueue(),
-  m_screenshot.Get(), GUID_ContainerFormatJpeg, L"screenshot.jpg",
-              D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_PRESENT)
-          );
-  }   */
+  // Obtain the back buffer
+  ID3D12Resource *pBackBuffer = nullptr;
+  hr =
+      pSwapChain->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&pBackBuffer);
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to get back buffer" << std::endl;
+    pDevice->Release();
+    pCommandQueue->Release();
+    return;
+  }
+
+  // Describe and create the readback buffer
+  D3D12_RESOURCE_DESC desc = pBackBuffer->GetDesc();
+  D3D12_HEAP_PROPERTIES heapProps = {};
+  heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+  D3D12_RESOURCE_DESC readbackBufferDesc = {};
+  readbackBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  readbackBufferDesc.Alignment = 0;
+  readbackBufferDesc.Width =
+      desc.Width * desc.Height * 4; // assuming 4 bytes per pixel (RGBA)
+  readbackBufferDesc.Height = 1;
+  readbackBufferDesc.DepthOrArraySize = 1;
+  readbackBufferDesc.MipLevels = 1;
+  readbackBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+  readbackBufferDesc.SampleDesc.Count = 1;
+  readbackBufferDesc.SampleDesc.Quality = 0;
+  readbackBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  readbackBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+  ID3D12Resource *pReadbackBuffer = nullptr;
+  hr = pDevice->CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &readbackBufferDesc,
+      D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource),
+      (void **)&pReadbackBuffer);
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to create readback buffer"
+              << std::endl;
+    pBackBuffer->Release();
+    pDevice->Release();
+    pCommandQueue->Release();
+    return;
+  }
+
+  // Create command allocator and command list
+  ID3D12CommandAllocator *pCommandAllocator = nullptr;
+  hr = pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                       __uuidof(ID3D12CommandAllocator),
+                                       (void **)&pCommandAllocator);
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to create command allocator"
+              << std::endl;
+    pReadbackBuffer->Release();
+    pBackBuffer->Release();
+    pDevice->Release();
+    pCommandQueue->Release();
+    return;
+  }
+
+  ID3D12GraphicsCommandList *pCommandList = nullptr;
+  hr = pDevice->CreateCommandList(
+      0, D3D12_COMMAND_LIST_TYPE_DIRECT, pCommandAllocator, nullptr,
+      __uuidof(ID3D12GraphicsCommandList), (void **)&pCommandList);
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to create command list"
+              << std::endl;
+    pCommandAllocator->Release();
+    pReadbackBuffer->Release();
+    pBackBuffer->Release();
+    pDevice->Release();
+    pCommandQueue->Release();
+    return;
+  }
+
+  // Transition the back buffer to the copy source state
+  D3D12_RESOURCE_BARRIER barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barrier.Transition.pResource = pBackBuffer;
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+  barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+  pCommandList->ResourceBarrier(1, &barrier);
+
+  // Copy the back buffer to the readback buffer
+  D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+  srcLocation.pResource = pBackBuffer;
+  srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+  srcLocation.SubresourceIndex = 0;
+
+  D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
+  dstLocation.pResource = pReadbackBuffer;
+  dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+  pDevice->GetCopyableFootprints(&desc, 0, 1, 0, &dstLocation.PlacedFootprint,
+                                 nullptr, nullptr, nullptr);
+
+  pCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+
+  // Transition the back buffer back to the present state
+  std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+  pCommandList->ResourceBarrier(1, &barrier);
+
+  // Close and execute the command list
+  // SOME GAMES ARE THROWING E_INVALIDARG (0x80070057) HERE
+  hr = pCommandList->Close();
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to close command list" << std::hex
+              << hr << std::endl;
+    pCommandList->Release();
+    pCommandAllocator->Release();
+    pReadbackBuffer->Release();
+    pBackBuffer->Release();
+    pDevice->Release();
+    pCommandQueue->Release();
+    return;
+  }
+
+  ID3D12CommandList *ppCommandLists[] = {pCommandList};
+  pCommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+  // Wait for the GPU to finish executing the commands
+  ID3D12Fence *pFence = nullptr;
+  hr = pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence),
+                            (void **)&pFence);
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to create fence" << std::endl;
+    pCommandList->Release();
+    pCommandAllocator->Release();
+    pReadbackBuffer->Release();
+    pBackBuffer->Release();
+    pDevice->Release();
+    pCommandQueue->Release();
+    return;
+  }
+
+  HANDLE hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+  pCommandQueue->Signal(pFence, 1);
+  pFence->SetEventOnCompletion(1, hEvent);
+
+  if (hEvent != NULL) {
+    WaitForSingleObject(hEvent, INFINITE);
+    CloseHandle(hEvent);
+  }
+
+  pFence->Release();
+
+  // Map the readback buffer
+  void *pData;
+  hr = pReadbackBuffer->Map(0, nullptr, &pData);
+  if (FAILED(hr)) {
+    std::cout << "[D3D12-SCREENSHOT] - Failed to map readback buffer"
+              << std::endl;
+    pCommandList->Release();
+    pCommandAllocator->Release();
+    pReadbackBuffer->Release();
+    pBackBuffer->Release();
+    pDevice->Release();
+    pCommandQueue->Release();
+    return;
+  }
+
+  if (CreateDirectory(L"MAXWELL", NULL) ||
+      ERROR_ALREADY_EXISTS == GetLastError()) {
+    if (CreateDirectory(L"MAXWELL\\Screenshots", NULL) ||
+        ERROR_ALREADY_EXISTS == GetLastError()) {
+      name = "MAXWELL\\Screenshots\\" + name + ".png";
+      stbi_write_png(name.c_str(), desc.Width, desc.Height, 4, pData,
+                     dstLocation.PlacedFootprint.Footprint.RowPitch);
+    }
+  }
+
+  // Unmap and release resources
+  pReadbackBuffer->Unmap(0, nullptr);
+  pCommandList->Release();
+  pCommandAllocator->Release();
+  pReadbackBuffer->Release();
+  pBackBuffer->Release();
+  pDevice->Release();
+  pCommandQueue->Release();
+
+  std::cout << "[D3D12-SCREENSHOT] - Screenshot saved successfully"
+            << std::endl;
 }

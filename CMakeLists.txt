@@ -68,7 +68,9 @@ add_library(dll SHARED
     ghidra_byte_string.h
     tokenize.h
     logger.h
-    font.h)
+    font.h
+    stb_image.h
+    stb_image_write.h)
 
 target_link_libraries(dll PRIVATE
     detours
