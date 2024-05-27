@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 
 #define SLOT_SIZE 0x27010

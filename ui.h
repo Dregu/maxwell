@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "max.h"
+
 typedef int ImGuiKeyChord;
 
 struct Window {
@@ -32,11 +34,11 @@ class UI {
 private:
   std::vector<Window *> windows;
   std::map<std::string, ImGuiKeyChord> keys{
-      {"toggle_ui", ImGuiKey_F10},
+      {"escape", ImGuiKey_Escape},
       {"tool_player", ImGuiKey_F1},
       {"tool_map", ImGuiKey_F2},
-      {"tool_settings", ImGuiKey_F9},
-      {"escape", ImGuiKey_Escape},
+      {"tool_tools", ImGuiKey_F3},
+      {"toggle_ui", ImGuiKey_F10},
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
       {"toggle_damage", ImGuiMod_Ctrl | ImGuiKey_D},
@@ -44,7 +46,7 @@ private:
       {"toggle_gameboy", ImGuiMod_Ctrl | ImGuiKey_K},
       {"toggle_hud", ImGuiMod_Ctrl | ImGuiKey_H},
       {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
-      {"screenshot", ImGuiKey_Slash},
+      {"screenshot", ImGuiKey_Period},
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{
@@ -100,6 +102,9 @@ private:
         "These are really helpful, why are you disabling them!?"}},
       {"ui_visible",
        {true, "Show UI", "Hide/show all MAXWELL windows.", "toggle_ui"}},
+      {"ui_hideplayer",
+       {false, "Hide player from screenshots",
+        "Moves the player offscreen for\nthe durating of screenshot."}},
   };
   bool doWarp = false;
   bool inMenu = false;
@@ -109,8 +114,10 @@ private:
       std::chrono::system_clock::now();
   ImVec2 lastMousePos = ImVec2(0, 0);
   int windowScale = 4;
+  std::string screenShotFileName = "MAXWELL";
   std::string screenShotNextFrame;
   std::string screenShotThisFrame;
+  Coord screenShotPlayerRoom{-1, -1};
 
 public:
   UI();
@@ -127,12 +134,14 @@ public:
 
   void DrawPlayer();
   void DrawMap();
+  void DrawTools();
   void DrawOptions();
   bool Button(std::string name, std::string desc = "", std::string key = "");
   void SaveINI();
   void LoadINI();
   void ScaleWindow();
   void SaveScreenShot(std::string name);
+  void ScreenShot();
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

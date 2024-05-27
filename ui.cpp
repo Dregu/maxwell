@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <iostream>
+#include <misc/cpp/imgui_stdlib.h>
 #include <toml.hpp>
 
 #include "ghidra_byte_string.h"
@@ -342,7 +343,25 @@ std::string TimestampFile() {
   return ss.str();
 }
 
-void UI::ScreenShot() { screenShotNextFrame = "snap_" + TimestampFile(); }
+void UI::ScreenShot() {
+  screenShotNextFrame = screenShotFileName + "_" + TimestampFile();
+  if (options["ui_hideplayer"].value) {
+    screenShotPlayerRoom = *Max::get().player_room();
+    *Max::get().player_room() = Coord{0, 0};
+  }
+}
+
+void UI::DrawTools() {
+  ImGuiIO &io = ImGui::GetIO();
+  ImGui::PushItemWidth(120.f);
+  if (ImGui::CollapsingHeader("Screen shooter  ")) {
+    ImGui::InputText("File prefix", &screenShotFileName);
+
+    if (ImGui::Button("Capture (.)"))
+      ScreenShot();
+  }
+  ImGui::PopItemWidth();
+}
 
 UI::UI() {
   Max::get();
@@ -353,14 +372,12 @@ UI::UI() {
             [this]() { this->DrawPlayer(); });
   NewWindow("F2 Minimap", keys["tool_map"], ImGuiWindowFlags_AlwaysAutoResize,
             [this]() { this->DrawMap(); });
+  NewWindow("F3 Tools", keys["tool_tools"], 0, [this]() { this->DrawTools(); });
   NewWindow("Settings", keys["tool_settings"],
             ImGuiWindowFlags_AlwaysAutoResize,
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
-    if (ImGui::Button("Snap")) {
-      screenShotNextFrame = "snap_" + TimestampFile();
-    }
     ImGui::SeparatorText("Patterns");
     for (auto &[name, addr] : get_addresses()) {
       if (!addr)
@@ -418,10 +435,15 @@ void UI::Draw() {
   if (screenShotThisFrame != "") {
     SaveScreenShot(screenShotThisFrame);
     screenShotThisFrame = "";
+    if (screenShotPlayerRoom.x != -1) {
+      *Max::get().player_room() = screenShotPlayerRoom;
+      screenShotPlayerRoom = Coord{-1, -1};
+    }
   }
   if (screenShotNextFrame != "") {
     screenShotThisFrame = screenShotNextFrame;
     screenShotNextFrame = "";
+    ImGui::SetMouseCursor(ImGuiMouseCursor_None);
     return;
   }
   if (ImGui::GetFrameCount() == 10)
