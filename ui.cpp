@@ -1,5 +1,7 @@
 #define UNICODE
 
+#include <Windows.h>
+
 #include <array>
 #include <chrono>
 #include <d3d12.h>
@@ -16,6 +18,8 @@
 #include "search.h"
 #include "ui.h"
 #include "version.h"
+
+#pragma comment(lib, "version.lib")
 
 // #define STB_IMAGE_IMPLEMENTATION
 // #include "stb_image.h"
@@ -103,6 +107,33 @@ void Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
       *flag_field ^= value;
     }
   }
+}
+
+std::string GetAppVersion() {
+  DWORD dwHandle;
+  TCHAR fileName[MAX_PATH];
+
+  GetModuleFileName(NULL, fileName, MAX_PATH);
+  DWORD dwSize = GetFileVersionInfoSize(fileName, &dwHandle);
+  char *buffer = new char[dwSize];
+
+  VS_FIXEDFILEINFO *pvFileInfo = NULL;
+  UINT fiLen = 0;
+
+  if ((dwSize > 0) && GetFileVersionInfo(fileName, dwHandle, dwSize, &buffer)) {
+    VerQueryValue(&buffer, L"\\", (LPVOID *)&pvFileInfo, &fiLen);
+  }
+
+  if (fiLen > 0) {
+    char buf[25];
+    int len =
+        sprintf(buf, "%hu.%hu.%hu.%hu", HIWORD(pvFileInfo->dwFileVersionMS),
+                LOWORD(pvFileInfo->dwFileVersionMS),
+                HIWORD(pvFileInfo->dwFileVersionLS),
+                LOWORD(pvFileInfo->dwFileVersionLS));
+    return std::string(buf, len);
+  }
+  return "";
 }
 
 ImVec2 Normalize(ImVec2 pos) {
@@ -450,7 +481,9 @@ void UI::Draw() {
     ScaleWindow();
 
   ImGuiIO &io = ImGui::GetIO();
-  std::string version = fmt::format("MAXWELL {}", get_version());
+  static const std::string gameversion = GetAppVersion();
+  std::string version = fmt::format("MAXWELL {}", get_version()) +
+                        (gameversion != "" ? " | GAME " + gameversion : "");
   ImGui::GetBackgroundDrawList()->AddText(
       ImVec2(io.DisplaySize.x / 2.f -
                  ImGui::CalcTextSize(version.c_str()).x / 2.f,
