@@ -32,7 +32,7 @@
 
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
-bool g_console = true; // TODO
+bool g_console = false;
 std::string g_exe = "Animal Well.exe";
 
 fs::path get_dll_path(const char *rel_path) {
@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
   auto maxwell_path = get_dll_path("\\MAXWELL.dll");
   bool version_info = GetCmdLineParam<bool>(cmd_line_parser, "version", false);
   bool help = GetCmdLineParam<bool>(cmd_line_parser, "help", false);
+  g_console = GetCmdLineParam<bool>(cmd_line_parser, "console", false);
   if (help) {
     INFO("Usage:");
     INFO("Without --launch_game the launcher will search for a process called "
@@ -184,6 +185,7 @@ int main(int argc, char **argv) {
          "Well.exe, or a specific exe, and load with Detours");
     INFO("  --inject                use the old injection method instead of "
          "Detours with --launch_game");
+    INFO("  --console               keep console open");
     INFO("  --help                  show this helpful help");
     INFO("  --version               show version information");
     return 0;
