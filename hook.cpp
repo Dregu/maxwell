@@ -18,7 +18,9 @@
 #include <thread>
 
 #include "font.h"
+#include "ghidra_byte_string.h"
 #include "logger.h"
+#include "memory.h"
 #include "search.h"
 #include "ui.h"
 
@@ -547,6 +549,11 @@ LRESULT APIENTRY WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 Status InstallHooks() {
   DetourRestoreAfterWith();
+
+  if (get_address("steam_restart")) {
+    write_mem_recoverable("steam_restart", get_address("steam_restart"),
+                          get_nop(19), true);
+  }
 
   Hook(54, (void **)&OriginalExecuteCommandLists, HookExecuteCommandLists);
   Hook(140, (void **)&OriginalPresent, HookPresent);

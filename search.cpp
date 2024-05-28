@@ -579,6 +579,14 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .offset(12)
             .at_exe(),
     },
+    {
+        "steam_restart"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_after_inst("48 b8 00 05 00 00 d0 02 00 00"_gh)
+            .offset(12)
+            .at_exe(),
+    },
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
 
