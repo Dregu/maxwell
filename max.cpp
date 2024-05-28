@@ -23,7 +23,7 @@ Max &Max::get() {
     {
       auto off = get_address("check");
       if (off) {
-        write_mem_recoverable("check", off, "E9 01 03 00 00 90"_gh, true);
+        write_mem_recoverable("check", off, "E9 24 01 00 00 90"_gh, true);
       }
     }
     /*{

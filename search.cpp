@@ -469,8 +469,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         // RE: Check what keeps messing up with your edits
         "check"sv,
         PatternCommandBuffer{}
-            .find_inst("48 83 c3 10 48 81 fb 50 89 00 00"_gh)
-            .offset(-6)
+            .set_optional(true)
+            .find_inst("88 87 74 6b 46 00"_gh)
+            .find_next_inst("48 8d 2d"_gh)
+            .offset(11)
             .at_exe(),
     },
     {
@@ -478,8 +480,8 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         "warp"sv,
         PatternCommandBuffer{}
             .set_optional(true)
-            .find_inst("4c 8d 6e 28 8a 86 1d 6b 02 00"_gh)
-            .offset(12)
+            .find_after_inst("41 0f 11 86 88 87 24 00"_gh)
+            .offset(23)
             .at_exe(),
     },
     {
