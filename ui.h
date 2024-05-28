@@ -118,6 +118,9 @@ private:
   std::string screenShotNextFrame;
   std::string screenShotThisFrame;
   Coord screenShotPlayerRoom{-1, -1};
+  Coord screenShotRange{1, 1};
+  int screenShotIndex = -1;
+  int screenShotFrame = -1;
 
 public:
   UI();

@@ -387,9 +387,18 @@ void UI::DrawTools() {
   ImGui::PushItemWidth(120.f);
   if (ImGui::CollapsingHeader("Screen shooter  ")) {
     ImGui::InputText("File prefix", &screenShotFileName);
-
+    ImGui::InputInt2("Room range", &screenShotRange.x);
     if (ImGui::Button("Capture (.)"))
       ScreenShot();
+    ImGui::SameLine();
+    if (ImGui::Button("Capture range")) {
+      *Max::get().warp_room() = *Max::get().player_room();
+      Max::get().warp_position()->x = (int)Max::get().player_position()->x;
+      Max::get().warp_position()->y = (int)Max::get().player_position()->y;
+      *Max::get().warp_layer() = *Max::get().player_layer();
+      screenShotIndex = 0;
+      screenShotFrame = 0;
+    }
   }
   ImGui::PopItemWidth();
 }
@@ -463,10 +472,44 @@ bool UI::Keys() {
 }
 
 void UI::Draw() {
+  doWarp = false;
+  ImGuiIO &io = ImGui::GetIO();
+  if (screenShotIndex > -1 &&
+      screenShotIndex < screenShotRange.x * screenShotRange.y) {
+    write_mem_recoverable("render_hud", get_address("render_hud"), "EB 74"_gh,
+                          true);
+    ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    int f = screenShotFrame % 5;
+    screenShotFrame++;
+    if (f == 0) {
+      Max::get().player_room()->y++;
+    } else if (f == 2) {
+      SaveScreenShot(screenShotFileName + "_" +
+                     fmt::format("{:03d}", screenShotIndex + 1) + "_" +
+                     TimestampFile());
+      if (screenShotIndex + 1 >= screenShotRange.x * screenShotRange.y) {
+        screenShotIndex = -1;
+        recover_mem("warp");
+        *Max::get().player_room() = *Max::get().warp_room();
+      }
+    } else if (f == 3) {
+      Max::get().warp_room()->x++;
+      if ((screenShotIndex + 1) % screenShotRange.x == 0) {
+        Max::get().warp_room()->x -= screenShotRange.x;
+        Max::get().warp_room()->y++;
+      }
+      write_mem_recoverable("warp", get_address("warp"), "EB"_gh, true);
+      screenShotIndex++;
+    } else if (f == 4) {
+      recover_mem("warp");
+    }
+    return;
+  }
+
   if (screenShotThisFrame != "") {
     SaveScreenShot(screenShotThisFrame);
     screenShotThisFrame = "";
-    if (screenShotPlayerRoom.x != -1) {
+    if (screenShotPlayerRoom.x != -1 && screenShotIndex == -1) {
       *Max::get().player_room() = screenShotPlayerRoom;
       screenShotPlayerRoom = Coord{-1, -1};
     }
@@ -480,7 +523,6 @@ void UI::Draw() {
   if (ImGui::GetFrameCount() == 10)
     ScaleWindow();
 
-  ImGuiIO &io = ImGui::GetIO();
   static const std::string gameversion = GetAppVersion();
   std::string version = fmt::format("MAXWELL {}", get_version()) +
                         (gameversion != "" ? " | GAME " + gameversion : "");
@@ -489,7 +531,6 @@ void UI::Draw() {
                  ImGui::CalcTextSize(version.c_str()).x / 2.f,
              io.DisplaySize.y - ImGui::GetTextLineHeightWithSpacing()),
       0x99999999, version.c_str());
-  doWarp = false;
   Keys();
   io.MouseDrawCursor = options["ui_visible"].value;
   if (options["ui_visible"].value) {
