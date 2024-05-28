@@ -18,7 +18,7 @@ enum class Status {
 
 Status Init();
 
-Status InstallHooks();
+Status InstallHooks(LPVOID hModule);
 Status RemoveHooks();
 
 extern DWORD PID;

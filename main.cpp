@@ -32,7 +32,7 @@
 
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
-bool g_console = false;
+bool g_console = true; // TODO
 std::string g_exe = "Animal Well.exe";
 
 fs::path get_dll_path(const char *rel_path) {
@@ -46,7 +46,7 @@ void wait() {
   if (g_console) {
     while (true) {
       if (auto res = find_process(g_exe))
-        std::this_thread::sleep_for(1s);
+        std::this_thread::sleep_for(200ms);
       else
         break;
     }

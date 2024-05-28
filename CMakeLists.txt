@@ -71,7 +71,8 @@ add_library(dll SHARED
     logger.h
     font.h
     stb_image.h
-    stb_image_write.h)
+    stb_image_write.h
+    res/MAXWELL.rc)
 
 target_link_libraries(dll PRIVATE
     detours
@@ -90,7 +91,8 @@ add_executable(exe
     injector.cpp injector.h
     cmd_line.cpp cmd_line.h
     version.cpp version.h
-    logger.h)
+    logger.h
+    res/MAXWELL.rc)
 target_link_libraries(exe PRIVATE
     detours
     fmt)

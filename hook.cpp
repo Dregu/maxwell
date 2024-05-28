@@ -75,6 +75,7 @@ static ResizeBuffers OriginalResizeBuffers;
 
 static WNDPROC OriginalWndProc;
 static HWND Window = nullptr;
+static HANDLE hIcon = nullptr;
 
 static uint64_t *g_MethodsTable = NULL;
 static bool g_Initialized = false;
@@ -131,6 +132,10 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
       g_FrameBufferCount = desc.BufferCount;
       g_FrameContext.clear();
       g_FrameContext.resize(g_FrameBufferCount);
+    }
+
+    if (hIcon && Window) {
+      auto result = SendMessage(Window, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
     }
 
     {
@@ -547,8 +552,10 @@ LRESULT APIENTRY WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   return CallWindowProc(OriginalWndProc, hWnd, msg, wParam, lParam);
 }
 
-Status InstallHooks() {
+Status InstallHooks(LPVOID hModule) {
   DetourRestoreAfterWith();
+
+  hIcon = LoadIcon((HINSTANCE)hModule, MAKEINTRESOURCE(42069));
 
   if (get_address("steam_restart")) {
     write_mem_recoverable("steam_restart", get_address("steam_restart"),
