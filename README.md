@@ -2,7 +2,7 @@
 
 MAXWELL is an ingame ImGui overlay for the game ANIMAL WELL, featuring an inventory editor, warping map, cheats etc.
 
-It has last been tested on the 2024-05-27 version 1.0.0.15 on Windows 10, but it might work on other versions too.
+It has been tested on the 2024-05-28 version 1.0.0.16 on Windows 10. This is the only version officially supported by the latest autobuild, but it might work for older or newer versions too. There might also be compatibility releases for older versions available in the release section, but those probably won't have the latest features.
 
 **Please go away if you haven't finished the game, this will spoil everything for you.**
 
@@ -16,7 +16,7 @@ This is not a virus, but you probably shouldn't believe a random file on the int
 
 ## Usage
 
-Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/releases/tag/autobuild). Put MAXWELL folder in the game directory and run from there. Or anywhere, the injector should attach to a running game process automatically too.
+Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/releases/tag/autobuild). Put MAXWELL folder in the game folder and run from there. Check `--help` for command line switches for shortcuts.
 
 ## Features
 
@@ -34,3 +34,4 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
 - Disable fog of war / darkness
 - Play in b&w gameboy mode
 - Hide the game hud
+- Take unobstructed screenshots for mapping
