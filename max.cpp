@@ -89,6 +89,10 @@ fCoord *Max::player_position() { return (fCoord *)(player()); }
 
 fCoord *Max::player_velocity() { return (fCoord *)(player() + 0x8); }
 
+fCoord *Max::player_wheel() {
+  return (fCoord *)(*(size_t *)get_address("slots") + 0x9b0c0);
+}
+
 int *Max::player_layer() {
   return (int *)(*(size_t *)get_address("layer_base") +
                  *(uint32_t *)get_address("layer_offset"));

@@ -36,6 +36,7 @@ struct Max {
   Coord *player_room();
   fCoord *player_position();
   fCoord *player_velocity();
+  fCoord *player_wheel();
   int *player_layer();
   Coord *respawn_room();
   Coord *respawn_position();

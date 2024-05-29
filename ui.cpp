@@ -188,6 +188,7 @@ void UI::DrawPlayer() {
     ImGui::InputInt("Layer", Max::get().player_layer());
     ImGui::InputScalar("State", ImGuiDataType_U8, Max::get().player_state());
     ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
+    ImGui::InputFloat2("Wheel", &Max::get().player_wheel()->x);
   }
   if (ImGui::CollapsingHeader("Warp")) {
     ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
@@ -325,7 +326,7 @@ void UI::DrawMap() {
       ImGui::GetWindowDrawList()->AddCircleFilled(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
-          4.f, 0xff00eeee);
+          3.f, 0xff00eeee);
     }
 
     {
@@ -336,7 +337,24 @@ void UI::DrawMap() {
       ImGui::GetWindowDrawList()->AddCircleFilled(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
-          4.f, 0xee0000ee);
+          3.f, 0xee0000ee);
+    }
+
+    if (options["map_wheel"].value) {
+      auto px = Max::get().player_room()->x * 40 +
+                (Max::get().player_wheel()->x / 320.f * 40.f);
+      auto py = Max::get().player_room()->y * 22 +
+                (Max::get().player_wheel()->y / 180.f * 22.f);
+      while (px < 80.f)
+        px += 640.f;
+      while (px > 720.f)
+        px -= 640.f;
+      while (py > 440.f)
+        py -= 352.f;
+      ImGui::GetWindowDrawList()->AddCircle(
+          ImVec2(a.x + d.x + px - c.x - bordersize.x,
+                 a.y + d.y + py - c.y - bordersize.y),
+          4.f, 0xee00ffee, 0, 1.5f);
     }
   }
 }

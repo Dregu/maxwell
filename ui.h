@@ -97,6 +97,7 @@ private:
       {"map_areas",
        {false, "Show all special layers on minimap",
         "Draws all special map borders instead of only selected layer."}},
+      {"map_wheel", {false, "Show wheel on minimap", "For wheel warping."}},
       {"ui_coords",
        {true, "Show coordinate tooltip",
         "Show screen and tile coordinates under mouse cursor."}},
