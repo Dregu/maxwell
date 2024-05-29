@@ -94,17 +94,20 @@ private:
       {"map_reveal",
        {false, "Reveal unseen minimap tiles in game",
         "Marks all tiles seen on the actual ingame map."}},
+      {"map_areas",
+       {false, "Show all special layers on minimap",
+        "Draws all special map borders instead of only selected layer."}},
       {"ui_coords",
        {true, "Show coordinate tooltip",
         "Show screen and tile coordinates under mouse cursor."}},
+      {"ui_hideplayer",
+       {false, "Hide player from screenshots",
+        "Moves the player offscreen for\nthe durating of screenshot."}},
       {"ui_tooltips",
        {true, "Show helpful tooltips",
         "These are really helpful, why are you disabling them!?"}},
       {"ui_visible",
        {true, "Show UI", "Hide/show all MAXWELL windows.", "toggle_ui"}},
-      {"ui_hideplayer",
-       {false, "Hide player from screenshots",
-        "Moves the player offscreen for\nthe durating of screenshot."}},
   };
   bool doWarp = false;
   bool inMenu = false;

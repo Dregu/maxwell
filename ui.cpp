@@ -8,6 +8,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <iostream>
+#include <map>
 #include <misc/cpp/imgui_stdlib.h>
 #include <toml.hpp>
 
@@ -206,6 +207,12 @@ void UI::DrawPlayer() {
 void UI::DrawMap() {
   ImGuiIO &io = ImGui::GetIO();
   static const ImVec2 realmapsize{800, 528};
+  static const std::map<int, std::pair<Coord, Coord>> areas{
+      //{0, {{2, 4}, {18, 20}}},
+      {1, {{10, 11}, {13, 13}}},
+      {2, {{7, 4}, {14, 20}}},
+      {3, {{8, 7}, {13, 10}}},
+      {4, {{11, 12}, {12, 13}}}};
   ImVec2 bordersize{realmapsize.x / 20 * 2, realmapsize.y / 24 * 4};
   ImVec2 mapsize{realmapsize.x - bordersize.x * 2,
                  realmapsize.y - bordersize.y * 2};
@@ -220,10 +227,14 @@ void UI::DrawMap() {
   static Coord cpos{0, 0};
   static Coord wroom{0, 0};
   static Coord wpos{0, 0};
-  ImGui::PushItemWidth(0.3f * mapsize.x);
+  static int layer{0};
+  ImGui::PushItemWidth(0.2f * mapsize.x);
   ImGui::InputInt2("Room", &wroom.x);
-  ImGui::SameLine(0.45f * mapsize.x);
+  ImGui::SameLine(0.30f * mapsize.x);
   ImGui::InputInt2("Position", &wpos.x);
+  ImGui::SameLine(0.62f * mapsize.x);
+  ImGui::InputInt("Layer", &layer);
+  layer = (layer + 5) % 5;
   ImGui::PopItemWidth();
   ImGui::SameLine(mapsize.x - 60.f);
   if (ImGui::Button("Update", ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
@@ -256,12 +267,55 @@ void UI::DrawMap() {
         *Max::get().player_state() = 18;
         *Max::get().warp_room() = wroom;
         *Max::get().warp_position() = wpos;
+        *Max::get().warp_layer() = layer;
         doWarp = true;
       } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
         *Max::get().player_state() = 0;
       }
     }
     ImGui::PopStyleColor(3);
+
+    if (options["map_areas"].value) {
+      for (auto &[l, box] : areas) {
+        auto ax = box.first.x * 40;
+        auto ay = box.first.y * 22;
+        auto bx = box.second.x * 40;
+        auto by = box.second.y * 22;
+        ImGui::GetWindowDrawList()->AddRect(
+            ImVec2(a.x + d.x + ax - c.x - bordersize.x,
+                   a.y + d.y + ay - c.y - bordersize.y),
+            ImVec2(a.x + d.x + bx - c.x - bordersize.x,
+                   a.y + d.y + by - c.y - bordersize.y),
+            0xff00eeee, 0, 0, 1.0f);
+      }
+    }
+
+    if (areas.contains(layer)) {
+      auto ax = areas.at(layer).first.x * 40;
+      auto ay = areas.at(layer).first.y * 22;
+      auto bx = areas.at(layer).second.x * 40;
+      auto by = areas.at(layer).second.y * 22;
+      ImGui::GetWindowDrawList()->AddRect(
+          ImVec2(a.x + d.x + ax - c.x - bordersize.x,
+                 a.y + d.y + ay - c.y - bordersize.y),
+          ImVec2(a.x + d.x + bx - c.x - bordersize.x,
+                 a.y + d.y + by - c.y - bordersize.y),
+          0xff00ff00, 0, 0, 3.0f);
+    }
+
+    auto pl = *Max::get().player_layer();
+    if (areas.contains(pl)) {
+      auto ax = areas.at(pl).first.x * 40;
+      auto ay = areas.at(pl).first.y * 22;
+      auto bx = areas.at(pl).second.x * 40;
+      auto by = areas.at(pl).second.y * 22;
+      ImGui::GetWindowDrawList()->AddRect(
+          ImVec2(a.x + d.x + ax - c.x - bordersize.x,
+                 a.y + d.y + ay - c.y - bordersize.y),
+          ImVec2(a.x + d.x + bx - c.x - bordersize.x,
+                 a.y + d.y + by - c.y - bordersize.y),
+          0xff0000ff, 0, 0, 3.0f);
+    }
 
     {
       auto px = Max::get().warp_room()->x * 40 +
