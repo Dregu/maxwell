@@ -591,7 +591,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     },
     {
         "decrypt_layer"sv,
-        PatternCommandBuffer{}.from_exe_base(0x1b890),
+        PatternCommandBuffer{} //.from_exe_base(0x1b890),
+            .find_inst("74 0a 8a 08 80 e1 c0 80 f9 40"_gh)
+            .at_exe()
+            .function_start(),
     },
     /*{
         "decrypt_asset"sv,
