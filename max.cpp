@@ -1,11 +1,20 @@
 #include "max.h"
 
 #include <Windows.h>
+#include <array>
 
 #include "detours.h"
 #include "ghidra_byte_string.h"
 #include "logger.h"
 #include "memory.h"
+
+const std::array<uint8_t, 16> encryption_keys[3] = {
+    {'G', 'o', 'o', 'd', 'L', 'U', 'c', 'K', 'M', 'y', 'F', 'r', 'i', 'E', 'n',
+     'd'},
+    {0xC9, 0x9B, 0x64, 0x96, 0x5C, 0xCE, 0x04, 0xF0, 0xF5, 0xCB, 0x54, 0xCA,
+     0xC9, 0xAB, 0x62, 0xC6},
+    {0x11, 0x14, 0x18, 0x14, 0x88, 0x82, 0x42, 0x82, 0x28, 0x24, 0x88, 0x82,
+     0x11, 0x18, 0x44, 0x11}};
 
 using UpdateGamePtr = void(size_t);
 static UpdateGamePtr *g_update_game_trampoline{nullptr};
@@ -26,6 +35,18 @@ Max &Max::get() {
         write_mem_recoverable("check", off, "E9 24 01 00 00 90"_gh, true);
       }
     }
+
+    {
+      decrypt_layer(193, (uint8_t *)&encryption_keys[0], 2); // space
+      decrypt_layer(52, (uint8_t *)&encryption_keys[1], 3);  // bunny temple
+      decrypt_layer(222, (uint8_t *)&encryption_keys[2], 4); // capsule island
+
+      // TODO
+      // decrypt_asset(30, (uint8_t *)&encryption_keys[1]); // chungus
+      // decrypt_asset(277, (uint8_t *)&encryption_keys[2]); // capsule
+      // decrypt_asset(377, (uint8_t *)&encryption_keys[2]); // tape
+    }
+
     /*{
       g_update_game_trampoline = (UpdateGamePtr *)get_address("update_game"sv);
       DetourTransactionBegin();
@@ -87,6 +108,10 @@ uint8_t *Max::player_state() { return (uint8_t *)(player() + 0x5d); }
 
 uint8_t *Max::player_flute() { return (uint8_t *)(player() + 0x8955); }
 
+Directions *Max::player_directions() {
+  return (Directions *)(player() + 0x891c);
+}
+
 int8_t *Max::player_hp() { return (int8_t *)(slot() + 0x5cc); }
 
 Coord *Max::spawn_room() { return (Coord *)(slot() + 0x5ec); }
@@ -107,4 +132,16 @@ void Max::save_game() {
   using SaveGameFunc = void();
   static SaveGameFunc *save = (SaveGameFunc *)get_address("save_game");
   return save();
+}
+
+size_t Max::decrypt_layer(size_t asset, uint8_t *key, int layer) {
+  using DecryptFunc = size_t(size_t asset, uint8_t * key, int layer);
+  static DecryptFunc *decrypt = (DecryptFunc *)get_address("decrypt_layer");
+  return decrypt(asset, key, layer);
+}
+
+uint8_t *Max::decrypt_asset(size_t asset, uint8_t *key) {
+  using DecryptFunc = uint8_t *(size_t asset, uint8_t * key);
+  static DecryptFunc *decrypt = (DecryptFunc *)get_address("decrypt_asset");
+  return decrypt(asset, key);
 }

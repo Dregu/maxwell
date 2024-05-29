@@ -20,6 +20,11 @@ struct fCoord {
   float y;
 };
 
+struct Directions {
+  uint8_t buffer[32];
+  uint8_t count;
+};
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
@@ -38,6 +43,7 @@ struct Max {
   Coord *warp_position();
   int *warp_layer();
   uint8_t *player_flute();
+  Directions *player_directions();
   uint8_t *player_state();
   int8_t *player_hp();
   Coord *spawn_room();
@@ -47,4 +53,6 @@ struct Max {
   uint8_t *keys();
   uint8_t *options();
   void save_game();
+  static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
+  static uint8_t *decrypt_asset(size_t asset, uint8_t *key);
 };

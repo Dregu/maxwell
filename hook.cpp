@@ -83,14 +83,6 @@ static bool g_Initialized = false;
 static UI *g_UI;
 static bool g_skipHook = false;
 
-/*using GetKeyboardStatePtr = bool(PBYTE lpKeyState);
-static GetKeyboardStatePtr *g_keyboard_trampoline{nullptr};
-bool HookGetKeyboardState(PBYTE lpKeyState) {
-  if (ImGui::GetIO().WantCaptureKeyboard)
-    return true;
-  return g_keyboard_trampoline(lpKeyState);
-}*/
-
 ImVec4 HueShift(ImVec4 in, float hue) {
   float U = std::cos(hue * 3.14159265f / 180);
   float W = std::sin(hue * 3.14159265f / 180);
@@ -565,17 +557,6 @@ Status InstallHooks(LPVOID hModule) {
   Hook(54, (void **)&OriginalExecuteCommandLists, HookExecuteCommandLists);
   Hook(140, (void **)&OriginalPresent, HookPresent);
   Hook(145, (void **)&OriginalResizeBuffers, HookResizeBuffers);
-
-  /*{
-    g_keyboard_trampoline = (GetKeyboardStatePtr *)get_address("keyboard"sv);
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourAttach((void **)&g_keyboard_trampoline, HookGetKeyboardState);
-    const LONG error = DetourTransactionCommit();
-    if (error != NO_ERROR) {
-      DEBUG("Failed hooking GetKeyboardState: {}\n", error);
-    }
-  }*/
 
   g_UI = new UI();
 

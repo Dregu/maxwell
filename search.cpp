@@ -589,6 +589,22 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .offset(12)
             .at_exe(),
     },
+    {
+        "decrypt_layer"sv,
+        PatternCommandBuffer{}.from_exe_base(0x1b890),
+    },
+    /*{
+        "decrypt_asset"sv,
+        PatternCommandBuffer{}.from_exe_base(0x1650),
+    },
+    {
+        "load_asset"sv,
+        PatternCommandBuffer{}.from_exe_base(0x776f0),
+    },
+    {
+        "bdtp"sv,
+        PatternCommandBuffer{}.from_exe_base(0x52170),
+    },*/
 };
 std::unordered_map<std::string_view, size_t> g_cached_addresses;
 
