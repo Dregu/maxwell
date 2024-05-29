@@ -16,9 +16,38 @@ const std::array<uint8_t, 16> encryption_keys[3] = {
     {0x11, 0x14, 0x18, 0x14, 0x88, 0x82, 0x42, 0x82, 0x28, 0x24, 0x88, 0x82,
      0x11, 0x18, 0x44, 0x11}};
 
-using UpdateGamePtr = void(size_t);
-static UpdateGamePtr *g_update_game_trampoline{nullptr};
-void HookUpdateGame(size_t addr) { g_update_game_trampoline(addr); }
+using UpdateState = void(void *a, void *b, void *c, void *d);
+UpdateState *g_update_state_trampoline{nullptr};
+void HookUpdateState(void *a, void *b, void *c, void *d) {
+  if (Max::get().pause()->type == 0) {
+    if (Max::get().set_pause.has_value()) {
+      if (Max::get().set_pause.value()) {
+        Max::get().paused = true;
+      } else {
+        Max::get().pause()->paused = false;
+        Max::get().paused = std::nullopt;
+      }
+      Max::get().set_pause = std::nullopt;
+    }
+    if (Max::get().paused.has_value()) {
+      Max::get().pause()->paused = Max::get().paused.value();
+    }
+    if (Max::get().skip && Max::get().paused.value_or(false)) {
+      Max::get().pause()->paused = false;
+      Max::get().skip = false;
+    }
+  }
+  g_update_state_trampoline(a, b, c, d);
+}
+
+using Void = void();
+Void *g_update_input_trampoline{nullptr};
+void HookUpdateInput() {
+  if (Max::get().pause()->type == 0 && Max::get().paused.value_or(false) &&
+      !Max::get().skip)
+    return;
+  g_update_input_trampoline();
+}
 
 inline bool &get_is_init() {
   static bool is_init{false};
@@ -47,19 +76,54 @@ Max &Max::get() {
       // decrypt_asset(377, (uint8_t *)&encryption_keys[2]); // tape
     }
 
-    /*{
-      g_update_game_trampoline = (UpdateGamePtr *)get_address("update_game"sv);
+    if (g_update_state_trampoline =
+            (UpdateState *)get_address("update_state")) {
       DetourTransactionBegin();
       DetourUpdateThread(GetCurrentThread());
-      DetourAttach((void **)&g_update_game_trampoline, HookUpdateGame);
+      DetourAttach((void **)&g_update_state_trampoline, HookUpdateState);
       const LONG error = DetourTransactionCommit();
       if (error != NO_ERROR) {
-        DEBUG("Failed hooking UpdateGame: {}\n", error);
+        DEBUG("Failed hooking UpdateState: {}\n", error);
       }
-    }*/
+    }
+
+    if (g_update_input_trampoline = (Void *)get_address("update_input")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_update_input_trampoline, HookUpdateInput);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking UpdateInput: {}\n", error);
+      }
+    }
+
     get_is_init() = true;
   }
   return MAX;
+}
+
+void Max::unhook() {
+  if (g_update_state_trampoline) {
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((void **)&g_update_state_trampoline, HookUpdateState);
+    const LONG error = DetourTransactionCommit();
+    if (error != NO_ERROR) {
+      DEBUG("Failed unhooking UpdateState: {}\n", error);
+    }
+    g_update_state_trampoline = nullptr;
+  }
+
+  if (g_update_input_trampoline) {
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((void **)&g_update_input_trampoline, HookUpdateInput);
+    const LONG error = DetourTransactionCommit();
+    if (error != NO_ERROR) {
+      DEBUG("Failed unhooking UpdateInput: {}\n", error);
+    }
+    g_update_input_trampoline = nullptr;
+  }
 }
 
 State Max::state() {
@@ -116,21 +180,29 @@ Directions *Max::player_directions() {
   return (Directions *)(player() + 0x891c);
 }
 
-int8_t *Max::player_hp() { return (int8_t *)(slot() + 0x5cc); }
+int8_t *Max::player_hp() { return (int8_t *)(slot() + 0x400 + 0x1cc); }
 
-Coord *Max::spawn_room() { return (Coord *)(slot() + 0x5ec); }
+Coord *Max::spawn_room() { return (Coord *)(slot() + 0x400 + 0x1ec); }
 
-uint16_t *Max::equipment() { return (uint16_t *)(slot() + 0x5f4); }
+uint16_t *Max::equipment() { return (uint16_t *)(slot() + 0x400 + 0x1f4); }
 
-uint8_t *Max::items() { return (uint8_t *)(slot() + 0x5f6); }
+uint8_t *Max::items() { return (uint8_t *)(slot() + 0x400 + 0x1f6); }
 
-uint32_t *Max::upgrades() { return (uint32_t *)(slot() + 0x604); }
+uint32_t *Max::upgrades() { return (uint32_t *)(slot() + 0x400 + 0x204); }
 
-uint8_t *Max::keys() { return (uint8_t *)(slot() + 0x5c9); }
+uint8_t *Max::keys() { return (uint8_t *)(slot() + 0x400 + 0x1c9); }
+
+uint8_t *Max::item() { return (uint8_t *)(slot() + 0x400 + 0x202); }
 
 uint8_t *Max::options() {
   return (uint8_t *)(*(size_t *)get_address("slots") + 0x400 + 0x75048);
 }
+
+Pause *Max::pause() {
+  return (Pause *)((*(size_t *)get_address("slots") + 0x93608));
+};
+
+uint32_t *Max::timer() { return (uint32_t *)(slot() + 0x400 + 0x1d4); }
 
 void Max::save_game() {
   using SaveGameFunc = void();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 #define SLOT_SIZE 0x27010
 
@@ -25,9 +26,24 @@ struct Directions {
   uint8_t count;
 };
 
+struct Pause {
+  bool paused;
+  uint32_t timer;
+  uint32_t index;
+  uint32_t timer2;
+  uint32_t unk;
+  float marker[8];
+  uint32_t unk2;
+  uint32_t unk3;
+  uint32_t type;
+  uint32_t timer3;
+  bool closing;
+};
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
+  void unhook();
   static State state();
   Minimap minimap();
   uint8_t *slot_number();
@@ -52,8 +68,15 @@ struct Max {
   uint8_t *items();
   uint32_t *upgrades();
   uint8_t *keys();
+  uint8_t *item();
   uint8_t *options();
+  Pause *pause();
+  uint32_t *timer();
   void save_game();
   static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
   static uint8_t *decrypt_asset(size_t asset, uint8_t *key);
+
+  bool skip{false};
+  std::optional<bool> paused{std::nullopt};
+  std::optional<bool> set_pause{std::nullopt};
 };

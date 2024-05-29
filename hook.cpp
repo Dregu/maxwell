@@ -13,6 +13,7 @@
 #include <dxgi1_4.h>
 #include <fstream>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <stdio.h>
 #include <string>
 #include <thread>
@@ -216,10 +217,12 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     }
 
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    auto *g = ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     CreateDirectory(L"MAXWELL", NULL);
     io.IniFilename = "MAXWELL\\MAXWELL_imgui.ini";
+    g->ConfigNavWindowingKeyNext = 0;
+    g->ConfigNavWindowingKeyPrev = 0;
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // TODO: doesn't work
 
     io.Fonts->AddFontFromMemoryCompressedTTF(OLFont_compressed_data,
@@ -567,16 +570,6 @@ Status RemoveHooks() {
   Unhook(54, (void **)&OriginalExecuteCommandLists, HookExecuteCommandLists);
   Unhook(140, (void **)&OriginalPresent, HookPresent);
   Unhook(145, (void **)&OriginalResizeBuffers, HookResizeBuffers);
-
-  /*{
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourDetach((void **)&g_keyboard_trampoline, HookGetKeyboardState);
-    const LONG error = DetourTransactionCommit();
-    if (error != NO_ERROR) {
-      DEBUG("Failed unhooking GetKeyboardState: {}\n", error);
-    }
-  }*/
 
   if (Window && OriginalWndProc) {
     SetWindowLongPtr(Window, GWLP_WNDPROC,

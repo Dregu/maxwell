@@ -47,6 +47,8 @@ private:
       {"toggle_hud", ImGuiMod_Ctrl | ImGuiKey_H},
       {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
       {"screenshot", ImGuiKey_Period},
+      {"pause", ImGuiMod_Ctrl | ImGuiKey_Tab},
+      {"skip", ImGuiKey_Tab},
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{
@@ -125,6 +127,7 @@ private:
   Coord screenShotRange{1, 1};
   int screenShotIndex = -1;
   int screenShotFrame = -1;
+  bool paused = false;
 
 public:
   UI();

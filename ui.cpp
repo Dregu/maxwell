@@ -186,9 +186,15 @@ void UI::DrawPlayer() {
     ImGui::InputInt2("Respawn room", &Max::get().respawn_room()->x);
     ImGui::InputInt2("Respawn tile", &Max::get().respawn_position()->x);
     ImGui::InputInt("Layer", Max::get().player_layer());
+    ImGui::InputFloat2("Wheel", &Max::get().player_wheel()->x);
+  }
+  if (ImGui::CollapsingHeader("State")) {
     ImGui::InputScalar("State", ImGuiDataType_U8, Max::get().player_state());
     ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
-    ImGui::InputFloat2("Wheel", &Max::get().player_wheel()->x);
+    ImGui::InputScalar("Item", ImGuiDataType_U8, Max::get().item());
+    ImGui::InputScalar("Ingame time", ImGuiDataType_U32, Max::get().timer());
+    ImGui::InputScalar("Total time", ImGuiDataType_U32, Max::get().timer() + 1);
+    ImGui::Checkbox("Paused", &Max::get().pause()->paused);
   }
   if (ImGui::CollapsingHeader("Warp")) {
     ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
@@ -500,6 +506,14 @@ UI::UI() {
         ImGui::PopStyleColor();
     }
 
+    size_t v = (size_t)Max::get().slot();
+    ImGui::InputScalar("save slot", ImGuiDataType_U64, &v, NULL, NULL, "%p",
+                       ImGuiInputTextFlags_ReadOnly);
+
+    v = (size_t)Max::get().pause();
+    ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%p",
+                       ImGuiInputTextFlags_ReadOnly);
+
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
       ImGui::ShowMetricsWindow();
@@ -513,7 +527,7 @@ UI::UI() {
   DEBUG("MAXWELL UI INITIALIZED");
 }
 
-UI::~UI() {}
+UI::~UI() { Max::get().unhook(); }
 
 bool UI::Keys() {
   if (ImGui::IsKeyReleased((ImGuiKey)keys["escape"]))
@@ -538,6 +552,11 @@ bool UI::Keys() {
     doWarp = true;
   else if (ImGui::IsKeyChordPressed(keys["screenshot"]))
     ScreenShot();
+  else if (ImGui::IsKeyChordPressed(keys["pause"])) {
+    paused ^= true;
+    Max::get().set_pause = paused;
+  } else if (ImGui::IsKeyChordPressed(keys["skip"]))
+    Max::get().skip = true;
   else
     return false;
   return true;
