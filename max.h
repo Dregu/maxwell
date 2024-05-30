@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <deque>
 #include <optional>
 
 #define SLOT_SIZE 0x27010
@@ -10,6 +11,22 @@ using Minimap = size_t;
 using Slot = size_t;
 using Player = size_t;
 using Options = size_t;
+
+enum PLAYER_INPUT : int32_t {
+  SKIP = -1,
+  NONE = 0,
+  UP = 0x1,
+  DOWN = 0x2,
+  LEFT = 0x4,
+  RIGHT = 0x8,
+  MAP = 0x20,
+  LB = 0x100,
+  RB = 0x200,
+  JUMP = 0x1000,
+  ACTION = 0x2000,
+  ITEM = 0x4000,
+  INVENTORY = 0x8000,
+};
 
 struct Coord {
   int x;
@@ -79,4 +96,7 @@ struct Max {
   bool skip{false};
   std::optional<bool> paused{std::nullopt};
   std::optional<bool> set_pause{std::nullopt};
+
+  PLAYER_INPUT input{PLAYER_INPUT::SKIP};
+  std::deque<int> inputs;
 };

@@ -37,6 +37,10 @@ void HookUpdateState(void *a, void *b, void *c, void *d) {
       Max::get().skip = false;
     }
   }
+  if (!Max::get().inputs.empty()) {
+    Max::get().input = (PLAYER_INPUT)Max::get().inputs.front();
+    Max::get().inputs.pop_front();
+  }
   g_update_state_trampoline(a, b, c, d);
 }
 
@@ -47,6 +51,42 @@ void HookUpdateInput() {
       !Max::get().skip)
     return;
   g_update_input_trampoline();
+}
+
+using GetInput = uint32_t(uint16_t a);
+GetInput *g_get_input_trampoline{nullptr};
+uint32_t HookGetInput(uint16_t a) {
+  auto ret = g_get_input_trampoline(a);
+  if (ret > 0)
+    DEBUG("GetInput: {:x} {:x}", a, ret);
+
+  auto i = Max::get().input;
+
+  if (i == PLAYER_INPUT::SKIP)
+    return ret;
+
+  if (i == PLAYER_INPUT::NONE)
+    return 0;
+
+  if (a & i) {
+    if (a >= PLAYER_INPUT::UP && a <= PLAYER_INPUT::RIGHT)
+      ret = 1;
+    else if (a == PLAYER_INPUT::LB)
+      ret = 0x401;
+    else if (a == PLAYER_INPUT::LB)
+      ret = 0x801;
+    else if (a == PLAYER_INPUT::JUMP)
+      ret = 0x4001;
+    else if (a == PLAYER_INPUT::ACTION)
+      ret = 0x2001;
+    else if (a == PLAYER_INPUT::ITEM)
+      ret = 0x8001;
+    else if (a == PLAYER_INPUT::INVENTORY)
+      ret = 0x1001;
+    else if (a == PLAYER_INPUT::MAP)
+      ret = 0x100001;
+  }
+  return ret;
 }
 
 inline bool &get_is_init() {
@@ -97,6 +137,16 @@ Max &Max::get() {
       }
     }
 
+    if (g_get_input_trampoline = (GetInput *)get_address("get_input")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_get_input_trampoline, HookGetInput);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking GetInput: {}\n", error);
+      }
+    }
+
     get_is_init() = true;
   }
   return MAX;
@@ -123,6 +173,17 @@ void Max::unhook() {
       DEBUG("Failed unhooking UpdateInput: {}\n", error);
     }
     g_update_input_trampoline = nullptr;
+  }
+
+  if (g_get_input_trampoline) {
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((void **)&g_get_input_trampoline, HookGetInput);
+    const LONG error = DetourTransactionCommit();
+    if (error != NO_ERROR) {
+      DEBUG("Failed unhooking GetInput: {}\n", error);
+    }
+    g_get_input_trampoline = nullptr;
   }
 }
 

@@ -604,6 +604,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         "update_input"sv,
         PatternCommandBuffer{}.from_exe_base(0x13c50),
     },
+    {
+        "get_input"sv,
+        PatternCommandBuffer{}.from_exe_base(0x11f50),
+    },
     /*{
         "decrypt_asset"sv,
         PatternCommandBuffer{}.from_exe_base(0x1650),

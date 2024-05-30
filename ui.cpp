@@ -514,6 +514,12 @@ UI::UI() {
     ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%p",
                        ImGuiInputTextFlags_ReadOnly);
 
+    if (ImGui::Button("Test song")) {
+      Max::get().inputs.insert(Max::get().inputs.end(),
+                               {0x4008, 0, 0x4008, 0, 0x4004, 0, 0x4004, 0,
+                                0x4002, 0, 0x4002, 0, 0x4001, 0, 0x4001, -1});
+    }
+
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
       ImGui::ShowMetricsWindow();
