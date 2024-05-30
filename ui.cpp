@@ -28,9 +28,8 @@
 #include "stb_image_write.h"
 
 std::array equipment_names{
-    "Unknown", "Firecrackers", "Flute ",   "Lantern ", "Top ",
-    "Disc ",   "BWand ",       "Yoyo ",    "Slink ",   "Remote ",
-    "Ball ",   "Wheel ",       "UVLight ",
+    "Unknown", "Firecrackers", "Flute",  "Lantern", "Top",   "Disc",    "BWand",
+    "Yoyo",    "Slink",        "Remote", "Ball",    "Wheel", "UVLight",
 };
 
 std::array item_names{
@@ -75,6 +74,132 @@ std::array misc_names{
     "NoDiscInStatue",
     "Unknown",
 };
+
+const std::map<std::string, PLAYER_INPUT> notes{
+    {"A4", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::LB)},
+    {"A#4",
+     (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::LB | PLAYER_INPUT::RB)},
+    {"B4", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::DOWN |
+                          PLAYER_INPUT::LB)},
+    {"C5", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::DOWN |
+                          PLAYER_INPUT::LB | PLAYER_INPUT::RB)},
+    {"C#5", (PLAYER_INPUT)(PLAYER_INPUT::DOWN | PLAYER_INPUT::LB)},
+    {"D5", (PLAYER_INPUT)(PLAYER_INPUT::DOWN | PLAYER_INPUT::LEFT |
+                          PLAYER_INPUT::LB)},
+    {"D#5", (PLAYER_INPUT)(PLAYER_INPUT::DOWN | PLAYER_INPUT::LEFT |
+                           PLAYER_INPUT::LB | PLAYER_INPUT::RB)},
+    {"E5", (PLAYER_INPUT)(PLAYER_INPUT::LEFT | PLAYER_INPUT::LB)},
+    {"F5",
+     (PLAYER_INPUT)(PLAYER_INPUT::LEFT | PLAYER_INPUT::LB | PLAYER_INPUT::RB)},
+    {"F#5",
+     (PLAYER_INPUT)(PLAYER_INPUT::UP | PLAYER_INPUT::LEFT | PLAYER_INPUT::LB)},
+    {"G5", (PLAYER_INPUT)(PLAYER_INPUT::UP | PLAYER_INPUT::LEFT |
+                          PLAYER_INPUT::LB | PLAYER_INPUT::RB)},
+    {"G#5", (PLAYER_INPUT)(PLAYER_INPUT::UP | PLAYER_INPUT::LB)},
+    {"A5", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT)},
+    {"A#5", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::RB)},
+    {"B5", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::DOWN)},
+    {"C6", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::DOWN |
+                          PLAYER_INPUT::RB)},
+    {"C#6", (PLAYER_INPUT)(PLAYER_INPUT::DOWN)},
+    {"D6", (PLAYER_INPUT)(PLAYER_INPUT::DOWN | PLAYER_INPUT::LEFT)},
+    {"D#6", (PLAYER_INPUT)(PLAYER_INPUT::DOWN | PLAYER_INPUT::LEFT |
+                           PLAYER_INPUT::RB)},
+    {"E6", (PLAYER_INPUT)(PLAYER_INPUT::LEFT)},
+    {"F6", (PLAYER_INPUT)(PLAYER_INPUT::LEFT | PLAYER_INPUT::RB)},
+    {"F#6", (PLAYER_INPUT)(PLAYER_INPUT::LEFT | PLAYER_INPUT::UP)},
+    {"G6",
+     (PLAYER_INPUT)(PLAYER_INPUT::LEFT | PLAYER_INPUT::UP | PLAYER_INPUT::RB)},
+    {"G#6", (PLAYER_INPUT)(PLAYER_INPUT::UP)},
+    {"A6", (PLAYER_INPUT)(PLAYER_INPUT::UP | PLAYER_INPUT::RIGHT)},
+    {"A#6",
+     (PLAYER_INPUT)(PLAYER_INPUT::UP | PLAYER_INPUT::RIGHT | PLAYER_INPUT::RB)},
+};
+
+std::array ttfaf{
+    "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
+    "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A4",  "G5",  "A4",  "G#5", "A4",
+    "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "D5",  "A4",
+
+    "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
+    "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A4",  "G5",  "A4",  "G#5", "A4",
+    "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "D5",  "A4",
+
+    "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
+    "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A4",  "G5",  "A4",  "G#5", "A4",
+    "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "D5",  "A4",
+
+    "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
+    "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A4",  "G5",  "A4",  "G#5", "A4",
+    "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "D5",  "A4",
+
+    "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
+    "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A4",  "G5",  "A4",  "G#5", "A4",
+    "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "D5",  "A4",
+
+    "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
+    "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A4",  "G5",  "A4",  "G#5", "A4",
+    "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "D5",  "A4",
+
+    "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
+    "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A4",  "G5",  "A4",  "G#5", "A4",
+    "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "D5",  "A4",
+
+    "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
+    "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A5",  "D#5", "C5",  "A4",  "C5",
+    "D#5", "G5",  "A#5", "C6",  "A#5", "G5",  "D#5", "A4",  "D#5", "G5",
+
+    "D#6", "D#6", "D#6", "D#6", "G5",  "G5",  "D#6", "D#6", "D#6", "D#6", "G5",
+    "G5",  "D#6", "D#6", "G5",  "G5",  "D#6", "D#6", "D#6", "D#6", "G5",  "G5",
+    "D#6", "D#6", "D#6", "D#6", "G5",  "G5",  "D#6", "D#6", "G5",  "G5",
+
+    "G6",  "G6",  "G6",  "G6",  "C6",  "C6",  "G6",  "G6",  "G6",  "G6",  "C6",
+    "C6",  "G6",  "G6",  "C6",  "C6",  "G6",  "G6",  "G6",  "G6",  "C6",  "C6",
+    "G6",  "G6",  "G6",  "G6",  "C6",  "C6",  "G6",  "G6",  "C6",  "C6",
+
+    "F6",  "F6",  "F6",  "F6",  "G#5", "G#5", "F6",  "F6",  "F6",  "F6",  "G#5",
+    "G#5", "F6",  "F6",  "G#5", "G#5", "F6",  "F6",  "F6",  "F6",  "G#5", "G#5",
+    "F6",  "F6",  "F6",  "F6",  "G#5", "G#5", "F6",  "F6",  "G#5", "G#5",
+
+    "D#6", "D#6", "D#6", "D#6", "G5",  "G5",  "D#6", "D#6", "D#6", "D#6", "G5",
+    "G5",  "D#6", "D#6", "G5",  "G5",  "G5",  "D6",  "D#6", "F6",  "D6",  "D#6",
+    "F6",  "D#6",
+
+    "F6",  "F6",  "G6",  "G6",  "G6",  "G6",  "G6",  "D#6", "D#6", "D#6", "D#6",
+    "G5",  "G5",  "D#6", "D#6", "D#6", "D#6", "G5",  "G5",  "D#6", "D#6", "G5",
+    "G5",  "D#6", "D#6", "D#6", "D#6", "G5",  "G5",  "D#6", "D#6", "D#6", "D#6",
+    "G5",  "G5",  "D#6", "D#6", "G5",  "G5",
+
+    "G6",  "G6",  "G6",  "G6",  "C6",  "C6",  "G6",  "G6",  "G6",  "G6",  "C6",
+    "C6",  "G6",  "G6",  "C6",  "C6",  "G6",  "G6",  "G6",  "G6",  "C6",  "C6",
+    "G6",  "G6",  "G6",  "G6",  "C6",  "C6",  "G6",  "G6",  "C6",  "C6",
+
+    "F6",  "F6",  "F6",  "F6",  "G#5", "G#5", "F6",  "F6",  "F6",  "F6",  "G#5",
+    "G#5", "F6",  "F6",  "G#5", "G#5", "F6",  "F6",  "F6",  "F6",  "G#5", "G#5",
+    "F6",  "F6",  "F6",  "F6",  "G#5", "G#5", "F6",  "F6",  "G#5", "G#5",
+
+    "D#6", "C6",  "G#5", "D#5", "D#5", "G5",  "G#5", "A#5", "D#6", "C6",  "G#5",
+    "D#5", "G5",  "G#5", "A#5", "C6",
+
+    "F6",  "F6",  "F6",  "F6",  "F6",  "F6",  "F6",  "F6",  "F6",  "F6",  "F6",
+    "F6",  "F6",  "F6",  "F6",  "F6",
+
+    "G6",  "G6",  "G6",  "G6",  "G6",  "G6",  "F6",  "F6",  "F6",  "F6",  "F6",
+    "F6",  "G6",  "G6",  "G6",  "G6",  "G6",  "G6",  "G6",  "G6",  "G6",  "G6",
+    "F6",  "F6",  "F6",  "F6",  "F6",  "F6",  "G6",  "G6",  "G6",  "G6",  "G#6",
+    "G#6", "G#6", "G#6", "G#6", "G#6", "G6",  "G6",  "G6",  "G6",  "G6",  "G6",
+    "G#6", "G#6", "G#6", "G#6", "G#6", "G#6", "G#6", "G#6", "G#6", "G#6", "G6",
+    "G6",  "G6",  "G6",  "G6",  "G6",  "G#6", "G#6", "G#6", "G#6", "D6",  "D6",
+    "D6",  "D6",  "D6",  "D6",  "A#6", "A#6", "A#6", "A#6", "A#6", "A#6", "D6",
+    "D6",  "D6",  "D6",  "D6",  "D6",  "D6",  "D6",  "D6",  "D6",  "A#6", "A#6",
+    "A#6", "A#6", "A#6", "A#6", "D6",  "D6",  "D6",  "D6",
+
+    "A#4", "C5",  "D#5", "F5",  "G5",  "F5",  "G5",  "G#5", "A#5", "G#5", "G5",
+    "F5",  "D#5", "D5",  "C5",  "A#4", "C5",  "G5",  "C6",  "D#6", "G6",  "G6",
+    "G6",  "D#6", "C6",  "C6",  "G5",  "C6",  "D#6", "D#6", "G6",  "G6",  "A#6",
+    "C4",  "A#6", "C4",  "A#6", "C4",  "A#6", "C4",  "A#6", "C4",  "A#6", "C4",
+    "A#6", "C4",  "A#6", "C4",  "A#6", "C4",  "A#6", "C4",  "A#6", "C4",  "A#6",
+    "C4",  "G4",  "G4",  "A#4", "A#4", "C5",  "C5"};
 
 namespace ImGui {
 // Wrapper for menu that can be opened with a global shortcut
@@ -162,14 +287,14 @@ void UI::DrawPlayer() {
   Tooltip("This sets your current room as spawn and runs the save function "
           "anywhere.\nIn rooms without a phone you will spawn near the "
           "top left corner.");
-  if (ImGui::CollapsingHeader("Equipment"))
+  if (ImGui::CollapsingHeader("Equipment##PlayerEquipment"))
     Flags(equipment_names, Max::get().equipment(), false);
-  if (ImGui::CollapsingHeader("Items"))
+  if (ImGui::CollapsingHeader("Items##PlayerItems"))
     Flags(item_names, Max::get().items(), false);
-  if (ImGui::CollapsingHeader("Miscellaneous"))
+  if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc"))
     Flags(misc_names, Max::get().upgrades(), false);
 
-  if (ImGui::CollapsingHeader("Consumables")) {
+  if (ImGui::CollapsingHeader("Consumables##PlayerConsumables")) {
     ImGui::DragScalar("Health", ImGuiDataType_S8, Max::get().player_hp(), 0.1f);
     ImGui::DragScalar("More health", ImGuiDataType_S8,
                       Max::get().player_hp() + 1, 0.1f);
@@ -178,7 +303,7 @@ void UI::DrawPlayer() {
     ImGui::DragScalar("Firecrackers", ImGuiDataType_U8, Max::get().keys() + 2,
                       0.1f);
   }
-  if (ImGui::CollapsingHeader("Position")) {
+  if (ImGui::CollapsingHeader("Position##PlayerPosition")) {
     ImGui::InputInt2("Room", &Max::get().player_room()->x);
     ImGui::InputFloat2("Position", &Max::get().player_position()->x);
     ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
@@ -188,7 +313,7 @@ void UI::DrawPlayer() {
     ImGui::InputInt("Layer", Max::get().player_layer());
     ImGui::InputFloat2("Wheel", &Max::get().player_wheel()->x);
   }
-  if (ImGui::CollapsingHeader("State")) {
+  if (ImGui::CollapsingHeader("State##PlayerState")) {
     ImGui::InputScalar("State", ImGuiDataType_U8, Max::get().player_state());
     ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
     ImGui::InputScalar("Item", ImGuiDataType_U8, Max::get().item());
@@ -196,7 +321,7 @@ void UI::DrawPlayer() {
     ImGui::InputScalar("Total time", ImGuiDataType_U32, Max::get().timer() + 1);
     ImGui::Checkbox("Paused", &Max::get().pause()->paused);
   }
-  if (ImGui::CollapsingHeader("Warp")) {
+  if (ImGui::CollapsingHeader("Warp##PlayerWarp")) {
     ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
     ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
     ImGui::InputInt("Warp layer", Max::get().warp_layer());
@@ -478,6 +603,25 @@ void UI::DrawTools() {
       screenShotFrame = 0;
     }
   }
+  if (ImGui::CollapsingHeader("Music player  ")) {
+    if (ImGui::Button("TTFAF")) {
+      *Max::get().item() = 2;
+      *Max::get().player_state() = 7;
+      for (auto note : ttfaf) {
+        std::string s(note);
+        if (!notes.contains(s))
+          continue;
+        for (int i = 0; i < 4; ++i)
+          Max::get().inputs.push_back(notes.at(s) | 0x4000);
+        Max::get().inputs.push_back(0);
+      }
+      Max::get().inputs.push_back(-1);
+    }
+    if (ImGui::Button("Clear queue")) {
+      Max::get().input = PLAYER_INPUT::SKIP;
+      Max::get().inputs.clear();
+    }
+  }
   ImGui::PopItemWidth();
 }
 
@@ -513,12 +657,6 @@ UI::UI() {
     v = (size_t)Max::get().pause();
     ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%p",
                        ImGuiInputTextFlags_ReadOnly);
-
-    if (ImGui::Button("Test song")) {
-      Max::get().inputs.insert(Max::get().inputs.end(),
-                               {0x4008, 0, 0x4008, 0, 0x4004, 0, 0x4004, 0,
-                                0x4002, 0, 0x4002, 0, 0x4001, 0, 0x4001, -1});
-    }
 
     if (!this->inMenu) {
       ImGui::ShowDemoWindow();
