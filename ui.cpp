@@ -217,6 +217,14 @@ inline bool MenuItem(const char *label, const ImGuiKeyChord key) {
 }
 } // namespace ImGui
 
+static inline ImVec2 operator+(const ImVec2 &lhs, const ImVec2 &rhs) {
+  return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
+}
+
+static inline ImVec2 operator-(const ImVec2 &lhs, const ImVec2 &rhs) {
+  return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y);
+}
+
 template <std::size_t SIZE, typename T>
 void Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
            bool show_number = true) {
@@ -335,9 +343,11 @@ void UI::DrawPlayer() {
   ImGui::PopItemWidth();
 }
 
-// TODO: Option to hilight important overlapping other world rooms
+// TODO: Hilight active/hovered room
 void UI::DrawMap() {
   ImGuiIO &io = ImGui::GetIO();
+  ImGuiContext &g = *GImGui;
+
   static const ImVec2 realmapsize{800, 528};
   static const std::map<int, std::pair<Coord, Coord>> areas{
       //{0, {{2, 4}, {18, 20}}},
@@ -667,8 +677,6 @@ UI::UI() {
       }
     }*/
   });
-
-  DEBUG("MAXWELL UI INITIALIZED");
 }
 
 UI::~UI() { Max::get().unhook(); }
@@ -699,16 +707,33 @@ bool UI::Keys() {
   else if (ImGui::IsKeyChordPressed(keys["pause"])) {
     paused ^= true;
     Max::get().set_pause = paused;
-  } else if (ImGui::IsKeyChordPressed(keys["skip"]))
+  } else if (ImGui::IsKeyChordPressed(keys["skip"]) &&
+             !ImGui::IsWindowFocused(ImGuiHoveredFlags_AnyWindow))
     Max::get().skip = true;
   else
     return false;
   return true;
 }
 
+ImVec2 Mouse() {
+  ImVec2 base = ImGui::GetMainViewport()->Pos;
+  return ImVec2(ImGui::GetIO().MousePos.x - base.x,
+                ImGui::GetIO().MousePos.y - base.y);
+}
+
+ImVec2 Base() {
+  ImVec2 base = ImGui::GetMainViewport()->Pos;
+  return ImVec2(base.x, base.y);
+}
+
 void UI::Draw() {
   doWarp = false;
+
+  // std::cout << "KYRPÄ " << Base().x << std::endl;
+
   ImGuiIO &io = ImGui::GetIO();
+  ImGuiContext &g = *GImGui;
+
   if (screenShotIndex > -1 &&
       screenShotIndex < screenShotRange.x * screenShotRange.y) {
     write_mem_recoverable("render_hud", get_address("render_hud"), "EB 74"_gh,
@@ -755,19 +780,22 @@ void UI::Draw() {
     ImGui::SetMouseCursor(ImGuiMouseCursor_None);
     return;
   }
-  if (ImGui::GetFrameCount() == 10)
-    ScaleWindow();
 
-  static const std::string gameversion = GetAppVersion();
-  std::string version = fmt::format("MAXWELL {}", get_version()) +
-                        (gameversion != "" ? " | GAME " + gameversion : "");
-  ImGui::GetBackgroundDrawList()->AddText(
-      ImVec2(io.DisplaySize.x / 2.f -
-                 ImGui::CalcTextSize(version.c_str()).x / 2.f,
-             io.DisplaySize.y - ImGui::GetTextLineHeightWithSpacing()),
-      0x99999999, version.c_str());
+  std::string gameversion = GetAppVersion();
+  std::string version =
+      fmt::format("MAXWELL {}", get_version()) + " | GAME " + gameversion;
+  ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+      ->AddText(ImVec2(io.DisplaySize.x / 2.f -
+                           ImGui::CalcTextSize(version.c_str()).x / 2.f +
+                           Base().x,
+                       io.DisplaySize.y -
+                           ImGui::GetTextLineHeightWithSpacing() + Base().y),
+                0x99999999, version.c_str());
+
   Keys();
+
   io.MouseDrawCursor = options["ui_visible"].value;
+
   if (options["ui_visible"].value) {
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
@@ -802,18 +830,19 @@ void UI::Draw() {
 
   if (windowScale > 2) {
     std::string hud =
-        fmt::format("{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
+        fmt::format("{}{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
                     options["cheat_damage"].value ? " DAMAGE" : "",
                     options["cheat_noclip"].value ? " NOCLIP" : "",
                     options["cheat_godmode"].value ? " GOD" : "",
+                    options["cheat_darkness"].value ? " LIGHTS" : "",
                     Max::get().player_room()->x, Max::get().player_room()->y,
                     Max::get().player_position()->x,
                     Max::get().player_position()->y, Timestamp());
-    ImGui::GetForegroundDrawList()->AddText(
-        ImVec2(io.DisplaySize.x - ImGui::CalcTextSize(hud.c_str()).x -
-                   ImGui::GetStyle().WindowPadding.x,
-               0),
-        0xffffffff, hud.c_str());
+    ImGui::GetForegroundDrawList(ImGui::GetMainViewport())
+        ->AddText(ImVec2(io.DisplaySize.x - ImGui::CalcTextSize(hud.c_str()).x -
+                             ImGui::GetStyle().WindowPadding.x + Base().x,
+                         Base().y),
+                  0xffffffff, hud.c_str());
   }
 
   {
@@ -829,9 +858,9 @@ void UI::Draw() {
   }
 
   if (ImGui::IsMousePosValid()) {
-    auto mpos = Normalize(io.MousePos);
-    int x = mpos.x;
-    int y = mpos.y;
+    auto npos = Normalize(Mouse());
+    int x = npos.x;
+    int y = npos.y;
     int rx = x / 8;
     int ry = y / 8;
 
@@ -855,6 +884,7 @@ void UI::Draw() {
         !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
       std::string coord =
           fmt::format("Screen: {},{}\n  Tile: {},{}", x, y, rx, ry);
+      ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
       ImGui::SetTooltip(coord.c_str());
     }
   }
@@ -913,6 +943,9 @@ void UI::Draw() {
   if (options["cheat_noclip"].value) {
     *Max::get().player_state() = 18;
   }
+
+  if (ImGui::GetFrameCount() == 20)
+    ScaleWindow();
 }
 
 void UI::NewWindow(std::string title, ImGuiKeyChord key, ImGuiWindowFlags flags,
@@ -921,8 +954,10 @@ void UI::NewWindow(std::string title, ImGuiKeyChord key, ImGuiWindowFlags flags,
 }
 
 void UI::Tooltip(std::string text) {
-  if (options["ui_tooltips"].value && ImGui::IsItemHovered())
+  if (options["ui_tooltips"].value && ImGui::IsItemHovered()) {
+    ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
     ImGui::SetTooltip(text.c_str());
+  }
 }
 
 bool UI::Block() {
@@ -1148,6 +1183,7 @@ void UI::LoadINI() {
     options[name].value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
   }
   windowScale = toml::find_or<int>(opts, "scale", 4);
+
   SaveINI();
 }
 

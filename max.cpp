@@ -57,8 +57,8 @@ using GetInput = uint32_t(uint16_t a);
 GetInput *g_get_input_trampoline{nullptr};
 uint32_t HookGetInput(uint16_t a) {
   auto ret = g_get_input_trampoline(a);
-  if (ret > 0)
-    DEBUG("GetInput: {:x} {:x}", a, ret);
+  // if (ret > 0)
+  //   DEBUG("GetInput: {:x} {:x}", a, ret);
 
   auto i = Max::get().input;
 

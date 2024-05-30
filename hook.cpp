@@ -56,6 +56,7 @@ static CComPtr<ID3D12DescriptorHeap> g_pD3DRtvDescHeap = NULL;
 static CComPtr<ID3D12DescriptorHeap> g_pD3DSrvDescHeap = NULL;
 static CComPtr<ID3D12CommandQueue> g_pD3DCommandQueue = NULL;
 static CComPtr<ID3D12GraphicsCommandList> g_pD3DCommandList = NULL;
+static CComPtr<IDXGISwapChain3> g_pSwapChain = NULL;
 
 LRESULT APIENTRY WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -100,130 +101,162 @@ ImVec4 HueShift(ImVec4 in, float hue) {
   return out;
 }
 
+bool CreateRenderTarget(IDXGISwapChain3 *pSwapChain) {
+  // DEBUG("CreateRenderTarget: {}", (void *)pSwapChain);
+  ID3D12Device *pD3DDevice;
+
+  if (!g_pSwapChain)
+    g_pSwapChain = pSwapChain;
+
+  if (FAILED(pSwapChain->GetDevice(__uuidof(ID3D12Device),
+                                   (void **)&pD3DDevice))) {
+    return false;
+  }
+
+  {
+    DXGI_SWAP_CHAIN_DESC desc;
+    pSwapChain->GetDesc(&desc);
+    Window = desc.OutputWindow;
+    g_UI->hWnd = Window;
+    if (!OriginalWndProc) {
+      OriginalWndProc = (WNDPROC)SetWindowLongPtr(Window, GWLP_WNDPROC,
+                                                  (__int3264)(LONG_PTR)WndProc);
+    }
+    g_FrameBufferCount = desc.BufferCount;
+    g_FrameContext.clear();
+    g_FrameContext.resize(g_FrameBufferCount);
+  }
+
+  {
+    D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+    desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    desc.NumDescriptors = g_FrameBufferCount + 1;
+    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+    if (pD3DDevice->CreateDescriptorHeap(
+            &desc, IID_PPV_ARGS(&g_pD3DSrvDescHeap)) != S_OK) {
+      return false;
+    }
+  }
+
+  {
+    D3D12_DESCRIPTOR_HEAP_DESC desc;
+    desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    desc.NumDescriptors = g_FrameBufferCount + 1;
+    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    desc.NodeMask = 1;
+
+    if (pD3DDevice->CreateDescriptorHeap(
+            &desc, IID_PPV_ARGS(&g_pD3DRtvDescHeap)) != S_OK) {
+      return false;
+    }
+
+    const auto rtvDescriptorSize = pD3DDevice->GetDescriptorHandleIncrementSize(
+        D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle =
+        g_pD3DRtvDescHeap->GetCPUDescriptorHandleForHeapStart();
+
+    for (UINT i = 0; i < g_FrameBufferCount; i++) {
+
+      g_FrameContext[i].main_render_target_descriptor = rtvHandle;
+      pSwapChain->GetBuffer(
+          i, IID_PPV_ARGS(&g_FrameContext[i].main_render_target_resource));
+      pD3DDevice->CreateRenderTargetView(
+          g_FrameContext[i].main_render_target_resource, nullptr, rtvHandle);
+      rtvHandle.ptr += rtvDescriptorSize;
+    }
+  }
+
+  {
+    ID3D12CommandAllocator *allocator;
+    if (pD3DDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                           IID_PPV_ARGS(&allocator)) != S_OK) {
+      return false;
+    }
+
+    for (size_t i = 0; i < g_FrameBufferCount; i++) {
+      if (pD3DDevice->CreateCommandAllocator(
+              D3D12_COMMAND_LIST_TYPE_DIRECT,
+              IID_PPV_ARGS(&g_FrameContext[i].command_allocator)) != S_OK) {
+        return false;
+      }
+    }
+
+    if (pD3DDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                      g_FrameContext[0].command_allocator, NULL,
+                                      IID_PPV_ARGS(&g_pD3DCommandList)) !=
+            S_OK ||
+        g_pD3DCommandList->Close() != S_OK) {
+      return false;
+    }
+
+    {
+      UINT handle_increment = pD3DDevice->GetDescriptorHandleIncrementSize(
+          D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+      int descriptor_index =
+          1; // The descriptor table index to use (not normally a hard-coded
+             // constant, but in this case we'll assume we have slot 1
+             // reserved for us)
+      g_UI->minimap_srv_cpu_handle =
+          g_pD3DSrvDescHeap->GetCPUDescriptorHandleForHeapStart();
+      g_UI->minimap_srv_cpu_handle.ptr += (handle_increment * descriptor_index);
+      g_UI->minimap_srv_gpu_handle =
+          g_pD3DSrvDescHeap->GetGPUDescriptorHandleForHeapStart();
+      g_UI->minimap_srv_gpu_handle.ptr += (handle_increment * descriptor_index);
+      g_UI->pD3DDevice = pD3DDevice;
+      g_UI->pSwapChain = pSwapChain;
+    }
+    return true;
+  }
+}
+
+void DestroyRenderTarget() {
+  // DEBUG("DestroyRenderTarget");
+  if (g_Initialized) {
+    g_Initialized = false;
+    ImGui_ImplWin32_Shutdown();
+    ImGui_ImplDX12_Shutdown();
+  }
+  g_pD3DCommandQueue = nullptr;
+  g_FrameContext.clear();
+  g_pD3DCommandList = nullptr;
+  g_pD3DRtvDescHeap = nullptr;
+  g_pD3DSrvDescHeap = nullptr;
+  g_pSwapChain = nullptr;
+  g_UI->minimap_init = false;
+}
+
 long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
                             UINT Flags) {
   if (g_pD3DCommandQueue == nullptr || g_skipHook) {
     return OriginalPresent(pSwapChain, SyncInterval, Flags);
   }
+
   if (!g_Initialized) {
     ID3D12Device *pD3DDevice;
 
     if (FAILED(pSwapChain->GetDevice(__uuidof(ID3D12Device),
                                      (void **)&pD3DDevice))) {
-      return OriginalPresent(pSwapChain, SyncInterval, Flags);
+      return false;
     }
 
-    {
-      DXGI_SWAP_CHAIN_DESC desc;
-      pSwapChain->GetDesc(&desc);
-      Window = desc.OutputWindow;
-      g_UI->hWnd = Window;
-      if (!OriginalWndProc) {
-        OriginalWndProc = (WNDPROC)SetWindowLongPtr(
-            Window, GWLP_WNDPROC, (__int3264)(LONG_PTR)WndProc);
-      }
-      g_FrameBufferCount = desc.BufferCount;
-      g_FrameContext.clear();
-      g_FrameContext.resize(g_FrameBufferCount);
-    }
+    if (!CreateRenderTarget(pSwapChain))
+      return OriginalPresent(pSwapChain, SyncInterval, Flags);
 
     if (hIcon && Window) {
       auto result = SendMessage(Window, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
     }
 
-    {
-      D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-      desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-      desc.NumDescriptors = g_FrameBufferCount + 1;
-      desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-      if (pD3DDevice->CreateDescriptorHeap(
-              &desc, IID_PPV_ARGS(&g_pD3DSrvDescHeap)) != S_OK) {
-        return OriginalPresent(pSwapChain, SyncInterval, Flags);
-      }
-    }
-
-    {
-      D3D12_DESCRIPTOR_HEAP_DESC desc;
-      desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-      desc.NumDescriptors = g_FrameBufferCount + 1;
-      desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-      desc.NodeMask = 1;
-
-      if (pD3DDevice->CreateDescriptorHeap(
-              &desc, IID_PPV_ARGS(&g_pD3DRtvDescHeap)) != S_OK) {
-        return OriginalPresent(pSwapChain, SyncInterval, Flags);
-      }
-
-      const auto rtvDescriptorSize =
-          pD3DDevice->GetDescriptorHandleIncrementSize(
-              D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-      D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle =
-          g_pD3DRtvDescHeap->GetCPUDescriptorHandleForHeapStart();
-
-      for (UINT i = 0; i < g_FrameBufferCount; i++) {
-
-        g_FrameContext[i].main_render_target_descriptor = rtvHandle;
-        pSwapChain->GetBuffer(
-            i, IID_PPV_ARGS(&g_FrameContext[i].main_render_target_resource));
-        pD3DDevice->CreateRenderTargetView(
-            g_FrameContext[i].main_render_target_resource, nullptr, rtvHandle);
-        rtvHandle.ptr += rtvDescriptorSize;
-      }
-    }
-
-    {
-      ID3D12CommandAllocator *allocator;
-      if (pD3DDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                             IID_PPV_ARGS(&allocator)) !=
-          S_OK) {
-        return OriginalPresent(pSwapChain, SyncInterval, Flags);
-      }
-
-      for (size_t i = 0; i < g_FrameBufferCount; i++) {
-        if (pD3DDevice->CreateCommandAllocator(
-                D3D12_COMMAND_LIST_TYPE_DIRECT,
-                IID_PPV_ARGS(&g_FrameContext[i].command_allocator)) != S_OK) {
-          return OriginalPresent(pSwapChain, SyncInterval, Flags);
-        }
-      }
-
-      if (pD3DDevice->CreateCommandList(
-              0, D3D12_COMMAND_LIST_TYPE_DIRECT,
-              g_FrameContext[0].command_allocator, NULL,
-              IID_PPV_ARGS(&g_pD3DCommandList)) != S_OK ||
-          g_pD3DCommandList->Close() != S_OK) {
-        return OriginalPresent(pSwapChain, SyncInterval, Flags);
-      }
-
-      {
-        UINT handle_increment = pD3DDevice->GetDescriptorHandleIncrementSize(
-            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        int descriptor_index =
-            1; // The descriptor table index to use (not normally a hard-coded
-               // constant, but in this case we'll assume we have slot 1
-               // reserved for us)
-        g_UI->minimap_srv_cpu_handle =
-            g_pD3DSrvDescHeap->GetCPUDescriptorHandleForHeapStart();
-        g_UI->minimap_srv_cpu_handle.ptr +=
-            (handle_increment * descriptor_index);
-        g_UI->minimap_srv_gpu_handle =
-            g_pD3DSrvDescHeap->GetGPUDescriptorHandleForHeapStart();
-        g_UI->minimap_srv_gpu_handle.ptr +=
-            (handle_increment * descriptor_index);
-        g_UI->pD3DDevice = pD3DDevice;
-        g_UI->pSwapChain = pSwapChain;
-      }
-    }
-
     IMGUI_CHECKVERSION();
     auto *g = ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
     CreateDirectory(L"MAXWELL", NULL);
     io.IniFilename = "MAXWELL\\MAXWELL_imgui.ini";
     g->ConfigNavWindowingKeyNext = 0;
     g->ConfigNavWindowingKeyPrev = 0;
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     io.Fonts->AddFontFromMemoryCompressedTTF(OLFont_compressed_data,
                                              OLFont_compressed_size, 14.0f);
@@ -282,15 +315,25 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
         g_pD3DSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
         g_pD3DSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
-    g_Initialized = true;
-
     pD3DDevice->Release();
+
+    g_Initialized = true;
   }
 
   MSG msg;
   while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
     ::TranslateMessage(&msg);
     ::DispatchMessage(&msg);
+  }
+
+  auto &g = *GImGui;
+  ImGuiIO &io = ImGui::GetIO();
+
+  for (int i = 1; i < g.PlatformIO.Viewports.Size; i++) {
+    ImGuiViewport *viewport = g.PlatformIO.Viewports[i];
+    viewport->Flags |= ImGuiViewportFlags_NoFocusOnClick |
+                       ImGuiViewportFlags_NoFocusOnAppearing |
+                       ImGuiViewportFlags_OwnedByApp;
   }
 
   ImGui_ImplWin32_NewFrame();
@@ -318,6 +361,13 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
   g_pD3DCommandList->SetDescriptorHeaps(1, &g_pD3DSrvDescHeap);
   ImGui::Render();
 
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    g_skipHook = true;
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault(nullptr, (void *)g_pD3DCommandList);
+    g_skipHook = false;
+  }
+
   ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), g_pD3DCommandList);
   barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
   barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
@@ -327,15 +377,8 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
   g_pD3DCommandQueue->ExecuteCommandLists(
       1, (ID3D12CommandList **)&g_pD3DCommandList);
 
-  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-    g_skipHook = true;
-    ImGui::UpdatePlatformWindows();
-    ImGui::RenderPlatformWindowsDefault(nullptr, (void *)g_pD3DCommandList);
-    g_skipHook = false;
-  }
-
   return OriginalPresent(pSwapChain, SyncInterval, Flags);
-}
+} // namespace D3D12
 
 void HookExecuteCommandLists(ID3D12CommandQueue *queue, UINT NumCommandLists,
                              ID3D12CommandList *ppCommandLists) {
@@ -347,24 +390,11 @@ void HookExecuteCommandLists(ID3D12CommandQueue *queue, UINT NumCommandLists,
   OriginalExecuteCommandLists(queue, NumCommandLists, ppCommandLists);
 }
 
-void ResetState() {
-  if (g_Initialized) {
-    g_Initialized = false;
-    ImGui_ImplWin32_Shutdown();
-    ImGui_ImplDX12_Shutdown();
-  }
-  g_pD3DCommandQueue = nullptr;
-  g_FrameContext.clear();
-  g_pD3DCommandList = nullptr;
-  g_pD3DRtvDescHeap = nullptr;
-  g_pD3DSrvDescHeap = nullptr;
-  g_UI->minimap_init = false;
-}
-
 long HookResizeBuffers(IDXGISwapChain3 *pSwapChain, UINT BufferCount,
                        UINT Width, UINT Height, DXGI_FORMAT NewFormat,
                        UINT SwapChainFlags) {
-  ResetState();
+  if (pSwapChain == g_pSwapChain)
+    DestroyRenderTarget();
   return OriginalResizeBuffers(pSwapChain, BufferCount, Width, Height,
                                NewFormat, SwapChainFlags);
 }
@@ -582,7 +612,7 @@ Status RemoveHooks() {
   }
 
   delete g_UI;
-  ResetState();
+  DestroyRenderTarget();
   ImGui::DestroyContext();
 
   // wait for hooks to finish if in one. maybe not needed, but seemed more
