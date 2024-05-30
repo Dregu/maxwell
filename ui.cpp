@@ -658,14 +658,14 @@ UI::UI() {
     ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%p",
                        ImGuiInputTextFlags_ReadOnly);
 
-    if (!this->inMenu) {
+    /*if (!this->inMenu) {
       ImGui::ShowDemoWindow();
       ImGui::ShowMetricsWindow();
       if (ImGui::Begin("Styles")) {
         ImGui::ShowStyleEditor();
         ImGui::End();
       }
-    }
+    }*/
   });
 
   DEBUG("MAXWELL UI INITIALIZED");

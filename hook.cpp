@@ -223,7 +223,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     io.IniFilename = "MAXWELL\\MAXWELL_imgui.ini";
     g->ConfigNavWindowingKeyNext = 0;
     g->ConfigNavWindowingKeyPrev = 0;
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // TODO: doesn't work
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     io.Fonts->AddFontFromMemoryCompressedTTF(OLFont_compressed_data,
                                              OLFont_compressed_size, 14.0f);
@@ -287,6 +287,12 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     pD3DDevice->Release();
   }
 
+  MSG msg;
+  while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
+    ::TranslateMessage(&msg);
+    ::DispatchMessage(&msg);
+  }
+
   ImGui_ImplWin32_NewFrame();
   ImGui_ImplDX12_NewFrame();
   ImGui::NewFrame();
@@ -321,8 +327,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
   g_pD3DCommandQueue->ExecuteCommandLists(
       1, (ID3D12CommandList **)&g_pD3DCommandList);
 
-  ImGuiIO &io = ImGui::GetIO();
-  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
     g_skipHook = true;
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault(nullptr, (void *)g_pD3DCommandList);
