@@ -53,6 +53,15 @@ void HookUpdateInput() {
   g_update_input_trampoline();
 }
 
+using Render = void(void *a, void *b);
+Render *g_render_trampoline{nullptr};
+void HookRender(void *a, void *b) {
+  g_render_trampoline(a, b);
+  for (auto f : Max::get().render_queue)
+    f();
+  Max::get().render_queue.clear();
+}
+
 using GetInput = uint32_t(uint16_t a);
 GetInput *g_get_input_trampoline{nullptr};
 uint32_t HookGetInput(uint16_t a) {
@@ -73,7 +82,7 @@ uint32_t HookGetInput(uint16_t a) {
       ret = 1;
     else if (a == PLAYER_INPUT::LB)
       ret = 0x401;
-    else if (a == PLAYER_INPUT::LB)
+    else if (a == PLAYER_INPUT::RB)
       ret = 0x801;
     else if (a == PLAYER_INPUT::JUMP)
       ret = 0x4001;
@@ -146,6 +155,16 @@ Max &Max::get() {
       const LONG error = DetourTransactionCommit();
       if (error != NO_ERROR) {
         DEBUG("Failed hooking GetInput: {}\n", error);
+      }
+    }
+
+    if (g_render_trampoline = (Render *)get_address("render")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_render_trampoline, HookRender);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking Render: {}\n", error);
       }
     }
 
@@ -267,6 +286,10 @@ Pause *Max::pause() {
 
 uint32_t *Max::timer() { return (uint32_t *)(slot() + 0x400 + 0x1d4); }
 
+uint8_t *Max::mural_selection() { return (uint8_t *)(slot() + 0x400 + 0x402); }
+
+uint8_t *Max::mural() { return (uint8_t *)(slot() + 0x400 + 0x26ec7); }
+
 void Max::save_game() {
   using SaveGameFunc = void();
   static SaveGameFunc *save = (SaveGameFunc *)get_address("save_game");
@@ -283,4 +306,10 @@ uint8_t *Max::decrypt_asset(size_t asset, uint8_t *key) {
   using DecryptFunc = uint8_t *(size_t asset, uint8_t * key);
   static DecryptFunc *decrypt = (DecryptFunc *)get_address("decrypt_asset");
   return decrypt(asset, key);
+}
+
+void Max::draw_text(int x, int y, const wchar_t *text) {
+  using DrawTextFunc = void(int x, int y, const wchar_t *text);
+  static DrawTextFunc *draw = (DrawTextFunc *)get_address("draw_text");
+  draw(x, y, text);
 }

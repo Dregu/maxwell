@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <optional>
 
 #define SLOT_SIZE 0x27010
@@ -90,6 +91,9 @@ struct Max {
   Pause *pause();
   uint32_t *timer();
   void save_game();
+  uint8_t *mural_selection();
+  uint8_t *mural();
+  void draw_text(int x, int y, const wchar_t *text);
   static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
   static uint8_t *decrypt_asset(size_t asset, uint8_t *key);
 
@@ -99,4 +103,5 @@ struct Max {
 
   PLAYER_INPUT input{PLAYER_INPUT::SKIP};
   std::deque<int> inputs;
+  std::deque<std::function<void()>> render_queue;
 };

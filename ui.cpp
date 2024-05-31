@@ -116,6 +116,11 @@ const std::map<std::string, PLAYER_INPUT> notes{
      (PLAYER_INPUT)(PLAYER_INPUT::UP | PLAYER_INPUT::RIGHT | PLAYER_INPUT::RB)},
 };
 
+std::array note_order{"A4",  "A#4", "B4",  "C5", "C#5", "D5", "D#5",
+                      "E5",  "F5",  "F#5", "G5", "G#5", "A5", "A#5",
+                      "B5",  "C6",  "C#6", "D6", "D#6", "E6", "F6",
+                      "F#6", "G6",  "G#6", "A6", "A#6"};
+
 std::array ttfaf{
     "D#5", "A4",  "F5",  "A4",  "G5",  "A4",  "D#5", "A4",  "F5",  "A4",  "G5",
     "A4",  "G#5", "A4",  "F5",  "A4",  "A#5", "A4",  "G5",  "A4",  "G#5", "A4",
@@ -607,6 +612,20 @@ void UI::ScreenShot() {
   }
 }
 
+uint8_t *GetMural() {
+  static uint8_t mural[20 * 40]{0};
+  auto m = Max::get().mural();
+  int i = 0;
+  do {
+    mural[4 * i] = m[i] & 0x3;
+    mural[4 * i + 1] = (m[i] & 0xc) >> 2;
+    mural[4 * i + 2] = (m[i] & 0x30) >> 4;
+    mural[4 * i + 3] = (m[i] & 0xc0) >> 6;
+    i++;
+  } while (i < 200);
+  return mural;
+}
+
 void UI::DrawTools() {
   ImGuiIO &io = ImGui::GetIO();
   ImGui::PushItemWidth(120.f);
@@ -643,8 +662,97 @@ void UI::DrawTools() {
       Max::get().input = PLAYER_INPUT::SKIP;
       Max::get().inputs.clear();
     }
+    if (ImGui::Checkbox("Bunny Sequencer", &sequencer.enabled)) {
+      Max::get().input = PLAYER_INPUT::SKIP;
+      Max::get().inputs.clear();
+    }
+    ImGui::InputInt("Base##NoteBase", &sequencer.base);
+    if (sequencer.base < 0)
+      sequencer.base = 0;
+    if (sequencer.base > 5)
+      sequencer.base = 5;
+    ImGui::InputInt("Duration##NoteDuration", &sequencer.duration);
+    if (sequencer.duration < 2)
+      sequencer.duration = 2;
+    if (sequencer.duration > 40)
+      sequencer.duration = 40;
+    ImGui::InputInt("Length##SongLength", &sequencer.length);
+    if (sequencer.length < 1)
+      sequencer.length = 1;
+    if (sequencer.length > 40)
+      sequencer.length = 40;
+    ImGui::LabelText(
+        "Note", "%s",
+        note_order.at(19 - Max::get().mural_selection()[1] + sequencer.base));
+    ImGui::LabelText("X", "%d", Max::get().mural_selection()[0]);
+    ImGui::LabelText("Y", "%d", Max::get().mural_selection()[1]);
+    ImGui::LabelText("Queue", "%d", Max::get().inputs.size());
   }
   ImGui::PopItemWidth();
+}
+
+void UI::Play() {
+  if (sequencer.enabled && Max::get().player_room()->x == 13 &&
+      Max::get().player_room()->y == 11) {
+    if (get_address("mural_cursor")) {
+      write_mem_recoverable("mural_cursor", get_address("mural_cursor"),
+                            get_nop(2), true);
+    }
+    if (*Max::get().player_state() == 7 &&
+        (*Max::get().timer() % sequencer.duration) == 0) {
+      uint8_t *m = GetMural();
+      sequencer.note.clear();
+      sequencer.a = std::nullopt;
+      sequencer.b = std::nullopt;
+      for (int i = 0; i < sequencer.duration; ++i)
+        sequencer.note[i] = 0;
+      Max::get().mural_selection()[0] =
+          (Max::get().mural_selection()[0] + 1) % sequencer.length;
+      for (int dy = 19; dy >= 0; dy--) {
+        int p = m[dy * 40 + Max::get().mural_selection()[0]];
+        int a = 0;
+        int b = 0;
+        if (p == 1) {
+          a = 0;
+          b = sequencer.duration / 2;
+          sequencer.a = dy;
+        } else if (p == 2) {
+          a = sequencer.duration / 2;
+          b = sequencer.duration;
+          sequencer.b = dy;
+        } else if (p == 3) {
+          a = 0;
+          b = sequencer.duration;
+          sequencer.a = dy;
+          sequencer.b = dy;
+        }
+        for (int i = a; i < b; ++i)
+          sequencer.note[i] =
+              notes.at(note_order.at(19 - dy + sequencer.base)) | 0x4000;
+        if (p > 0)
+          Max::get().mural_selection()[1] = dy;
+        if (p == 3)
+          continue;
+      }
+      for (auto &[f, n] : sequencer.note) {
+        Max::get().inputs.push_back(n);
+      }
+    } else if (sequencer.enabled && (*Max::get().player_state() == 0 ||
+                                     Max::get().pause()->paused)) {
+      Max::get().input = PLAYER_INPUT::SKIP;
+      Max::get().inputs.clear();
+    }
+    if (Max::get().inputs.size() > sequencer.duration / 2 &&
+        sequencer.a.has_value())
+      Max::get().mural_selection()[1] = sequencer.a.value();
+    else if (Max::get().inputs.size() > 0 && sequencer.b.has_value())
+      Max::get().mural_selection()[1] = sequencer.b.value();
+    if (!Max::get().pause()->paused)
+      Max::get().render_queue.push_back(
+          [&]() { Max::get().draw_text(57, 12, L"bunny sequencer 0.1"); });
+  }
+  if (!sequencer.enabled)
+    recover_mem("mural_cursor");
 }
 
 UI::UI() {
@@ -679,6 +787,28 @@ UI::UI() {
     v = (size_t)Max::get().pause();
     ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%p",
                        ImGuiInputTextFlags_ReadOnly);
+
+    static bool foo{false};
+    ImGui::Checkbox("Draw text", &foo);
+    if (foo) {
+      Max::get().draw_text(200, 100, L"Hello world");
+    }
+
+    {
+      uint8_t *m = GetMural();
+      std::string str;
+      for (int y = 0; y < 20; ++y) {
+        for (int x = 0; x < 40; ++x) {
+          int p = m[y * 40 + x];
+          if (p == 0)
+            str += " ";
+          else
+            str += "x";
+        }
+        str += "\n";
+      }
+      ImGui::Text("%s", str.c_str());
+    }
 
     /*if (!this->inMenu) {
       ImGui::ShowDemoWindow();
@@ -719,7 +849,7 @@ bool UI::Keys() {
   else if (ImGui::IsKeyChordPressed(keys["pause"])) {
     paused ^= true;
     Max::get().set_pause = paused;
-  } else if (ImGui::IsKeyChordPressed(keys["skip"]) &&
+  } else if (ImGui::IsKeyChordPressed(keys["skip"], ImGuiInputFlags_Repeat) &&
              !ImGui::IsWindowFocused(ImGuiHoveredFlags_AnyWindow))
     Max::get().skip = true;
   else
@@ -805,6 +935,7 @@ void UI::Draw() {
                 0x99999999, version.c_str());
 
   Keys();
+  Play();
 
   io.MouseDrawCursor = options["ui_visible"].value;
 
@@ -840,7 +971,7 @@ void UI::Draw() {
     }
   }
 
-  if (windowScale > 2) {
+  if (options["ui_visible"].value && windowScale > 2) {
     std::string hud =
         fmt::format("{}{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
                     options["cheat_damage"].value ? " DAMAGE" : "",

@@ -28,6 +28,16 @@ struct Setting {
   std::string key;
 };
 
+struct Sequencer {
+  bool enabled{false};
+  int base{4};
+  int duration{8};
+  int length{40};
+  std::map<int, int> note;
+  std::optional<uint8_t> a{0};
+  std::optional<uint8_t> b{0};
+};
+
 ImVec2 Normalize(ImVec2 pos);
 
 class UI {
@@ -128,6 +138,7 @@ private:
   int screenShotIndex = -1;
   int screenShotFrame = -1;
   bool paused = false;
+  Sequencer sequencer;
 
 public:
   UI();
@@ -152,6 +163,7 @@ public:
   void ScaleWindow();
   void SaveScreenShot(std::string name);
   void ScreenShot();
+  void Play();
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

@@ -630,6 +630,18 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe()
             .function_start(),
     },
+    {
+        "mural_cursor"sv,
+        PatternCommandBuffer{}.from_exe_base(0xafeab),
+    },
+    {
+        "render"sv,
+        PatternCommandBuffer{}.from_exe_base(0x4dcc0),
+    },
+    {
+        "draw_text"sv,
+        PatternCommandBuffer{}.from_exe_base(0x71010),
+    },
     /*{
         "decrypt_asset"sv,
         PatternCommandBuffer{}.from_exe_base(0x1650),
