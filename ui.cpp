@@ -414,6 +414,18 @@ void UI::DrawMap() {
       } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
         *Max::get().player_state() = 0;
       }
+      {
+        auto ax = wroom.x * 40;
+        auto ay = wroom.y * 22;
+        auto bx = ax + 40;
+        auto by = ay + 22;
+        ImGui::GetWindowDrawList()->AddRect(
+            ImVec2(a.x + d.x + ax - c.x - bordersize.x,
+                   a.y + d.y + ay - c.y - bordersize.y),
+            ImVec2(a.x + d.x + bx - c.x - bordersize.x,
+                   a.y + d.y + by - c.y - bordersize.y),
+            0xccffffff, 0, 0, 1.0f);
+      }
     }
     ImGui::PopStyleColor(3);
 
