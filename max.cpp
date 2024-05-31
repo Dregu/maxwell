@@ -98,11 +98,13 @@ Max &Max::get() {
   static Max MAX;
   if (!get_is_init()) {
     preload_addresses();
-    {
-      auto off = get_address("check");
-      if (off) {
-        write_mem_recoverable("check", off, "E9 24 01 00 00 90"_gh, true);
-      }
+
+    if (auto off = get_address("check")) {
+      write_mem_recoverable("check", off, "E9 24 01 00 00 90"_gh, true);
+    }
+
+    if (auto off = get_address("patch")) {
+      write_mem_recoverable("patch", off, "30"_gh, true);
     }
 
     {

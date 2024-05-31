@@ -597,16 +597,38 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .function_start(),
     },
     {
+        "patch"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_after_inst("f3 .. 0f 59 0d .. .. .. .. f3 .. 0f 2c d1"_gh)
+            .decode_pc()
+            .offset(12)
+            .at_exe(),
+    },
+    {
         "update_state"sv,
-        PatternCommandBuffer{}.from_exe_base(0x522d0),
+        PatternCommandBuffer{} // .from_exe_base(0x522d0)
+            .set_optional(true)
+            .find_inst("74 0c 41 8b 8d 0c 36 09 00"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
         "update_input"sv,
-        PatternCommandBuffer{}.from_exe_base(0x13c50),
+        PatternCommandBuffer{} //.from_exe_base(0x13c50),
+            .set_optional(true)
+            .find_inst(
+                "0f 11 05 .. .. .. .. 0f 10 05 .. .. .. .. 0f 11 05 .. .. .. .. 0f 10 05 .. .. .. .. 0f 11 05 .. .. .. .."_gh)
+            .at_exe()
+            .function_start(),
     },
     {
         "get_input"sv,
-        PatternCommandBuffer{}.from_exe_base(0x11f50),
+        PatternCommandBuffer{} //.from_exe_base(0x11f50),
+            .set_optional(true)
+            .find_inst("44 0f b7 c9 66 83 f9 7f 7f"_gh)
+            .at_exe()
+            .function_start(),
     },
     /*{
         "decrypt_asset"sv,
