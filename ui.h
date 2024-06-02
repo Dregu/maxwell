@@ -113,6 +113,9 @@ private:
       {"ui_coords",
        {true, "Show coordinate tooltip",
         "Show screen and tile coordinates under mouse cursor."}},
+      {"ui_grid",
+       {false, "Show tile grid",
+        "Draws a grid of 40 by 22.5 over the screen."}},
       {"ui_hideplayer",
        {false, "Hide player from screenshots",
         "Moves the player offscreen for\nthe durating of screenshot."}},
@@ -131,8 +134,8 @@ private:
   ImVec2 lastMousePos = ImVec2(0, 0);
   int windowScale = 4;
   std::string screenShotFileName = "MAXWELL";
-  std::string screenShotNextFrame;
-  std::string screenShotThisFrame;
+  std::string screenShotNextFrame = "";
+  std::string screenShotThisFrame = "";
   Coord screenShotPlayerRoom{-1, -1};
   Coord screenShotRange{1, 1};
   int screenShotIndex = -1;
@@ -164,6 +167,9 @@ public:
   void SaveScreenShot(std::string name);
   void ScreenShot();
   void Play();
+  void Cheats();
+  void Windows();
+  void HUD();
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

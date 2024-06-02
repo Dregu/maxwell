@@ -248,33 +248,6 @@ void Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
   }
 }
 
-std::string GetAppVersion() {
-  DWORD dwHandle;
-  TCHAR fileName[MAX_PATH];
-
-  GetModuleFileName(NULL, fileName, MAX_PATH);
-  DWORD dwSize = GetFileVersionInfoSize(fileName, &dwHandle);
-  char *buffer = new char[dwSize];
-
-  VS_FIXEDFILEINFO *pvFileInfo = NULL;
-  UINT fiLen = 0;
-
-  if ((dwSize > 0) && GetFileVersionInfo(fileName, dwHandle, dwSize, &buffer)) {
-    VerQueryValue(&buffer, L"\\", (LPVOID *)&pvFileInfo, &fiLen);
-  }
-
-  if (fiLen > 0) {
-    char buf[25];
-    int len =
-        sprintf(buf, "%hu.%hu.%hu.%hu", HIWORD(pvFileInfo->dwFileVersionMS),
-                LOWORD(pvFileInfo->dwFileVersionMS),
-                HIWORD(pvFileInfo->dwFileVersionLS),
-                LOWORD(pvFileInfo->dwFileVersionLS));
-    return std::string(buf, len);
-  }
-  return "";
-}
-
 ImVec2 Normalize(ImVec2 pos) {
   ImGuiIO &io = ImGui::GetIO();
   ImVec2 res = io.DisplaySize;
@@ -868,170 +841,14 @@ ImVec2 Base() {
   return ImVec2(base.x, base.y);
 }
 
-void UI::Draw() {
-  doWarp = false;
+ImVec2 TileToScreen(ImVec2 tile) {
+  ImVec2 base = ImGui::GetMainViewport()->Pos;
+  ImVec2 size = ImGui::GetMainViewport()->Size;
+  return ImVec2(tile.x * size.x / 40.f + base.x,
+                tile.y * size.y / 22.5f + base.y);
+}
 
-  // std::cout << "KYRPÄ " << Base().x << std::endl;
-
-  ImGuiIO &io = ImGui::GetIO();
-  ImGuiContext &g = *GImGui;
-
-  if (screenShotIndex > -1 &&
-      screenShotIndex < screenShotRange.x * screenShotRange.y) {
-    write_mem_recoverable("render_hud", get_address("render_hud"), "EB 74"_gh,
-                          true);
-    ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-    int f = screenShotFrame % 5;
-    screenShotFrame++;
-    if (f == 0) {
-      Max::get().player_room()->y++;
-    } else if (f == 2) {
-      SaveScreenShot(screenShotFileName + "_" +
-                     fmt::format("{:03d}", screenShotIndex + 1) + "_" +
-                     TimestampFile());
-      if (screenShotIndex + 1 >= screenShotRange.x * screenShotRange.y) {
-        screenShotIndex = -1;
-        recover_mem("warp");
-        *Max::get().player_room() = *Max::get().warp_room();
-      }
-    } else if (f == 3) {
-      Max::get().warp_room()->x++;
-      if ((screenShotIndex + 1) % screenShotRange.x == 0) {
-        Max::get().warp_room()->x -= screenShotRange.x;
-        Max::get().warp_room()->y++;
-      }
-      write_mem_recoverable("warp", get_address("warp"), "EB"_gh, true);
-      screenShotIndex++;
-    } else if (f == 4) {
-      recover_mem("warp");
-    }
-    return;
-  }
-
-  if (screenShotThisFrame != "") {
-    SaveScreenShot(screenShotThisFrame);
-    screenShotThisFrame = "";
-    if (screenShotPlayerRoom.x != -1 && screenShotIndex == -1) {
-      *Max::get().player_room() = screenShotPlayerRoom;
-      screenShotPlayerRoom = Coord{-1, -1};
-    }
-  }
-  if (screenShotNextFrame != "") {
-    screenShotThisFrame = screenShotNextFrame;
-    screenShotNextFrame = "";
-    ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-    return;
-  }
-
-  std::string gameversion = GetAppVersion();
-  std::string version =
-      fmt::format("MAXWELL {}", get_version()) + " | GAME " + gameversion;
-  ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-      ->AddText(ImVec2(io.DisplaySize.x / 2.f -
-                           ImGui::CalcTextSize(version.c_str()).x / 2.f +
-                           Base().x,
-                       io.DisplaySize.y -
-                           ImGui::GetTextLineHeightWithSpacing() + Base().y),
-                0x99999999, version.c_str());
-
-  Keys();
-  Play();
-
-  io.MouseDrawCursor = options["ui_visible"].value;
-
-  if (options["ui_visible"].value) {
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-    if (ImGui::BeginMainMenuBar()) {
-      ImGui::PopStyleVar(2);
-      for (auto *window : windows) {
-        if (window->detached)
-          continue;
-        inMenu = true;
-        if (ImGui::BeginMenu(window->title.c_str(), window->key)) {
-          window->cb();
-          lastMenuFrame = ImGui::GetFrameCount();
-          ImGui::EndMenu();
-        }
-        Tooltip("Right click to detach a\nwindow from the menu bar.");
-        inMenu = false;
-        if (io.MouseClicked[1] && ImGui::IsItemHovered())
-          window->detached = true;
-      }
-      ImGui::EndMainMenuBar();
-    }
-    for (auto *window : windows) {
-      if (!window->detached)
-        continue;
-      if (ImGui::Begin(window->title.c_str(), &window->detached,
-                       window->flags)) {
-        window->cb();
-        ImGui::End();
-      }
-    }
-  }
-
-  if (options["ui_visible"].value && windowScale > 2) {
-    std::string hud =
-        fmt::format("{}{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
-                    options["cheat_damage"].value ? " DAMAGE" : "",
-                    options["cheat_noclip"].value ? " NOCLIP" : "",
-                    options["cheat_godmode"].value ? " GOD" : "",
-                    options["cheat_darkness"].value ? " LIGHTS" : "",
-                    Max::get().player_room()->x, Max::get().player_room()->y,
-                    Max::get().player_position()->x,
-                    Max::get().player_position()->y, Timestamp());
-    ImGui::GetForegroundDrawList(ImGui::GetMainViewport())
-        ->AddText(ImVec2(io.DisplaySize.x - ImGui::CalcTextSize(hud.c_str()).x -
-                             ImGui::GetStyle().WindowPadding.x + Base().x,
-                         Base().y),
-                  0xffffffff, hud.c_str());
-  }
-
-  {
-    using namespace std::chrono_literals;
-    auto now = std::chrono::system_clock::now();
-    if (io.MousePos.x != lastMousePos.x || io.MousePos.y != lastMousePos.y) {
-      lastMouseActivity = now;
-      lastMousePos = io.MousePos;
-      io.MouseDrawCursor = true;
-    } else if (lastMouseActivity + 2s < now) {
-      ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-    }
-  }
-
-  if (ImGui::IsMousePosValid()) {
-    auto npos = Normalize(Mouse());
-    int x = npos.x;
-    int y = npos.y;
-    int rx = x / 8;
-    int ry = y / 8;
-
-    bool inbound = x > 0 && x < 320 && y > 0 && y < 180;
-
-    if (options["input_mouse"].value && io.MouseDown[1] &&
-        !io.WantCaptureMouse) {
-      if (inbound || (ImGui::GetFrameCount() % 10) == 0) {
-        Max::get().player_position()->x = x - 4;
-        Max::get().player_position()->y = y - 4;
-      }
-      Max::get().player_velocity()->x = 0;
-      Max::get().player_velocity()->y = 0;
-      *Max::get().player_state() = 18;
-    } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
-      *Max::get().player_state() = 0;
-    }
-
-    if (options["ui_coords"].value && inbound &&
-        ImGui::GetMouseCursor() != ImGuiMouseCursor_None &&
-        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-      std::string coord =
-          fmt::format("Screen: {},{}\n  Tile: {},{}", x, y, rx, ry);
-      ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-      ImGui::SetTooltip(coord.c_str());
-    }
-  }
-
+void UI::Cheats() {
   if (doWarp && get_address("warp")) {
     write_mem_recoverable("warp", get_address("warp"), "EB"_gh, true);
   } else {
@@ -1086,6 +903,198 @@ void UI::Draw() {
   if (options["cheat_noclip"].value) {
     *Max::get().player_state() = 18;
   }
+}
+
+void UI::Windows() {
+  ImGuiIO &io = ImGui::GetIO();
+  ImGuiContext &g = *GImGui;
+  if (options["ui_visible"].value) {
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+    if (ImGui::BeginMainMenuBar()) {
+      ImGui::PopStyleVar(2);
+      for (auto *window : windows) {
+        if (window->detached)
+          continue;
+        inMenu = true;
+        if (ImGui::BeginMenu(window->title.c_str(), window->key)) {
+          window->cb();
+          lastMenuFrame = ImGui::GetFrameCount();
+          ImGui::EndMenu();
+        }
+        Tooltip("Right click to detach a\nwindow from the menu bar.");
+        inMenu = false;
+        if (io.MouseClicked[1] && ImGui::IsItemHovered())
+          window->detached = true;
+      }
+      ImGui::EndMainMenuBar();
+    }
+    for (auto *window : windows) {
+      if (!window->detached)
+        continue;
+      if (ImGui::Begin(window->title.c_str(), &window->detached,
+                       window->flags)) {
+        window->cb();
+        ImGui::End();
+      }
+    }
+  }
+}
+
+void UI::HUD() {
+  ImGuiIO &io = ImGui::GetIO();
+  ImGuiContext &g = *GImGui;
+  io.MouseDrawCursor = options["ui_visible"].value;
+
+  {
+    using namespace std::chrono_literals;
+    auto now = std::chrono::system_clock::now();
+    if (io.MousePos.x != lastMousePos.x || io.MousePos.y != lastMousePos.y) {
+      lastMouseActivity = now;
+      lastMousePos = io.MousePos;
+      io.MouseDrawCursor = true;
+    } else if (lastMouseActivity + 2s < now) {
+      ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    }
+  }
+
+  {
+    std::string version =
+        fmt::format("MAXWELL {}", get_version()) + " | GAME " + game_version();
+    ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+        ->AddText(ImVec2(io.DisplaySize.x / 2.f -
+                             ImGui::CalcTextSize(version.c_str()).x / 2.f +
+                             Base().x,
+                         io.DisplaySize.y -
+                             ImGui::GetTextLineHeightWithSpacing() + Base().y),
+                  0x99999999, version.c_str());
+  }
+
+  if (options["ui_visible"].value && windowScale > 2) {
+    std::string hud =
+        fmt::format("{}{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
+                    options["cheat_damage"].value ? " DAMAGE" : "",
+                    options["cheat_noclip"].value ? " NOCLIP" : "",
+                    options["cheat_godmode"].value ? " GOD" : "",
+                    options["cheat_darkness"].value ? " LIGHTS" : "",
+                    Max::get().player_room()->x, Max::get().player_room()->y,
+                    Max::get().player_position()->x,
+                    Max::get().player_position()->y, Timestamp());
+    ImGui::GetForegroundDrawList(ImGui::GetMainViewport())
+        ->AddText(ImVec2(io.DisplaySize.x - ImGui::CalcTextSize(hud.c_str()).x -
+                             ImGui::GetStyle().WindowPadding.x + Base().x,
+                         Base().y),
+                  0xffffffff, hud.c_str());
+  }
+
+  if (ImGui::IsMousePosValid()) {
+    auto npos = Normalize(Mouse());
+    int x = npos.x;
+    int y = npos.y;
+    int rx = x / 8;
+    int ry = y / 8;
+
+    bool inbound = x > 0 && x < 320 && y > 0 && y < 180;
+
+    if (options["input_mouse"].value && io.MouseDown[1] &&
+        !io.WantCaptureMouse) {
+      if (inbound || (ImGui::GetFrameCount() % 10) == 0) {
+        Max::get().player_position()->x = x - 4;
+        Max::get().player_position()->y = y - 4;
+      }
+      Max::get().player_velocity()->x = 0;
+      Max::get().player_velocity()->y = 0;
+      *Max::get().player_state() = 18;
+    } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
+      *Max::get().player_state() = 0;
+    }
+
+    if (options["ui_coords"].value && inbound &&
+        ImGui::GetMouseCursor() != ImGuiMouseCursor_None &&
+        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+          ->AddRect(TileToScreen(ImVec2(rx, ry)),
+                    TileToScreen(ImVec2(rx + 1, ry + 1)), 0xccffffff, 0, 0,
+                    1.0f);
+      std::string coord =
+          fmt::format("Screen: {},{}\n  Tile: {},{}", x, y, rx, ry);
+      ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
+      ImGui::SetTooltip(coord.c_str());
+    }
+  }
+
+  if (options["ui_grid"].value) {
+    for (int x = 1; x < 40; ++x) {
+      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+          ->AddLine(TileToScreen(ImVec2(x, 0)), TileToScreen(ImVec2(x, 23)),
+                    0x66ffffff, 1.0f);
+    }
+    for (int y = 1; y < 23; ++y) {
+      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+          ->AddLine(TileToScreen(ImVec2(0, y)), TileToScreen(ImVec2(40, y)),
+                    0x66ffffff, 1.0f);
+    }
+  }
+}
+
+void UI::Draw() {
+  doWarp = false;
+
+  ImGuiIO &io = ImGui::GetIO();
+  ImGuiContext &g = *GImGui;
+
+  if (screenShotIndex > -1 &&
+      screenShotIndex < screenShotRange.x * screenShotRange.y) {
+    write_mem_recoverable("render_hud", get_address("render_hud"), "EB 74"_gh,
+                          true);
+    ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    int f = screenShotFrame % 5;
+    screenShotFrame++;
+    if (f == 0) {
+      Max::get().player_room()->y++;
+    } else if (f == 2) {
+      SaveScreenShot(screenShotFileName + "_" +
+                     fmt::format("{:03d}", screenShotIndex + 1) + "_" +
+                     TimestampFile());
+      if (screenShotIndex + 1 >= screenShotRange.x * screenShotRange.y) {
+        screenShotIndex = -1;
+        recover_mem("warp");
+        *Max::get().player_room() = *Max::get().warp_room();
+      }
+    } else if (f == 3) {
+      Max::get().warp_room()->x++;
+      if ((screenShotIndex + 1) % screenShotRange.x == 0) {
+        Max::get().warp_room()->x -= screenShotRange.x;
+        Max::get().warp_room()->y++;
+      }
+      write_mem_recoverable("warp", get_address("warp"), "EB"_gh, true);
+      screenShotIndex++;
+    } else if (f == 4) {
+      recover_mem("warp");
+    }
+    return;
+  }
+
+  if (screenShotThisFrame != "") {
+    SaveScreenShot(screenShotThisFrame);
+    screenShotThisFrame = "";
+    if (screenShotPlayerRoom.x != -1 && screenShotIndex == -1) {
+      *Max::get().player_room() = screenShotPlayerRoom;
+      screenShotPlayerRoom = Coord{-1, -1};
+    }
+  }
+  if (screenShotNextFrame != "") {
+    screenShotThisFrame = screenShotNextFrame;
+    screenShotNextFrame = "";
+    ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    return;
+  }
+
+  Keys();
+  Play();
+  Windows();
+  HUD();
+  Cheats();
 
   if (ImGui::GetFrameCount() == 20)
     ScaleWindow();

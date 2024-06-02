@@ -77,47 +77,51 @@ PIMAGE_NT_HEADERS RtlImageNtHeader(_In_ PVOID Base) {
   return proc(Base);
 }
 
-const char *current_spelunky_version() {
-  static const char *version = "unknown!";
+std::string game_version() {
+  static const wchar_t *version = L"UNKNOWN";
+  static std::string str = "UNKNOWN";
   static bool version_searched = false;
   if (!version_searched) {
     version_searched = true;
     auto memory = Memory::get();
     PIMAGE_NT_HEADERS nt_header = RtlImageNtHeader((PVOID)memory.exe());
-    size_t rdata_start = 0;
-    size_t rdata_size = 0;
+    size_t rsrc_start = 0;
+    size_t rsrc_size = 0;
     IMAGE_SECTION_HEADER *section_header =
         (IMAGE_SECTION_HEADER *)(nt_header + 1);
     for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++) {
       char *name = (char *)section_header->Name;
-      if (memcmp(name, ".rdata", 6) == 0) {
-        rdata_start = (size_t)(memory.exe() + section_header->VirtualAddress);
-        rdata_size = section_header->Misc.VirtualSize;
+      if (memcmp(name, ".rsrc", 5) == 0) {
+        rsrc_start = (size_t)(memory.exe() + section_header->VirtualAddress);
+        rsrc_size = section_header->Misc.VirtualSize;
         break;
       }
       section_header++;
     }
-    if (rdata_start > 0 && rdata_size > 0) {
-      std::string_view needle = "1.2"sv;
+    if (rsrc_start > 0 && rsrc_size > 0) {
+      std::string_view needle =
+          "50 00 72 00 6f 00 64 00 75 00 63 00 74 00 56 00 65 00 72 00 73 00 69 00 6f 00 6e 00 00 00"_gh; // L"ProductVersion"
       const size_t needle_length = needle.size();
-      const char *rdata = (const char *)rdata_start;
+      const char *rsrc = (const char *)rsrc_start;
       size_t offset = 0;
-      for (size_t j = 0; j < rdata_size - needle_length; j++) {
+      for (size_t j = 0; j < rsrc_size - needle_length; j++) {
         bool found = true;
         for (size_t k = 0; k < needle_length && found; k++) {
-          found = needle[k] == '*' || needle[k] == *(rdata + j + k);
+          found = needle[k] == '*' || needle[k] == *(rsrc + j + k);
         }
         if (found) {
-          offset = rdata_start + j;
+          offset = rsrc_start + j + 30;
           break;
         }
       }
       if (offset != 0) {
-        version = static_cast<const char *>((void *)offset);
+        version = static_cast<const wchar_t *>((void *)offset);
+        std::wstring ws(version);
+        str = std::string(ws.begin(), ws.end());
       }
     }
   }
-  return version;
+  return str;
 }
 
 static std::vector<std::string> g_registered_applications = {};
@@ -137,10 +141,7 @@ std::string application_versions() {
 }
 
 std::string get_error_information() {
-  return ""; // TODO
-  return fmt::format(
-      "\n\nRunning Spelunky 2: {}\nSupported Spelunky 2: 1.28\n\n{}",
-      current_spelunky_version(), application_versions());
+  return fmt::format("\n\nGAME {}\n{}", game_version(), application_versions());
 }
 
 size_t find_inst(const char *exe, std::string_view needle, size_t start,

@@ -30,3 +30,4 @@ size_t get_address(std::string_view address_name);
 
 void register_application_version(std::string s);
 std::unordered_map<std::string_view, size_t> &get_addresses();
+std::string game_version();

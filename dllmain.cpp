@@ -12,6 +12,7 @@
 
 #include "hook.h"
 #include "logger.h"
+#include "search.h"
 #include "version.h"
 
 using namespace std::chrono_literals;
@@ -90,6 +91,8 @@ DWORD WINAPI AttachThread(LPVOID lParam) {
     proc = res.value();
     attach_stdout(proc.info.pid);
   }
+
+  register_application_version(fmt::format("MAXWELL {}", get_version()));
 
   if (D3D12::Init() == D3D12::Status::Success) {
     D3D12::InstallHooks(lParam);
