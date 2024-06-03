@@ -635,15 +635,26 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     },
     {
         "mural_cursor"sv,
-        PatternCommandBuffer{}.from_exe_base(0xafeab),
+        PatternCommandBuffer{} //.from_exe_base(0xafeab),
+            .set_optional(true)
+            .find_after_inst(".. 8b 05 .. .. .. .. .. 83 b8 48 ba 09 00 00"_gh)
+            .at_exe(),
     },
     {
         "render"sv,
-        PatternCommandBuffer{}.from_exe_base(0x4dcc0),
+        PatternCommandBuffer{} //.from_exe_base(0x4dcc0),
+            .set_optional(true)
+            .find_inst("b8 a8 2a 00 00 e8"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
         "draw_text"sv,
-        PatternCommandBuffer{}.from_exe_base(0x71010),
+        PatternCommandBuffer{} //.from_exe_base(0x71010),
+            .set_optional(true)
+            .find_inst("48 83 ec 58 4d 85 c0"_gh)
+            .at_exe()
+            .function_start(),
     },
     /*{
         "decrypt_asset"sv,
