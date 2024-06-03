@@ -288,7 +288,9 @@ uint32_t *Max::timer() { return (uint32_t *)(slot() + 0x400 + 0x1d4); }
 
 uint8_t *Max::mural_selection() { return (uint8_t *)(slot() + 0x400 + 0x402); }
 
-uint8_t *Max::mural() { return (uint8_t *)(slot() + 0x400 + 0x26ec7); }
+std::array<uint8_t, 200> *Max::mural() {
+  return (std::array<uint8_t, 200> *)(slot() + 0x400 + 0x26ec7);
+}
 
 void Max::save_game() {
   using SaveGameFunc = void();

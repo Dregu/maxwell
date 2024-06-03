@@ -92,7 +92,7 @@ struct Max {
   uint32_t *timer();
   void save_game();
   uint8_t *mural_selection();
-  uint8_t *mural();
+  std::array<uint8_t, 200> *mural();
   void draw_text(int x, int y, const wchar_t *text);
   static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
   static uint8_t *decrypt_asset(size_t asset, uint8_t *key);

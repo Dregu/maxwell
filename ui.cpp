@@ -590,13 +590,20 @@ uint8_t *GetMural() {
   auto m = Max::get().mural();
   int i = 0;
   do {
-    mural[4 * i] = m[i] & 0x3;
-    mural[4 * i + 1] = (m[i] & 0xc) >> 2;
-    mural[4 * i + 2] = (m[i] & 0x30) >> 4;
-    mural[4 * i + 3] = (m[i] & 0xc0) >> 6;
+    mural[4 * i] = (*m)[i] & 0x3;
+    mural[4 * i + 1] = ((*m)[i] & 0xc) >> 2;
+    mural[4 * i + 2] = ((*m)[i] & 0x30) >> 4;
+    mural[4 * i + 3] = ((*m)[i] & 0xc0) >> 6;
     i++;
   } while (i < 200);
   return mural;
+}
+
+void UI::LoadMuralPage(int page) {
+  sequencer.pages[sequencer.page_loaded] = *Max::get().mural();
+  sequencer.page_loaded = page;
+  sequencer.page = page;
+  *Max::get().mural() = sequencer.pages[sequencer.page_loaded];
 }
 
 void UI::DrawTools() {
@@ -654,6 +661,17 @@ void UI::DrawTools() {
       sequencer.length = 1;
     if (sequencer.length > 40)
       sequencer.length = 40;
+    ImGui::InputInt("Page count##SongCount", &sequencer.page_count);
+    if (sequencer.page_count < 1)
+      sequencer.page_count = 1;
+    ImGui::InputInt("Page##SongPage", &sequencer.page);
+    if (sequencer.page < 1)
+      sequencer.page = 1;
+    if (sequencer.page > sequencer.page_count)
+      sequencer.page_count = sequencer.page;
+    if (sequencer.page_loaded != sequencer.page) {
+      LoadMuralPage(sequencer.page);
+    }
     ImGui::LabelText(
         "Note", "%s",
         note_order.at(19 - Max::get().mural_selection()[1] + sequencer.base));
@@ -673,7 +691,6 @@ void UI::Play() {
     }
     if (*Max::get().player_state() == 7 &&
         (*Max::get().timer() % sequencer.duration) == 0) {
-      uint8_t *m = GetMural();
       sequencer.note.clear();
       sequencer.a = std::nullopt;
       sequencer.b = std::nullopt;
@@ -681,6 +698,14 @@ void UI::Play() {
         sequencer.note[i] = 0;
       Max::get().mural_selection()[0] =
           (Max::get().mural_selection()[0] + 1) % sequencer.length;
+      if (Max::get().mural_selection()[0] == 0 &&
+          sequencer.page < sequencer.page_count) {
+        LoadMuralPage(sequencer.page + 1);
+      } else if (Max::get().mural_selection()[0] == 0 &&
+                 sequencer.page == sequencer.page_count) {
+        LoadMuralPage(1);
+      }
+      auto *m = GetMural();
       for (int dy = 19; dy >= 0; dy--) {
         int p = m[dy * 40 + Max::get().mural_selection()[0]];
         int a = 0;
@@ -761,12 +786,6 @@ UI::UI() {
     ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%p",
                        ImGuiInputTextFlags_ReadOnly);
 
-    static bool foo{false};
-    ImGui::Checkbox("Draw text", &foo);
-    if (foo) {
-      Max::get().draw_text(200, 100, L"Hello world");
-    }
-
     {
       uint8_t *m = GetMural();
       std::string str;
@@ -817,7 +836,8 @@ bool UI::Keys() {
     options["cheat_hud"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["warp"]))
     doWarp = true;
-  else if (ImGui::IsKeyChordPressed(keys["screenshot"]))
+  else if (ImGui::IsKeyChordPressed(keys["screenshot"]) &&
+           !ImGui::IsWindowFocused(ImGuiHoveredFlags_AnyWindow))
     ScreenShot();
   else if (ImGui::IsKeyChordPressed(keys["pause"])) {
     paused ^= true;

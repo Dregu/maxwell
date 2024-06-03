@@ -36,6 +36,10 @@ struct Sequencer {
   std::map<int, int> note;
   std::optional<uint8_t> a{0};
   std::optional<uint8_t> b{0};
+  std::map<int, std::array<uint8_t, 200>> pages;
+  int page{1};
+  int page_loaded{1};
+  int page_count{1};
 };
 
 ImVec2 Normalize(ImVec2 pos);
@@ -170,6 +174,7 @@ public:
   void Cheats();
   void Windows();
   void HUD();
+  void LoadMuralPage(int page);
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

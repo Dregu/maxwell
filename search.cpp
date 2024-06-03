@@ -24,6 +24,8 @@
 #include "memory.h"             // for Memory, function_start
 #include "virtual_table.h"
 
+#pragma warning(disable : 4244)
+
 // Decodes the program counter inside an instruction
 // The default simple variant is 3 bytes instruction, 4 bytes rel. address, 0
 // bytes suffix:
