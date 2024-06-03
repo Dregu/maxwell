@@ -27,6 +27,29 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+const char s8_zero = 0, s8_one = 1, s8_fifty = 50, s8_min = -128, s8_max = 127;
+const ImU8 u8_zero = 0, u8_one = 1, u8_fifty = 50, u8_min = 0, u8_max = 255;
+const short s16_zero = 0, s16_one = 1, s16_fifty = 50, s16_min = -32768,
+            s16_max = 32767;
+const ImU16 u16_zero = 0, u16_one = 1, u16_fifty = 50, u16_min = 0,
+            u16_max = 65535;
+const ImS32 s32_zero = 0, s32_one = 1, s32_fifty = 50, s32_min = INT_MIN / 2,
+            s32_max = INT_MAX / 2, s32_hi_a = INT_MAX / 2 - 100,
+            s32_hi_b = INT_MAX / 2;
+const ImU32 u32_zero = 0, u32_one = 1, u32_fifty = 50, u32_min = 0,
+            u32_max = UINT_MAX / 2, u32_hi_a = UINT_MAX / 2 - 100,
+            u32_hi_b = UINT_MAX / 2;
+const ImS64 s64_zero = 0, s64_one = 1, s64_fifty = 50, s64_min = LLONG_MIN / 2,
+            s64_max = LLONG_MAX / 2, s64_hi_a = LLONG_MAX / 2 - 100,
+            s64_hi_b = LLONG_MAX / 2;
+const ImU64 u64_zero = 0, u64_one = 1, u64_fifty = 50, u64_min = 0,
+            u64_max = ULLONG_MAX / 2, u64_hi_a = ULLONG_MAX / 2 - 100,
+            u64_hi_b = ULLONG_MAX / 2;
+const float f32_zero = 0.f, f32_one = 1.f, f32_lo_a = -10000000000.0f,
+            f32_hi_a = +10000000000.0f;
+const double f64_zero = 0., f64_one = 1., f64_lo_a = -1000000000000000.0,
+             f64_hi_a = +1000000000000000.0;
+
 std::array equipment_names{
     "Unknown", "Firecrackers", "Flute",  "Lantern", "Top",   "Disc",    "BWand",
     "Yoyo",    "Slink",        "Remote", "Ball",    "Wheel", "UVLight",
@@ -321,7 +344,6 @@ void UI::DrawPlayer() {
   ImGui::PopItemWidth();
 }
 
-// TODO: Hilight active/hovered room
 void UI::DrawMap() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
@@ -753,6 +775,41 @@ void UI::Play() {
     recover_mem("mural_cursor");
 }
 
+void UI::DrawLevel() {
+  ImGuiIO &io = ImGui::GetIO();
+  ImGuiContext &g = *GImGui;
+
+  ImGui::SeparatorText("Room");
+  static bool lockCurrentRoom{false};
+  ImGui::Checkbox("Lock to current room", &lockCurrentRoom);
+  if (lockCurrentRoom) {
+    selectedRoom.pos = *Max::get().player_room();
+    selectedRoom.map = *Max::get().player_layer();
+    selectedRoom.room = Max::get().room(selectedRoom.map, selectedRoom.pos.x,
+                                        selectedRoom.pos.y);
+  }
+  if (selectedRoom.room) {
+    ImGui::DragScalar("Water level", ImGuiDataType_U8,
+                      &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
+  }
+  ImGui::SeparatorText("Selected tile");
+  if (selectedTile.tile) {
+    ImGui::InputScalar("Tile ID##SelectedTileID", ImGuiDataType_U16,
+                       &selectedTile.tile->id);
+    ImGui::InputScalar("Tile param##SelectedTileParam", ImGuiDataType_U8,
+                       &selectedTile.tile->param);
+    ImGui::InputScalar("Tile flags##SelectedTileFlags", ImGuiDataType_U8,
+                       &selectedTile.tile->flags);
+  }
+  ImGui::SeparatorText("Editor tile");
+  ImGui::InputScalar("Tile ID##EditorTileID", ImGuiDataType_U16,
+                     &editorTile.id);
+  ImGui::InputScalar("Tile param##EditorTileParam", ImGuiDataType_U8,
+                     &editorTile.param);
+  ImGui::InputScalar("Tile flags##EditorTileFlags", ImGuiDataType_U8,
+                     &editorTile.flags);
+}
+
 UI::UI() {
   Max::get();
   LoadINI();
@@ -763,6 +820,7 @@ UI::UI() {
   NewWindow("F2 Minimap", keys["tool_map"], ImGuiWindowFlags_AlwaysAutoResize,
             [this]() { this->DrawMap(); });
   NewWindow("F3 Tools", keys["tool_tools"], 0, [this]() { this->DrawTools(); });
+  NewWindow("F4 Level", keys["tool_level"], 0, [this]() { this->DrawLevel(); });
   NewWindow("Settings", keys["tool_settings"],
             ImGuiWindowFlags_AlwaysAutoResize,
             [this]() { this->DrawOptions(); });
@@ -784,6 +842,10 @@ UI::UI() {
 
     v = (size_t)Max::get().pause();
     ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%p",
+                       ImGuiInputTextFlags_ReadOnly);
+
+    v = (size_t)Max::get().map(0);
+    ImGui::InputScalar("world", ImGuiDataType_U64, &v, NULL, NULL, "%p",
                        ImGuiInputTextFlags_ReadOnly);
 
     {
@@ -1029,6 +1091,29 @@ void UI::HUD() {
       *Max::get().player_state() = 0;
     }
 
+    auto *fg =
+        Max::get().tile(*Max::get().player_layer(), Max::get().player_room()->x,
+                        Max::get().player_room()->y, rx, ry, 0);
+    auto *bg =
+        Max::get().tile(*Max::get().player_layer(), Max::get().player_room()->x,
+                        Max::get().player_room()->y, rx, ry, 1);
+
+    if (fg && options["input_mouse"].value && io.MouseDown[2] &&
+        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+      selectedTile.tile = fg;
+      selectedTile.pos = Coord{rx, ry};
+      selectedTile.room = *Max::get().player_room();
+      selectedTile.map = *Max::get().player_layer();
+      editorTile.id = fg->id;
+      editorTile.param = fg->param;
+      editorTile.flags = fg->flags;
+    }
+
+    if (fg && options["input_mouse"].value && io.MouseDown[0] &&
+        !io.WantCaptureMouse) {
+      fg->id = editorTile.id;
+    }
+
     if (options["ui_coords"].value && inbound &&
         ImGui::GetMouseCursor() != ImGuiMouseCursor_None &&
         !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
@@ -1038,6 +1123,8 @@ void UI::HUD() {
                     1.0f);
       std::string coord =
           fmt::format("Screen: {},{}\n  Tile: {},{}", x, y, rx, ry);
+      if (fg && bg)
+        coord += fmt::format("\n  ID: {},{}", fg->id, bg->id);
       ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
       ImGui::SetTooltip(coord.c_str());
     }

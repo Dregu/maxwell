@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <deque>
 #include <functional>
@@ -58,6 +59,33 @@ struct Pause {
   bool closing;
 };
 
+struct Tile {
+  uint16_t id;
+  uint8_t param;
+  uint8_t flags;
+};
+
+struct Room {
+  uint8_t x;
+  uint8_t y;
+  uint8_t bgId;
+  uint8_t waterLevel;
+
+  uint8_t pallet_index;
+  uint8_t idk1;
+  uint8_t idk2;
+  uint8_t idk3;
+
+  Tile tiles[2][22][40];
+};
+
+struct Map {
+  uint16_t roomCount;
+  uint8_t world_wrap_x_start;
+  uint8_t world_wrap_x_end;
+  std::array<Room, 256> rooms;
+};
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
@@ -93,6 +121,10 @@ struct Max {
   void save_game();
   uint8_t *mural_selection();
   std::array<uint8_t, 200> *mural();
+  Map *map(int l = 0);
+  Room *room(int m, int x, int y);
+  Tile *tile(int m, int rx, int ry, int x, int y, int l);
+
   void draw_text(int x, int y, const wchar_t *text);
   static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
   static uint8_t *decrypt_asset(size_t asset, uint8_t *key);

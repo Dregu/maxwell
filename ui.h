@@ -42,6 +42,19 @@ struct Sequencer {
   int page_count{1};
 };
 
+struct SelectedTile {
+  Tile *tile{nullptr};
+  Coord room{0, 0};
+  Coord pos{0, 0};
+  int map{0};
+};
+
+struct SelectedRoom {
+  Room *room{nullptr};
+  Coord pos{0, 0};
+  int map{0};
+};
+
 ImVec2 Normalize(ImVec2 pos);
 
 class UI {
@@ -146,6 +159,9 @@ private:
   int screenShotFrame = -1;
   bool paused = false;
   Sequencer sequencer;
+  SelectedTile selectedTile;
+  SelectedRoom selectedRoom;
+  Tile editorTile{0, 0, 0};
 
 public:
   UI();
@@ -164,6 +180,7 @@ public:
   void DrawMap();
   void DrawTools();
   void DrawOptions();
+  void DrawLevel();
   bool Button(std::string name, std::string desc = "", std::string key = "");
   void SaveINI();
   void LoadINI();

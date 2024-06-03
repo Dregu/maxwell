@@ -8,6 +8,8 @@
 #include "logger.h"
 #include "memory.h"
 
+static std::unordered_map<uint8_t, std::unordered_map<uint16_t, Room *>> rooms;
+
 const std::array<uint8_t, 16> encryption_keys[3] = {
     {'G', 'o', 'o', 'd', 'L', 'U', 'c', 'K', 'M', 'y', 'F', 'r', 'i', 'E', 'n',
      'd'},
@@ -105,6 +107,7 @@ inline bool &get_is_init() {
 
 Max &Max::get() {
   static Max MAX;
+
   if (!get_is_init()) {
     preload_addresses();
 
@@ -290,6 +293,34 @@ uint8_t *Max::mural_selection() { return (uint8_t *)(slot() + 0x400 + 0x402); }
 
 std::array<uint8_t, 200> *Max::mural() {
   return (std::array<uint8_t, 200> *)(slot() + 0x400 + 0x26ec7);
+}
+
+Map *Max::map(int l) {
+  if (l >= 0 && l <= 4)
+    return (Map *)(*(size_t *)get_address("layer_base") + 0x2d0 + l * 0x1b8f84);
+  return nullptr;
+}
+
+Room *Max::room(int m, int x, int y) {
+  if (!rooms.contains(m)) {
+    auto layer = Max::get().map(m);
+    if (!layer)
+      return nullptr;
+    for (int r = 0; r < layer->roomCount; ++r) {
+      auto *room = &layer->rooms[r];
+      rooms[m][room->x | (room->y << 8)] = &layer->rooms[r];
+    }
+  }
+  if (rooms.contains(m) && rooms[m].contains(x | (y << 8)))
+    return rooms[m][x | (y << 8)];
+  return nullptr;
+}
+
+Tile *Max::tile(int m, int rx, int ry, int x, int y, int l) {
+  auto room = Max::room(m, rx, ry);
+  if (room)
+    return &room->tiles[l][y][x];
+  return nullptr;
 }
 
 void Max::save_game() {
