@@ -109,8 +109,9 @@ private:
         "Blocks keyboard input from game\n"
         "when typing or menus are open."}},
       {"input_mouse",
-       {true, "Right click to teleport",
-        "Right click or drag yourself around!"}},
+       {true, "Enable mouse controls",
+        "Left click to place tile, middle click to pick tile,\nright click to "
+        "teleport!"}},
       {"map_auto",
        {false, "Constantly update minimap",
         "This can be choppy if map window is left open.\n"
@@ -142,6 +143,9 @@ private:
         "These are really helpful, why are you disabling them!?"}},
       {"ui_visible",
        {true, "Show UI", "Hide/show all MAXWELL windows.", "toggle_ui"}},
+      {"ui_viewports",
+       {false, "Multi-viewports",
+        "Allow dragging UI windows outside the game window."}},
   };
   bool doWarp = false;
   bool inMenu = false;

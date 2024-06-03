@@ -537,8 +537,6 @@ void UI::DrawOptions() {
   if (ImGui::SliderInt("Window scale", &windowScale, 1, 10, "%dx")) {
     ScaleWindow();
   }
-  // ImGui::InputFloat2("Display", &io.DisplaySize.x, "%.0f",
-  // ImGuiInputTextFlags_ReadOnly);
   ImGui::SliderFloat("Alpha", &ImGui::GetStyle().Alpha, 0.2f, 1.0f, "%.1f");
   if (Button("Save settings"))
     SaveINI();
@@ -998,6 +996,7 @@ void UI::Windows() {
         if (window->detached)
           continue;
         inMenu = true;
+        ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
         if (ImGui::BeginMenu(window->title.c_str(), window->key)) {
           window->cb();
           lastMenuFrame = ImGui::GetFrameCount();
@@ -1158,6 +1157,12 @@ void UI::HUD() {
 }
 
 void UI::Draw() {
+  if (options["ui_viewports"].value) {
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+  } else {
+    ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+  }
+
   doWarp = false;
 
   ImGuiIO &io = ImGui::GetIO();
@@ -1455,6 +1460,12 @@ void UI::LoadINI() {
     options[name].value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
   }
   windowScale = toml::find_or<int>(opts, "scale", 4);
+
+  /*if (options["ui_viewports"].value) {
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+  } else {
+    ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+  }*/
 
   SaveINI();
 }

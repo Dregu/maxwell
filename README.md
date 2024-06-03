@@ -24,9 +24,13 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
 - Please go away if you haven't finished the game
 - Edit most things in player inventory in real time
 - Input any coordinates to warp
-- Right click minimap to warp
 - Right click anywhere on screen to teleport
-- Reveal whole minimap ingame
+- Minimap
+  - Right click to warp to rooms
+  - Reveal whole minimap ingame
+  - Warp to other dimensions
+  - Show other dimension outlines
+  - Track wheel position
 - Godmode
 - Noclip without cring
 - Save anywhere
@@ -35,3 +39,16 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
 - Play in b&w gameboy mode
 - Hide the game hud
 - Take unobstructed screenshots for mapping
+- Pause and frame advance
+  - Ctrl+Tab to toggle
+  - Tab to skip one frame
+- Rudimentary runtime level editor
+  - Change water level
+  - Middle click to pick tile from room
+  - Left click to place tile
+  - Static tiles will update instantly, dynamic tiles need a room reload
+  - Very WIP
+- Bunny sequencer
+  - Plays the flute automatically based on pixels on the mural
+  - Blues and reds are half notes, beiges full notes
+  - Take out the flute to play your song while in the room
