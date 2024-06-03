@@ -76,6 +76,7 @@ private:
       {"screenshot", ImGuiKey_Period},
       {"pause", ImGuiMod_Ctrl | ImGuiKey_Tab},
       {"skip", ImGuiKey_Tab},
+      {"editor_modifier", ImGuiMod_Shift},
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{

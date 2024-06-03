@@ -646,8 +646,8 @@ void UI::DrawTools() {
       screenShotFrame = 0;
     }
   }
-  if (ImGui::CollapsingHeader("Music player  ")) {
-    if (ImGui::Button("TTFAF")) {
+  if (ImGui::CollapsingHeader("Bunny sequencer  ")) {
+    /*if (ImGui::Button("TTFAF")) {
       *Max::get().item() = 2;
       *Max::get().player_state() = 7;
       for (auto note : ttfaf) {
@@ -659,12 +659,12 @@ void UI::DrawTools() {
         Max::get().inputs.push_back(0);
       }
       Max::get().inputs.push_back(-1);
-    }
-    if (ImGui::Button("Clear queue")) {
+    }*/
+    if (ImGui::Checkbox("Enable sequencer", &sequencer.enabled)) {
       Max::get().input = PLAYER_INPUT::SKIP;
       Max::get().inputs.clear();
     }
-    if (ImGui::Checkbox("Bunny Sequencer", &sequencer.enabled)) {
+    if (ImGui::Button("Clear queue")) {
       Max::get().input = PLAYER_INPUT::SKIP;
       Max::get().inputs.clear();
     }
@@ -769,7 +769,7 @@ void UI::Play() {
       Max::get().mural_selection()[1] = sequencer.b.value();
     if (!Max::get().pause()->paused)
       Max::get().render_queue.push_back(
-          [&]() { Max::get().draw_text(57, 12, L"bunny sequencer 0.1"); });
+          [&]() { Max::get().draw_text(57, 12, L"bunny sequencer 0.2"); });
   }
   if (!sequencer.enabled)
     recover_mem("mural_cursor");
@@ -781,7 +781,7 @@ void UI::DrawLevel() {
 
   ImGui::SeparatorText("Room");
   static bool lockCurrentRoom{false};
-  ImGui::Checkbox("Lock to current room", &lockCurrentRoom);
+  ImGui::Checkbox("Select current room", &lockCurrentRoom);
   if (lockCurrentRoom) {
     selectedRoom.pos = *Max::get().player_room();
     selectedRoom.map = *Max::get().player_layer();
@@ -794,19 +794,18 @@ void UI::DrawLevel() {
   }
   ImGui::SeparatorText("Selected tile");
   if (selectedTile.tile) {
-    ImGui::InputScalar("Tile ID##SelectedTileID", ImGuiDataType_U16,
+    ImGui::InputScalar("ID##SelectedTileID", ImGuiDataType_U16,
                        &selectedTile.tile->id);
-    ImGui::InputScalar("Tile param##SelectedTileParam", ImGuiDataType_U8,
+    ImGui::InputScalar("Param##SelectedTileParam", ImGuiDataType_U8,
                        &selectedTile.tile->param);
-    ImGui::InputScalar("Tile flags##SelectedTileFlags", ImGuiDataType_U8,
+    ImGui::InputScalar("Flags##SelectedTileFlags", ImGuiDataType_U8,
                        &selectedTile.tile->flags);
   }
   ImGui::SeparatorText("Editor tile");
-  ImGui::InputScalar("Tile ID##EditorTileID", ImGuiDataType_U16,
-                     &editorTile.id);
-  ImGui::InputScalar("Tile param##EditorTileParam", ImGuiDataType_U8,
+  ImGui::InputScalar("ID##EditorTileID", ImGuiDataType_U16, &editorTile.id);
+  ImGui::InputScalar("Param##EditorTileParam", ImGuiDataType_U8,
                      &editorTile.param);
-  ImGui::InputScalar("Tile flags##EditorTileFlags", ImGuiDataType_U8,
+  ImGui::InputScalar("Flags##EditorTileFlags", ImGuiDataType_U8,
                      &editorTile.flags);
 }
 
@@ -1104,14 +1103,28 @@ void UI::HUD() {
       selectedTile.pos = Coord{rx, ry};
       selectedTile.room = *Max::get().player_room();
       selectedTile.map = *Max::get().player_layer();
-      editorTile.id = fg->id;
-      editorTile.param = fg->param;
-      editorTile.flags = fg->flags;
+      if (ImGui::IsKeyDown((ImGuiKey)keys["editor_modifier"])) {
+        editorTile.id = bg->id;
+        editorTile.param = bg->param;
+        editorTile.flags = bg->flags;
+      } else {
+        editorTile.id = fg->id;
+        editorTile.param = fg->param;
+        editorTile.flags = fg->flags;
+      }
     }
 
     if (fg && options["input_mouse"].value && io.MouseDown[0] &&
         !io.WantCaptureMouse) {
-      fg->id = editorTile.id;
+      if (ImGui::IsKeyDown((ImGuiKey)keys["editor_modifier"])) {
+        bg->id = editorTile.id;
+        bg->param = editorTile.param;
+        bg->flags = editorTile.flags;
+      } else {
+        fg->id = editorTile.id;
+        fg->param = editorTile.param;
+        fg->flags = editorTile.flags;
+      }
     }
 
     if (options["ui_coords"].value && inbound &&
