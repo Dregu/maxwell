@@ -10,6 +10,7 @@
 #include <iostream>
 #include <map>
 #include <misc/cpp/imgui_stdlib.h>
+#include <shellapi.h>
 #include <toml.hpp>
 
 #include "ghidra_byte_string.h"
@@ -773,6 +774,17 @@ void UI::Play() {
     recover_mem("mural_cursor");
 }
 
+void UI::RefreshMaps() {
+  maps.clear();
+  CreateDirectory(L"MAXWELL\\Maps", NULL);
+  if (std::filesystem::exists(mapDir) &&
+      std::filesystem::is_directory(mapDir)) {
+    for (const auto &file : std::filesystem::directory_iterator(mapDir)) {
+      maps.push_back(file.path());
+    }
+  }
+}
+
 void UI::DrawLevel() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
@@ -790,6 +802,7 @@ void UI::DrawLevel() {
     ImGui::DragScalar("Water level", ImGuiDataType_U8,
                       &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
   }
+
   ImGui::SeparatorText("Selected tile");
   if (selectedTile.tile) {
     ImGui::InputScalar("ID##SelectedTileID", ImGuiDataType_U16,
@@ -799,12 +812,41 @@ void UI::DrawLevel() {
     ImGui::InputScalar("Flags##SelectedTileFlags", ImGuiDataType_U8,
                        &selectedTile.tile->flags);
   }
+
   ImGui::SeparatorText("Editor tile");
   ImGui::InputScalar("ID##EditorTileID", ImGuiDataType_U16, &editorTile.id);
   ImGui::InputScalar("Param##EditorTileParam", ImGuiDataType_U8,
                      &editorTile.param);
   ImGui::InputScalar("Flags##EditorTileFlags", ImGuiDataType_U8,
                      &editorTile.flags);
+
+  ImGui::SeparatorText("Import map");
+  if (ImGui::Button("Open Maps folder##OpenMaps")) {
+    RefreshMaps();
+    ShellExecute(NULL, L"open", L"MAXWELL\\Maps", NULL, NULL, SW_SHOWNORMAL);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Refresh##RefreshMaps"))
+    RefreshMaps();
+  static int layer{0};
+  ImGui::InputInt("Import to layer##ImportMapLayer", &layer);
+  layer = (layer + 5) % 5;
+  /*static std::string file{""};
+  ImGui::InputText("File name##ImportMapFile", &file);
+  if (ImGui::Button("Import##ImportMap"))
+    Max::get().import_map(file, layer);*/
+
+  for (auto m : maps) {
+    ImGui::PushID(m.string().c_str());
+    std::string buf =
+        fmt::format("Import '{}' to layer {}", m.filename().string(), layer);
+    if (ImGui::Button(buf.c_str()))
+      Max::get().import_map(m.string(), layer);
+    ImGui::PopID();
+  }
+  if (maps.empty())
+    ImGui::TextUnformatted(
+        "Put files exported by map editor\nin MAXWELL/Maps to import!");
 }
 
 UI::UI() {

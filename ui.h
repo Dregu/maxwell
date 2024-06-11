@@ -4,6 +4,7 @@
 #include <array>
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <string>
@@ -167,6 +168,8 @@ private:
   SelectedTile selectedTile;
   SelectedRoom selectedRoom;
   Tile editorTile{0, 0, 0};
+  std::string mapDir = "MAXWELL/Maps";
+  std::vector<std::filesystem::path> maps;
 
 public:
   UI();
@@ -197,6 +200,7 @@ public:
   void Windows();
   void HUD();
   void LoadMuralPage(int page);
+  void RefreshMaps();
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

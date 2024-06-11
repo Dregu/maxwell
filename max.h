@@ -5,6 +5,7 @@
 #include <deque>
 #include <functional>
 #include <optional>
+#include <string>
 
 #define SLOT_SIZE 0x27010
 
@@ -86,6 +87,15 @@ struct Map {
   std::array<Room, 256> rooms;
 };
 
+struct MapHeader {
+  uint32_t signature1;
+  uint16_t roomCount;
+  uint8_t world_wrap_x_start;
+  uint8_t world_wrap_x_end;
+  uint32_t idk3;
+  uint32_t signature2;
+};
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
@@ -121,9 +131,10 @@ struct Max {
   void save_game();
   uint8_t *mural_selection();
   std::array<uint8_t, 200> *mural();
-  Map *map(int l = 0);
+  Map *map(int m = 0);
   Room *room(int m, int x, int y);
   Tile *tile(int m, int rx, int ry, int x, int y, int l);
+  bool import_map(std::string file, int m = 0);
 
   void draw_text(int x, int y, const wchar_t *text);
   static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);

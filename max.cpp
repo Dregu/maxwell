@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include <array>
+#include <fstream>
 
 #include "detours.h"
 #include "ghidra_byte_string.h"
@@ -295,9 +296,9 @@ std::array<uint8_t, 200> *Max::mural() {
   return (std::array<uint8_t, 200> *)(slot() + 0x400 + 0x26ec7);
 }
 
-Map *Max::map(int l) {
-  if (l >= 0 && l <= 4)
-    return (Map *)(*(size_t *)get_address("layer_base") + 0x2d0 + l * 0x1b8f84);
+Map *Max::map(int m) {
+  if (m >= 0 && m <= 4)
+    return (Map *)(*(size_t *)get_address("layer_base") + 0x2d0 + m * 0x1b8f84);
   return nullptr;
 }
 
@@ -321,6 +322,38 @@ Tile *Max::tile(int m, int rx, int ry, int x, int y, int l) {
   if (room)
     return &room->tiles[l][y][x];
   return nullptr;
+}
+
+bool Max::import_map(std::string file, int m) {
+  auto layer = Max::get().map(m);
+  if (!layer)
+    return false;
+
+  MapHeader header;
+  std::ifstream f;
+
+  f.open(file.c_str(), std::ifstream::binary);
+  if (!f.good())
+    return false;
+
+  f.read(reinterpret_cast<char *>(&header.signature1),
+         sizeof(header.signature1));
+  f.read(reinterpret_cast<char *>(&header.roomCount), sizeof(header.roomCount));
+  f.read(reinterpret_cast<char *>(&header.world_wrap_x_start),
+         sizeof(header.world_wrap_x_start));
+  f.read(reinterpret_cast<char *>(&header.world_wrap_x_end),
+         sizeof(header.world_wrap_x_end));
+  f.read(reinterpret_cast<char *>(&header.idk3), sizeof(header.idk3));
+  f.read(reinterpret_cast<char *>(&header.signature2),
+         sizeof(header.signature2));
+
+  DEBUG("Room Count: {}", header.roomCount);
+  layer->roomCount = header.roomCount;
+  layer->world_wrap_x_start = header.world_wrap_x_start;
+  layer->world_wrap_x_end = header.world_wrap_x_end;
+  f.read(reinterpret_cast<char *>(&layer->rooms), 0x1b8f84);
+  f.close();
+  return true;
 }
 
 void Max::save_game() {
