@@ -610,9 +610,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     },
     {
         "update_state"sv,
-        PatternCommandBuffer{} // .from_exe_base(0x522d0)
+        PatternCommandBuffer{}
+            //.from_exe_base(0x4f720) // .from_exe_base(0x522d0)
             .set_optional(true)
-            .find_inst("74 0c 41 8b 8d 0c 36 09 00"_gh)
+            .find_inst("8b 80 80 54 07 00 83 f8 02"_gh)
             .at_exe()
             .function_start(),
     },
@@ -642,9 +643,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     },
     {
         "render"sv,
-        PatternCommandBuffer{} //.from_exe_base(0x4dcc0),
+        PatternCommandBuffer{}
+            //.from_exe_base(0x4b550) //.from_exe_base(0x4dcc0),
             .set_optional(true)
-            .find_inst("b8 a8 2a 00 00 e8"_gh)
+            .find_inst("8d 47 ff 3c 11"_gh)
             .at_exe()
             .function_start(),
     },

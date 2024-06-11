@@ -951,7 +951,7 @@ void UI::Cheats() {
   }
 
   if (options["cheat_godmode"].value && get_address("god")) {
-    write_mem_recoverable("god", get_address("god"), "E9 79 01 00 00 90"_gh,
+    write_mem_recoverable("god", get_address("god"), "E9 71 01 00 00 90"_gh,
                           true);
   } else {
     recover_mem("god");
