@@ -31,6 +31,7 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
   - Warp to other dimensions
   - Show other dimension outlines
   - Track wheel position
+  - Show destroyed tiles
 - Godmode
 - Noclip without cring
 - Save anywhere
@@ -38,14 +39,18 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
 - Disable fog of war / darkness
 - Play in b&w gameboy mode
 - Hide the game hud
+- Hide the player character
 - Take unobstructed screenshots for mapping
 - Pause and frame advance
   - Ctrl+Tab to toggle
   - Tab to skip one frame
-- Rudimentary runtime level editor
+- Rudimentary runtime level editing
   - Change water level
   - Middle click to pick tile from room
   - Left click to place tile
+  - Mouse4 to mark tiles destroyed
+  - Hold shift for background layer or fixing destroyed tiles
+  - Import map files exported from the [editor](https://github.com/Redcrafter/Animal-Well-editor)
   - Static tiles will update instantly, dynamic tiles need a room reload
   - Very WIP
 - Bunny sequencer

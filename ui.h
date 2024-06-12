@@ -74,6 +74,7 @@ private:
       {"toggle_player", ImGuiMod_Ctrl | ImGuiKey_B},
       {"toggle_gameboy", ImGuiMod_Ctrl | ImGuiKey_K},
       {"toggle_hud", ImGuiMod_Ctrl | ImGuiKey_H},
+      {"toggle_mouse", ImGuiMod_Ctrl | ImGuiKey_N},
       {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
       {"screenshot", ImGuiKey_Period},
       {"pause", ImGuiMod_Ctrl | ImGuiKey_Tab},
@@ -114,9 +115,10 @@ private:
         "Blocks keyboard input from game\n"
         "when typing or menus are open."}},
       {"input_mouse",
-       {true, "Enable mouse controls",
+       {true, "Mouse controls",
         "Left click to place tile, middle click to pick tile,\nright click to "
-        "teleport!"}},
+        "teleport!",
+        "toggle_mouse"}},
       {"map_auto",
        {false, "Constantly update minimap",
         "This can be choppy if map window is left open.\n"

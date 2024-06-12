@@ -785,6 +785,8 @@ void UI::DrawLevel() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
 
+  ImGui::PushItemWidth(100.f);
+
   ImGui::SeparatorText("Room");
   static bool lockCurrentRoom{false};
   ImGui::Checkbox("Select current room", &lockCurrentRoom);
@@ -822,10 +824,10 @@ void UI::DrawLevel() {
     ShellExecute(NULL, L"open", L"MAXWELL\\Maps", NULL, NULL, SW_SHOWNORMAL);
   }
   ImGui::SameLine();
-  if (ImGui::Button("Refresh##RefreshMaps"))
+  if (ImGui::Button("Refresh##RefreshMaps") || ImGui::IsWindowAppearing())
     RefreshMaps();
   static int layer{0};
-  ImGui::InputInt("Import to layer##ImportMapLayer", &layer);
+  ImGui::InputInt("Layer##ImportMapLayer", &layer);
   layer = (layer + 5) % 5;
   /*static std::string file{""};
   ImGui::InputText("File name##ImportMapFile", &file);
@@ -841,8 +843,10 @@ void UI::DrawLevel() {
     ImGui::PopID();
   }
   if (maps.empty())
-    ImGui::TextUnformatted(
-        "Put files exported by map editor\nin MAXWELL/Maps to import!");
+    ImGui::TextWrapped(
+        "Put files exported by map editor in MAXWELL/Maps to import!");
+
+  ImGui::PopItemWidth();
 }
 
 UI::UI() {
@@ -917,6 +921,8 @@ bool UI::Keys() {
     ImGui::SetWindowFocus(nullptr);
   else if (ImGui::IsKeyChordPressed(keys["toggle_ui"]))
     options["ui_visible"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_mouse"]))
+    options["input_mouse"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_noclip"])) {
     options["cheat_noclip"].value ^= true;
     if (!options["cheat_noclip"].value)
@@ -1171,6 +1177,14 @@ void UI::HUD() {
         fg->param = editorTile.param;
         fg->flags = editorTile.flags;
       }
+    }
+
+    if (options["input_mouse"].value && io.MouseDown[3] &&
+        !io.WantCaptureMouse) {
+      auto broken = !ImGui::IsKeyDown((ImGuiKey)keys["editor_modifier"]);
+      int bit = Max::get().player_room()->y * 20 * 40 * 22 + ry * 20 * 40 +
+                Max::get().player_room()->x * 40 + rx;
+      Max::get().map_bits(2)->set(bit, broken);
     }
 
     if (options["ui_coords"].value && inbound &&
