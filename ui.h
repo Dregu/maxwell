@@ -71,6 +71,7 @@ private:
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
       {"toggle_damage", ImGuiMod_Ctrl | ImGuiKey_D},
       {"toggle_darkness", ImGuiMod_Ctrl | ImGuiKey_L},
+      {"toggle_player", ImGuiMod_Ctrl | ImGuiKey_B},
       {"toggle_gameboy", ImGuiMod_Ctrl | ImGuiKey_K},
       {"toggle_hud", ImGuiMod_Ctrl | ImGuiKey_H},
       {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
@@ -105,6 +106,9 @@ private:
       {"cheat_hud",
        {false, "Hide ingame HUD",
         "Removes all HUD elements, including the menus.", "toggle_hud"}},
+      {"cheat_player",
+       {false, "Hide player character", "Doesn't render the player character.",
+        "toggle_player"}},
       {"input_block",
        {true, "Block game input on UI input",
         "Blocks keyboard input from game\n"
@@ -136,9 +140,6 @@ private:
       {"ui_grid",
        {false, "Show tile grid",
         "Draws a grid of 40 by 22.5 over the screen."}},
-      {"ui_hideplayer",
-       {false, "Hide player from screenshots",
-        "Moves the player offscreen for\nthe durating of screenshot."}},
       {"ui_tooltips",
        {true, "Show helpful tooltips",
         "These are really helpful, why are you disabling them!?"}},
@@ -159,7 +160,6 @@ private:
   std::string screenShotFileName = "MAXWELL";
   std::string screenShotNextFrame = "";
   std::string screenShotThisFrame = "";
-  Coord screenShotPlayerRoom{-1, -1};
   Coord screenShotRange{1, 1};
   int screenShotIndex = -1;
   int screenShotFrame = -1;

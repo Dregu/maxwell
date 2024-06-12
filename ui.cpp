@@ -600,10 +600,6 @@ std::string TimestampFile() {
 
 void UI::ScreenShot() {
   screenShotNextFrame = screenShotFileName + "_" + TimestampFile();
-  if (options["ui_hideplayer"].value) {
-    screenShotPlayerRoom = *Max::get().player_room();
-    *Max::get().player_room() = Coord{0, 0};
-  }
 }
 
 uint8_t *GetMural() {
@@ -935,6 +931,8 @@ bool UI::Keys() {
     options["cheat_gameboy"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_hud"]))
     options["cheat_hud"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_player"]))
+    options["cheat_player"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["warp"]))
     doWarp = true;
   else if (ImGui::IsKeyChordPressed(keys["screenshot"]) &&
@@ -1019,6 +1017,13 @@ void UI::Cheats() {
         true); // jmp over this and the next if that renders some more text
   } else {
     recover_mem("render_hud");
+  }
+
+  if (options["cheat_player"].value && get_address("render_player")) {
+    write_mem_recoverable("render_player", get_address("render_player"),
+                          "C3"_gh, true);
+  } else {
+    recover_mem("render_player");
   }
 
   if (options["cheat_noclip"].value) {
@@ -1218,7 +1223,7 @@ void UI::Draw() {
     int f = screenShotFrame % 5;
     screenShotFrame++;
     if (f == 0) {
-      Max::get().player_room()->y++;
+      // Max::get().player_room()->y++;
     } else if (f == 2) {
       SaveScreenShot(screenShotFileName + "_" +
                      fmt::format("{:03d}", screenShotIndex + 1) + "_" +
@@ -1245,10 +1250,6 @@ void UI::Draw() {
   if (screenShotThisFrame != "") {
     SaveScreenShot(screenShotThisFrame);
     screenShotThisFrame = "";
-    if (screenShotPlayerRoom.x != -1 && screenShotIndex == -1) {
-      *Max::get().player_room() = screenShotPlayerRoom;
-      screenShotPlayerRoom = Coord{-1, -1};
-    }
   }
   if (screenShotNextFrame != "") {
     screenShotThisFrame = screenShotNextFrame;

@@ -658,6 +658,14 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe()
             .function_start(),
     },
+    {
+        "render_player"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x463c0),
+            .set_optional(true)
+            .find_inst("48 81 c1 78 7f 00 00"_gh)
+            .at_exe()
+            .function_start(),
+    },
     /*{
         "decrypt_asset"sv,
         PatternCommandBuffer{}.from_exe_base(0x1650),
