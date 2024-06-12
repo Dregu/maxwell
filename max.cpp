@@ -292,6 +292,10 @@ uint32_t *Max::timer() { return (uint32_t *)(slot() + 0x400 + 0x1d4); }
 
 uint8_t *Max::mural_selection() { return (uint8_t *)(slot() + 0x400 + 0x402); }
 
+std::bitset<0xce40 * 8> *Max::map_bits(int n) {
+  return (std::bitset<0xce40 * 8> *)(slot() + 0x400 + 0x404 + n * 0xce41);
+}
+
 std::array<uint8_t, 200> *Max::mural() {
   return (std::array<uint8_t, 200> *)(slot() + 0x400 + 0x26ec7);
 }

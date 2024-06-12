@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <bitset>
 #include <cstdint>
 #include <deque>
 #include <functional>
@@ -131,6 +132,7 @@ struct Max {
   void save_game();
   uint8_t *mural_selection();
   std::array<uint8_t, 200> *mural();
+  std::bitset<0xce40 * 8> *map_bits(int n = 0);
   Map *map(int m = 0);
   Room *room(int m, int x, int y);
   Tile *tile(int m, int rx, int ry, int x, int y, int l);

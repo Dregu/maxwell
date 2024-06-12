@@ -121,6 +121,9 @@ private:
        {false, "Constantly update minimap",
         "This can be choppy if map window is left open.\n"
         "Default is to update map when it's opened."}},
+      {"map_holes",
+       {false, "Show destroyed tiles on minimap",
+        "Shows what is already destroyed in pink."}},
       {"map_small",
        {true, "Hide minimap borders",
         "There's nothing there really except some glitches."}},

@@ -1304,12 +1304,22 @@ void UI::CreateMap() {
 
   memcpy(minimap, raw_map, length);
 
+  auto *bits = Max::get().map_bits(2);
+
   i = 0;
   do {
     if (minimap[i + 3] == 0xf)
       minimap[i + 3] = 0xff;
     else
       minimap[i + 3] = options["map_show"].value ? 0x40 : minimap[i + 3];
+
+    int b = i / 4;
+    if (options["map_holes"].value && bits->test(b)) {
+      minimap[i] = 0xff;
+      minimap[i + 2] = 0xff;
+      minimap[i + 3] = 0xff;
+    }
+
     i += 4;
   } while (i < length);
 
