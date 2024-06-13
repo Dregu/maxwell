@@ -782,13 +782,13 @@ void UI::RefreshMaps() {
   }
 }
 
-void DrawTile(Tile &tile) {
+void UI::DrawTile(Tile &tile) {
   ImGui::InputScalar("ID", ImGuiDataType_U16, &tile.id, &u16_one);
   ImGui::InputScalar("Param", ImGuiDataType_U8, &tile.param, &u8_one);
   ImGui::InputScalar("Flags", ImGuiDataType_U8, &tile.flags, &u8_one);
 }
 
-void DrawTileRow(Tile &tile) {
+void UI::DrawTileRow(Tile &tile) {
   ImGui::PushItemWidth(40.f);
   ImGui::InputScalar("##ID", ImGuiDataType_U16, &tile.id, nullptr, nullptr);
   ImGui::SameLine(0, 4);
@@ -800,7 +800,7 @@ void DrawTileRow(Tile &tile) {
   ImGui::PopItemWidth();
 }
 
-void DrawSelectedTile(SelectedTile &tile) {
+void UI::DrawSelectedTile(SelectedTile &tile) {
   ImGui::InputInt2("Room", &tile.room.x, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt2("Position", &tile.pos.x, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt("Layer", &tile.layer, 0, 0, ImGuiInputTextFlags_ReadOnly);
@@ -808,11 +808,19 @@ void DrawSelectedTile(SelectedTile &tile) {
   DrawTile(*tile.tile);
 }
 
-void DrawSelectedTileRow(SelectedTile &tile) {
+void UI::DrawSelectedTileRow(SelectedTile &tile) {
   DrawTileRow(*tile.tile);
   ImGui::SameLine(0, 4);
-  ImGui::Text("%d,%d %d,%d %d", tile.room.x, tile.room.y, tile.pos.x,
-              tile.pos.y, tile.layer);
+  ImGui::Text("%d,%d %d,%d %s", tile.room.x, tile.room.y, tile.pos.x,
+              tile.pos.y, (tile.layer ? "BG" : "FG"));
+  ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f, 0);
+  if (ImGui::Button("Go", ImVec2(24.f, ImGui::GetFrameHeight()))) {
+    *Max::get().warp_map() = tile.map;
+    *Max::get().warp_room() = tile.room;
+    Max::get().warp_position()->x = 8 * tile.pos.x;
+    Max::get().warp_position()->y = 8 * tile.pos.y;
+    doWarp = true;
+  }
 }
 
 void UI::DrawLevel() {

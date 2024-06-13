@@ -206,6 +206,11 @@ public:
   void DrawTools();
   void DrawOptions();
   void DrawLevel();
+  void DrawTile(Tile &tile);
+  void DrawTileRow(Tile &tile);
+  void DrawSelectedTile(SelectedTile &tile);
+  void DrawSelectedTileRow(SelectedTile &tile);
+
   bool Button(std::string name, std::string desc = "", std::string key = "");
   void SaveINI();
   void LoadINI();
