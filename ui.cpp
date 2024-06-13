@@ -797,6 +797,11 @@ void UI::DrawLevel() {
                                         selectedRoom.pos.y);
   }
   if (selectedRoom.room) {
+    ImGui::InputScalarN("Position", ImGuiDataType_U8, &selectedRoom.room->x, 2);
+    ImGui::InputScalarN("BG", ImGuiDataType_U8, &selectedRoom.room->bgId, 1);
+    ImGui::InputScalarN("Palette", ImGuiDataType_U8,
+                        &selectedRoom.room->pallet_index, 1);
+    ImGui::InputScalarN("IDK", ImGuiDataType_U8, &selectedRoom.room->idk1, 3);
     ImGui::DragScalar("Water level", ImGuiDataType_U8,
                       &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
   }
