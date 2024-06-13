@@ -286,7 +286,7 @@ fCoord *Max::player_wheel() {
   return (fCoord *)(*(size_t *)get_address("slots") + 0x9b0c0);
 }
 
-int *Max::player_layer() {
+int *Max::player_map() {
   return (int *)(*(size_t *)get_address("layer_base") +
                  *(uint32_t *)get_address("layer_offset"));
 }
@@ -299,7 +299,7 @@ Coord *Max::warp_room() { return (Coord *)(player() + 0x34); }
 
 Coord *Max::warp_position() { return (Coord *)(player() + 0x3c); }
 
-int *Max::warp_layer() { return (int *)(player() + 0x44); }
+int *Max::warp_map() { return (int *)(player() + 0x44); }
 
 uint8_t *Max::player_state() { return (uint8_t *)(player() + 0x5d); }
 

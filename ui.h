@@ -47,6 +47,7 @@ struct SelectedTile {
   Tile *tile{nullptr};
   Coord room{0, 0};
   Coord pos{0, 0};
+  int layer{0};
   int map{0};
 };
 
@@ -136,7 +137,7 @@ private:
        {false, "Show destroyed tiles on minimap",
         "Shows what is already destroyed in pink."}},
       {"map_small",
-       {true, "Hide minimap borders",
+       {true, "Hide minimap margins",
         "There's nothing there really except some glitches."}},
       {"map_show",
        {false, "Show unseen minimap tiles in UI",
@@ -145,7 +146,7 @@ private:
        {false, "Reveal unseen minimap tiles in game",
         "Marks all tiles seen on the actual ingame map."}},
       {"map_areas",
-       {false, "Show all special layers on minimap",
+       {false, "Show all map borders on minimap",
         "Draws all special map borders instead of only selected layer."}},
       {"map_wheel", {false, "Show wheel on minimap", "For wheel warping."}},
       {"ui_coords",
@@ -185,6 +186,7 @@ private:
   std::string mapDir = "MAXWELL/Maps";
   std::vector<std::filesystem::path> maps;
   uint8_t forcedPalette{26};
+  std::vector<SelectedTile> searchTiles;
 
 public:
   UI();

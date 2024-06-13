@@ -289,7 +289,7 @@ void UI::DrawPlayer() {
   ImGui::PushItemWidth(120.f);
   ImGui::InputScalar("Slot", ImGuiDataType_U8, Max::get().slot_number(), NULL,
                      NULL, "%d", ImGuiInputTextFlags_ReadOnly);
-  ImGui::SameLine();
+  ImGui::SameLine(0, 4);
   if (ImGui::Button("Save game")) {
     *Max::get().spawn_room() = *Max::get().player_room();
     Max::get().save_game();
@@ -320,7 +320,7 @@ void UI::DrawPlayer() {
     ImGui::InputInt2("Spawn room", &Max::get().spawn_room()->x);
     ImGui::InputInt2("Respawn room", &Max::get().respawn_room()->x);
     ImGui::InputInt2("Respawn tile", &Max::get().respawn_position()->x);
-    ImGui::InputInt("Layer", Max::get().player_layer());
+    ImGui::InputInt("Map", Max::get().player_map());
     ImGui::InputFloat2("Wheel", &Max::get().player_wheel()->x);
   }
   if (ImGui::CollapsingHeader("State##PlayerState")) {
@@ -334,7 +334,7 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Warp##PlayerWarp")) {
     ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
     ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
-    ImGui::InputInt("Warp layer", Max::get().warp_layer());
+    ImGui::InputInt("Warp map", Max::get().warp_map());
     if (ImGui::Button(
             fmt::format("Warp ({})", ImGui::GetKeyChordName(keys["warp"]))
                 .c_str()))
@@ -372,16 +372,17 @@ void UI::DrawMap() {
   static Coord wpos{0, 0};
   static int layer{0};
   ImGui::PushItemWidth(0.2f * mapsize.x);
-  ImGui::InputInt2("Room", &wroom.x);
+  ImGui::InputInt2("Room##MinimapRoom", &wroom.x);
   ImGui::SameLine(0.30f * mapsize.x);
-  ImGui::InputInt2("Position", &wpos.x);
+  ImGui::InputInt2("Position##MinimapPosition", &wpos.x);
   ImGui::SameLine(0.62f * mapsize.x);
-  ImGui::InputInt("Layer", &layer);
+  ImGui::InputInt("Map##MinimapMap", &layer);
   layer = (layer + 5) % 5;
   ImGui::PopItemWidth();
   ImGui::SameLine(mapsize.x - 60.f);
-  if (ImGui::Button("Update", ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
-                                     ImGui::GetTextLineHeightWithSpacing())) ||
+  if (ImGui::Button("Refresh##MinimapRefresh",
+                    ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
+                           ImGui::GetTextLineHeightWithSpacing())) ||
       (((options["map_auto"].value || io.MouseDown[1]) &&
         ImGui::GetFrameCount() > lastMinimapFrame + 15)) ||
       ImGui::IsWindowAppearing() || !minimap_init) {
@@ -410,7 +411,7 @@ void UI::DrawMap() {
         *Max::get().player_state() = 18;
         *Max::get().warp_room() = wroom;
         *Max::get().warp_position() = wpos;
-        *Max::get().warp_layer() = layer;
+        *Max::get().warp_map() = layer;
         doWarp = true;
       } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
         *Max::get().player_state() = 0;
@@ -458,7 +459,7 @@ void UI::DrawMap() {
           0xff00ff00, 0, 0, 3.0f);
     }
 
-    auto pl = *Max::get().player_layer();
+    auto pl = *Max::get().player_map();
     if (areas.contains(pl)) {
       auto ax = areas.at(pl).first.x * 40;
       auto ay = areas.at(pl).first.y * 22;
@@ -631,12 +632,12 @@ void UI::DrawTools() {
     ImGui::InputInt2("Room range", &screenShotRange.x);
     if (ImGui::Button("Capture (.)"))
       ScreenShot();
-    ImGui::SameLine();
+    ImGui::SameLine(0, 4);
     if (ImGui::Button("Capture range")) {
       *Max::get().warp_room() = *Max::get().player_room();
       Max::get().warp_position()->x = (int)Max::get().player_position()->x;
       Max::get().warp_position()->y = (int)Max::get().player_position()->y;
-      *Max::get().warp_layer() = *Max::get().player_layer();
+      *Max::get().warp_map() = *Max::get().player_map();
       screenShotIndex = 0;
       screenShotFrame = 0;
     }
@@ -781,90 +782,199 @@ void UI::RefreshMaps() {
   }
 }
 
+void DrawTile(Tile &tile) {
+  ImGui::InputScalar("ID", ImGuiDataType_U16, &tile.id, &u16_one);
+  ImGui::InputScalar("Param", ImGuiDataType_U8, &tile.param, &u8_one);
+  ImGui::InputScalar("Flags", ImGuiDataType_U8, &tile.flags, &u8_one);
+}
+
+void DrawTileRow(Tile &tile) {
+  ImGui::PushItemWidth(40.f);
+  ImGui::InputScalar("##ID", ImGuiDataType_U16, &tile.id, nullptr, nullptr);
+  ImGui::SameLine(0, 4);
+  ImGui::InputScalar("##Param", ImGuiDataType_U8, &tile.param, nullptr,
+                     nullptr);
+  ImGui::SameLine(0, 4);
+  ImGui::InputScalar("##Flags", ImGuiDataType_U8, &tile.flags, nullptr,
+                     nullptr);
+  ImGui::PopItemWidth();
+}
+
+void DrawSelectedTile(SelectedTile &tile) {
+  ImGui::InputInt2("Room", &tile.room.x, ImGuiInputTextFlags_ReadOnly);
+  ImGui::InputInt2("Position", &tile.pos.x, ImGuiInputTextFlags_ReadOnly);
+  ImGui::InputInt("Layer", &tile.layer, 0, 0, ImGuiInputTextFlags_ReadOnly);
+  ImGui::InputInt("Map", &tile.map, 0, 0, ImGuiInputTextFlags_ReadOnly);
+  DrawTile(*tile.tile);
+}
+
+void DrawSelectedTileRow(SelectedTile &tile) {
+  DrawTileRow(*tile.tile);
+  ImGui::SameLine(0, 4);
+  ImGui::Text("%d,%d %d,%d %d", tile.room.x, tile.room.y, tile.pos.x,
+              tile.pos.y, tile.layer);
+}
+
 void UI::DrawLevel() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
 
   ImGui::PushItemWidth(100.f);
 
-  ImGui::SeparatorText("Room");
-  static bool lockCurrentRoom{true};
-  ImGui::Checkbox("Select current room", &lockCurrentRoom);
-  if (lockCurrentRoom) {
-    selectedRoom.pos = *Max::get().player_room();
-    selectedRoom.map = *Max::get().player_layer();
-    selectedRoom.room = Max::get().room(selectedRoom.map, selectedRoom.pos.x,
-                                        selectedRoom.pos.y);
-  }
-  if (selectedRoom.room) {
-    ImGui::InputScalarN("Position##RoomPosition", ImGuiDataType_U8,
-                        &selectedRoom.room->x, 2);
-    ImGui::InputScalarN("BG##RoomBG", ImGuiDataType_U8,
-                        &selectedRoom.room->bgId, 1, &u8_one);
-    ImGui::InputScalarN("Palette##RoomPalette", ImGuiDataType_U8,
-                        &selectedRoom.room->params.palette, 1, &u8_one);
-    ImGui::InputScalarN("???##UnknownRoomParams", ImGuiDataType_U8,
-                        &selectedRoom.room->params.idk1, 3);
-    ImGui::DragScalar("Water level##RoomWaterLevel", ImGuiDataType_U8,
-                      &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
-  }
-  ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &forcedPalette,
-                     &u8_one);
-  forcedPalette = (forcedPalette + 32) % 32;
-  ImGui::SameLine();
-  ImGui::Checkbox("Forced palette", &options["cheat_palette"].value);
-  if (options["cheat_palette"].value) {
-    Max::get().force_palette = forcedPalette;
-  } else {
-    Max::get().force_palette = std::nullopt;
-  }
-
-  ImGui::SeparatorText("Selected tile");
-  if (selectedTile.tile) {
-    ImGui::InputScalar("ID##SelectedTileID", ImGuiDataType_U16,
-                       &selectedTile.tile->id, &u16_one);
-    ImGui::InputScalar("Param##SelectedTileParam", ImGuiDataType_U8,
-                       &selectedTile.tile->param, &u8_one);
-    ImGui::InputScalar("Flags##SelectedTileFlags", ImGuiDataType_U8,
-                       &selectedTile.tile->flags, &u8_one);
+  if (ImGui::CollapsingHeader("Room")) {
+    static bool lockCurrentRoom{true};
+    ImGui::Checkbox("Select current room", &lockCurrentRoom);
+    if (lockCurrentRoom) {
+      selectedRoom.pos = *Max::get().player_room();
+      selectedRoom.map = *Max::get().player_map();
+      selectedRoom.room = Max::get().room(selectedRoom.map, selectedRoom.pos.x,
+                                          selectedRoom.pos.y);
+    }
+    if (selectedRoom.room) {
+      ImGui::InputScalarN("Position##RoomPosition", ImGuiDataType_U8,
+                          &selectedRoom.room->x, 2);
+      ImGui::InputScalarN("BG##RoomBG", ImGuiDataType_U8,
+                          &selectedRoom.room->bgId, 1, &u8_one);
+      ImGui::InputScalarN("Palette##RoomPalette", ImGuiDataType_U8,
+                          &selectedRoom.room->params.palette, 1, &u8_one);
+      ImGui::InputScalarN("???##UnknownRoomParams", ImGuiDataType_U8,
+                          &selectedRoom.room->params.idk1, 3);
+      ImGui::DragScalar("Water level##RoomWaterLevel", ImGuiDataType_U8,
+                        &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
+    }
+    ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &forcedPalette,
+                       &u8_one);
+    if (forcedPalette > 31)
+      forcedPalette = 31;
+    ImGui::SameLine(0, 4);
+    ImGui::Checkbox("Forced palette", &options["cheat_palette"].value);
+    if (options["cheat_palette"].value) {
+      Max::get().force_palette = forcedPalette;
+    } else {
+      Max::get().force_palette = std::nullopt;
+    }
   }
 
-  ImGui::SeparatorText("Editor tile");
-  ImGui::InputScalar("ID##EditorTileID", ImGuiDataType_U16, &editorTile.id,
-                     &u16_one);
-  ImGui::InputScalar("Param##EditorTileParam", ImGuiDataType_U8,
-                     &editorTile.param, &u8_one);
-  ImGui::InputScalar("Flags##EditorTileFlags", ImGuiDataType_U8,
-                     &editorTile.flags, &u8_one);
-
-  ImGui::SeparatorText("Import map");
-  if (ImGui::Button("Open Maps folder##OpenMaps")) {
-    RefreshMaps();
-    ShellExecute(NULL, L"open", L"MAXWELL\\Maps", NULL, NULL, SW_SHOWNORMAL);
+  ImGui::PushID("TileEditor");
+  if (ImGui::CollapsingHeader("Tile editor   ")) {
+    ImGui::SeparatorText("Tile to place");
+    ImGui::PushID("EditorTile");
+    DrawTileRow(editorTile);
+    ImGui::PopID();
+    if (selectedTile.tile) {
+      ImGui::SeparatorText("Selected tile");
+      ImGui::PushID("SelectedTile");
+      DrawSelectedTileRow(selectedTile);
+      ImGui::PopID();
+    }
   }
-  ImGui::SameLine();
-  if (ImGui::Button("Refresh##RefreshMaps") || ImGui::IsWindowAppearing())
-    RefreshMaps();
-  static int layer{0};
-  ImGui::InputInt("Layer##ImportMapLayer", &layer);
-  layer = (layer + 5) % 5;
-  /*static std::string file{""};
-  ImGui::InputText("File name##ImportMapFile", &file);
-  if (ImGui::Button("Import##ImportMap"))
-    Max::get().import_map(file, layer);*/
+  ImGui::PopID();
 
-  for (auto m : maps) {
-    ImGui::PushID(m.string().c_str());
-    std::string buf =
-        fmt::format("Import '{}' to layer {}", m.filename().string(), layer);
-    if (ImGui::Button(buf.c_str()))
-      Max::get().import_map(m.string(), layer);
+  ImGui::PushID("TileSearch");
+  if (ImGui::CollapsingHeader("Tile search   ")) {
+    static uint16_t searchId{0};
+    ImGui::InputScalar("ID", ImGuiDataType_U16, &searchId, &u16_one);
+    const bool focused = ImGui::IsItemFocused();
+    bool doSearch = false;
+    bool doClear = false;
+    ImGui::SameLine(130.f, 4);
+    if (ImGui::Button("Search##SearchTiles") ||
+        (focused && ImGui::IsKeyPressed(ImGuiKey_Enter))) {
+      doSearch = true;
+      doClear = !ImGui::IsKeyDown(ImGuiMod_Ctrl);
+    }
+    ImGui::SameLine(0, 4);
+    if (ImGui::Button("Add##AddTiles")) {
+      doSearch = true;
+      doClear = false;
+    }
+    ImGui::SameLine(0, 4);
+    if (ImGui::Button("Clear##ClearTiles"))
+      doClear = true;
+    if (doClear)
+      searchTiles.clear();
+    if (doSearch) {
+      auto *map = Max::get().map(*Max::get().player_map());
+      for (int r = 0; r < map->roomCount; ++r) {
+        for (int l = 0; l < 2; ++l) {
+          for (int y = 0; y < 22; ++y) {
+            for (int x = 0; x < 40; ++x) {
+              Room &room = map->rooms[r];
+              if (room.tiles[l][y][x].id == searchId) {
+                searchTiles.emplace_back(
+                    SelectedTile{&room.tiles[l][y][x],
+                                 {room.x, room.y},
+                                 {x, y},
+                                 l,
+                                 *Max::get().player_map()});
+              }
+            }
+          }
+        }
+      }
+    }
+    int i = 0;
+    ImGui::PushID("TileSearchResults");
+    if (searchTiles.size() > 0) {
+      ImGui::PushItemWidth(126.f);
+      std::string label = fmt::format("Found {} tiles:", searchTiles.size());
+      ImGui::LabelText("", label.c_str());
+      ImGui::SameLine(0, 4);
+      std::string buf =
+          fmt::format("Set all to {}##SetAllTiles", editorTile.id);
+      if (ImGui::Button(buf.c_str())) {
+        for (auto &tile : searchTiles) {
+          tile.tile->id = editorTile.id;
+          tile.tile->param = editorTile.param;
+          tile.tile->flags = editorTile.flags;
+        }
+      }
+      ImGui::PopItemWidth();
+    } else
+      ImGui::TextWrapped(
+          "Type tile ID to search and highlight tiles in the current map.");
+    for (auto tile : searchTiles) {
+      ImGui::PushID(++i);
+      DrawSelectedTileRow(tile);
+      ImGui::PopID();
+    }
     ImGui::PopID();
   }
-  if (maps.empty())
-    ImGui::TextWrapped(
-        "Put files exported by map editor in MAXWELL/Maps to import!");
+  ImGui::PopID();
 
+  if (ImGui::CollapsingHeader("Import map")) {
+    static bool mapsInit{false};
+    if (!mapsInit) {
+      RefreshMaps();
+      mapsInit = true;
+    }
+    if (ImGui::Button("Open Maps folder##OpenMaps")) {
+      RefreshMaps();
+      ShellExecute(NULL, L"open", L"MAXWELL\\Maps", NULL, NULL, SW_SHOWNORMAL);
+    }
+    ImGui::SameLine(0, 4);
+    if (ImGui::Button("Refresh##RefreshMaps"))
+      RefreshMaps();
+    static int layer{0};
+    ImGui::InputInt("Map##ImportMapLayer", &layer);
+    layer = (layer + 5) % 5;
+    /*static std::string file{""};
+    ImGui::InputText("File name##ImportMapFile", &file);
+    if (ImGui::Button("Import##ImportMap"))
+      Max::get().import_map(file, layer);*/
+
+    for (auto m : maps) {
+      ImGui::PushID(m.string().c_str());
+      std::string buf =
+          fmt::format("Import '{}' to map {}", m.filename().string(), layer);
+      if (ImGui::Button(buf.c_str()))
+        Max::get().import_map(m.string(), layer);
+      ImGui::PopID();
+    }
+    if (maps.empty())
+      ImGui::TextWrapped(
+          "Put files exported by map editor in MAXWELL/Maps to import!");
+  }
   ImGui::PopItemWidth();
 }
 
@@ -1157,6 +1267,30 @@ void UI::HUD() {
                   0xffffffff, hud.c_str());
   }
 
+  if (options["ui_grid"].value) {
+    for (int x = 1; x < 40; ++x) {
+      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+          ->AddLine(TileToScreen(ImVec2(x, 0)), TileToScreen(ImVec2(x, 23)),
+                    0x66ffffff, 1.0f);
+    }
+    for (int y = 1; y < 23; ++y) {
+      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+          ->AddLine(TileToScreen(ImVec2(0, y)), TileToScreen(ImVec2(40, y)),
+                    0x66ffffff, 1.0f);
+    }
+  }
+
+  for (auto &tile : searchTiles) {
+    if (tile.map != *Max::get().player_map() ||
+        tile.room.x != Max::get().player_room()->x ||
+        tile.room.y != Max::get().player_room()->y)
+      continue;
+    ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+        ->AddRect(TileToScreen(ImVec2(tile.pos.x, tile.pos.y)),
+                  TileToScreen(ImVec2(tile.pos.x + 1, tile.pos.y + 1)),
+                  (tile.layer ? 0xccffff00 : 0xcc0000ff), 0, 0, 3.f);
+  }
+
   if (ImGui::IsMousePosValid()) {
     auto npos = Normalize(Mouse());
     int x = npos.x;
@@ -1180,10 +1314,10 @@ void UI::HUD() {
     }
 
     auto *fg =
-        Max::get().tile(*Max::get().player_layer(), Max::get().player_room()->x,
+        Max::get().tile(*Max::get().player_map(), Max::get().player_room()->x,
                         Max::get().player_room()->y, rx, ry, 0);
     auto *bg =
-        Max::get().tile(*Max::get().player_layer(), Max::get().player_room()->x,
+        Max::get().tile(*Max::get().player_map(), Max::get().player_room()->x,
                         Max::get().player_room()->y, rx, ry, 1);
 
     if (fg && options["input_mouse"].value && io.MouseDown[2] &&
@@ -1191,7 +1325,7 @@ void UI::HUD() {
       selectedTile.tile = fg;
       selectedTile.pos = Coord{rx, ry};
       selectedTile.room = *Max::get().player_room();
-      selectedTile.map = *Max::get().player_layer();
+      selectedTile.map = *Max::get().player_map();
       if (ImGui::IsKeyDown((ImGuiKey)keys["editor_modifier"])) {
         editorTile.id = bg->id;
         editorTile.param = bg->param;
@@ -1229,27 +1363,14 @@ void UI::HUD() {
         !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
       ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
           ->AddRect(TileToScreen(ImVec2(rx, ry)),
-                    TileToScreen(ImVec2(rx + 1, ry + 1)), 0xccffffff, 0, 0,
-                    1.0f);
+                    TileToScreen(ImVec2(rx + 1, ry + 1)), 0xddffffff, 0, 0,
+                    3.f);
       std::string coord =
           fmt::format("Screen: {},{}\n  Tile: {},{}", x, y, rx, ry);
       if (fg && bg)
         coord += fmt::format("\n  ID: {},{}", fg->id, bg->id);
       ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
       ImGui::SetTooltip(coord.c_str());
-    }
-  }
-
-  if (options["ui_grid"].value) {
-    for (int x = 1; x < 40; ++x) {
-      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-          ->AddLine(TileToScreen(ImVec2(x, 0)), TileToScreen(ImVec2(x, 23)),
-                    0x66ffffff, 1.0f);
-    }
-    for (int y = 1; y < 23; ++y) {
-      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-          ->AddLine(TileToScreen(ImVec2(0, y)), TileToScreen(ImVec2(40, y)),
-                    0x66ffffff, 1.0f);
     }
   }
 }

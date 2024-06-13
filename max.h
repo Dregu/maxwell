@@ -114,12 +114,12 @@ struct Max {
   fCoord *player_position();
   fCoord *player_velocity();
   fCoord *player_wheel();
-  int *player_layer();
+  int *player_map();
   Coord *respawn_room();
   Coord *respawn_position();
   Coord *warp_room();
   Coord *warp_position();
-  int *warp_layer();
+  int *warp_map();
   uint8_t *player_flute();
   Directions *player_directions();
   uint8_t *player_state();
