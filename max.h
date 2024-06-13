@@ -101,6 +101,16 @@ struct MapHeader {
   uint32_t signature2;
 };
 
+struct AssetInfo {
+  uint8_t flags;
+  void *data;
+  uint32_t size;
+  uint32_t unk1;
+  size_t unk2;
+  void *original_data;
+  size_t unk3;
+};
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
@@ -141,6 +151,7 @@ struct Max {
   Room *room(int m, int x, int y);
   Tile *tile(int m, int rx, int ry, int x, int y, int l);
   bool import_map(std::string file, int m = 0);
+  void load_asset(uint32_t id, AssetInfo &asset);
 
   void draw_text(int x, int y, const wchar_t *text);
   static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
@@ -155,4 +166,5 @@ struct Max {
   std::deque<std::function<void()>> render_queue;
 
   std::optional<uint8_t> force_palette{std::nullopt};
+  std::unordered_map<int, AssetInfo> assets;
 };

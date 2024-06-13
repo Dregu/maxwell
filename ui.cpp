@@ -1658,7 +1658,7 @@ void UI::CreateMap() {
 }
 
 void UI::SaveINI() {
-  CreateDirectory(L"MAXWELL", NULL);
+  CreateDirectory(L"MAXWELL\\Mods", NULL);
   std::string file = "MAXWELL\\MAXWELL.ini";
   std::ofstream writeData(file);
   writeData << "# MAXWELL options" << std::endl;

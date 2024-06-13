@@ -683,10 +683,16 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe()
             .function_start(),
     },
-    /*{
-        "decrypt_asset"sv,
-        PatternCommandBuffer{}.from_exe_base(0x1650),
+    {
+        "get_asset"sv, PatternCommandBuffer{}.from_exe_base(0x15d0), // TODO
     },
+    {
+        "decrypt_asset"sv, PatternCommandBuffer{}.from_exe_base(0x1650), // TODO
+    },
+    {
+        "assets"sv, PatternCommandBuffer{}.from_exe_base(0x20c6000), // TODO
+    },
+    /*
     {
         "load_asset"sv,
         PatternCommandBuffer{}.from_exe_base(0x776f0),

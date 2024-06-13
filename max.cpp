@@ -2,12 +2,15 @@
 
 #include <Windows.h>
 #include <array>
+#include <filesystem>
 #include <fstream>
 
 #include "detours.h"
 #include "ghidra_byte_string.h"
 #include "logger.h"
 #include "memory.h"
+
+namespace fs = std::filesystem;
 
 static std::unordered_map<uint8_t, std::unordered_map<uint16_t, Room *>> rooms;
 
@@ -111,6 +114,54 @@ RoomParams HookGetRoomParams(void *a, uint16_t b) {
   return ret;
 }
 
+std::string get_custom_asset_path(uint32_t id) {
+  for (const auto &p : fs::recursive_directory_iterator("MAXWELL\\Mods")) {
+    if (!fs::is_directory(p)) {
+      auto stem = p.path().stem().string();
+      auto fileId = std::atoi(stem.c_str());
+      if (id == fileId && (id != 0 || stem == "0"))
+        return p.path().string();
+    }
+  }
+  return "";
+}
+
+void Max::load_asset(uint32_t id, AssetInfo &asset) {
+  std::string file = get_custom_asset_path(id);
+  if (!assets.contains(id) && file != "") {
+    size_t s = fs::file_size(file);
+    char *buf = (char *)malloc(s);
+    std::ifstream f(file.c_str(), std::ios::in | std::ios::binary);
+    f.read(buf, s);
+    asset.data = buf;
+    asset.size = s;
+    assets[id] = asset;
+    DEBUG("Loaded custom asset: {} {}", id, asset.data);
+  }
+  if (assets.contains(id)) {
+    asset = assets[id];
+    DEBUG("Found custom asset: {} {}", id, asset.data);
+  }
+}
+
+using GetAsset = AssetInfo(uint32_t id);
+GetAsset *g_get_asset_trampoline{nullptr};
+AssetInfo HookGetAsset(uint32_t id) {
+  auto asset = g_get_asset_trampoline(id);
+  Max::get().load_asset(id, asset);
+  DEBUG("GetAsset: {} {}", id, asset.data);
+  return asset;
+}
+
+using DecryptAsset = AssetInfo *(uint32_t id, uint8_t *key);
+DecryptAsset *g_decrypt_asset_trampoline{nullptr};
+AssetInfo *HookDecryptAsset(uint32_t id, uint8_t *key) {
+  auto *asset = g_decrypt_asset_trampoline(id, key);
+  Max::get().load_asset(id, *asset);
+  DEBUG("DecryptAsset: {} {}", id, asset->data);
+  return asset;
+}
+
 inline bool &get_is_init() {
   static bool is_init{false};
   return is_init;
@@ -190,6 +241,27 @@ Max &Max::get() {
       const LONG error = DetourTransactionCommit();
       if (error != NO_ERROR) {
         DEBUG("Failed hooking GetRoomParams: {}\n", error);
+      }
+    }
+
+    if (g_get_asset_trampoline = (GetAsset *)get_address("get_asset")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_get_asset_trampoline, HookGetAsset);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking GetAsset: {}\n", error);
+      }
+    }
+
+    if (g_decrypt_asset_trampoline =
+            (DecryptAsset *)get_address("decrypt_asset")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_decrypt_asset_trampoline, HookDecryptAsset);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking DecryptAsset: {}\n", error);
       }
     }
 
