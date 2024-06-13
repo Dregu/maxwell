@@ -71,6 +71,8 @@ private:
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
       {"toggle_damage", ImGuiMod_Ctrl | ImGuiKey_D},
       {"toggle_darkness", ImGuiMod_Ctrl | ImGuiKey_L},
+      {"toggle_lights", ImGuiMod_Shift | ImGuiKey_L},
+      {"toggle_palette", ImGuiMod_Alt | ImGuiKey_L},
       {"toggle_player", ImGuiMod_Ctrl | ImGuiKey_B},
       {"toggle_gameboy", ImGuiMod_Ctrl | ImGuiKey_K},
       {"toggle_hud", ImGuiMod_Ctrl | ImGuiKey_H},
@@ -99,6 +101,13 @@ private:
        {false, "Remove darkness",
         "Removes the fog of war effect, see through walls.",
         "toggle_darkness"}},
+      {"cheat_lights",
+       {false, "Remove lights",
+        "Removes the lighting effect of hanging lights.", "toggle_lights"}},
+      {"cheat_palette",
+       {false, "Force color palette",
+        "Forces a specific room color palette.\n(a very bright one by default)",
+        "toggle_palette"}},
       {"cheat_gameboy",
        {false, "Gameboy mode",
         "Party like it's 1989! Enable the B&W death screen shader all the "
@@ -175,6 +184,7 @@ private:
   Tile editorTile{0, 0, 0};
   std::string mapDir = "MAXWELL/Maps";
   std::vector<std::filesystem::path> maps;
+  uint8_t forcedPalette{26};
 
 public:
   UI();

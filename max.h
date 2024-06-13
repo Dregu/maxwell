@@ -67,16 +67,20 @@ struct Tile {
   uint8_t flags;
 };
 
+struct RoomParams {
+  uint8_t palette;
+  uint8_t idk1;
+  uint8_t idk2;
+  uint8_t idk3;
+};
+
 struct Room {
   uint8_t x;
   uint8_t y;
   uint8_t bgId;
   uint8_t waterLevel;
 
-  uint8_t pallet_index;
-  uint8_t idk1;
-  uint8_t idk2;
-  uint8_t idk3;
+  RoomParams params;
 
   Tile tiles[2][22][40];
 };
@@ -149,4 +153,6 @@ struct Max {
   PLAYER_INPUT input{PLAYER_INPUT::SKIP};
   std::deque<int> inputs;
   std::deque<std::function<void()>> render_queue;
+
+  std::optional<uint8_t> force_palette{std::nullopt};
 };

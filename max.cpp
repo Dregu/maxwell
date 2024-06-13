@@ -101,6 +101,16 @@ uint32_t HookGetInput(uint16_t a) {
   return ret;
 }
 
+using GetRoomParams = RoomParams(void *a, uint16_t b);
+GetRoomParams *g_room_params_trampoline{nullptr};
+RoomParams HookGetRoomParams(void *a, uint16_t b) {
+  auto ret = g_room_params_trampoline(a, b);
+  auto pal = Max::get().force_palette;
+  if (pal.has_value() && pal.value() >= 0 && pal.value() <= 31)
+    ret.palette = pal.value();
+  return ret;
+}
+
 inline bool &get_is_init() {
   static bool is_init{false};
   return is_init;
@@ -172,6 +182,17 @@ Max &Max::get() {
       }
     }
 
+    if (g_room_params_trampoline =
+            (GetRoomParams *)get_address("get_room_params")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_room_params_trampoline, HookGetRoomParams);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking GetRoomParams: {}\n", error);
+      }
+    }
+
     get_is_init() = true;
   }
   return MAX;
@@ -209,6 +230,28 @@ void Max::unhook() {
       DEBUG("Failed unhooking GetInput: {}\n", error);
     }
     g_get_input_trampoline = nullptr;
+  }
+
+  if (g_render_trampoline) {
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((void **)&g_render_trampoline, HookRender);
+    const LONG error = DetourTransactionCommit();
+    if (error != NO_ERROR) {
+      DEBUG("Failed unhooking Render: {}\n", error);
+    }
+    g_render_trampoline = nullptr;
+  }
+
+  if (g_room_params_trampoline) {
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((void **)&g_room_params_trampoline, HookGetRoomParams);
+    const LONG error = DetourTransactionCommit();
+    if (error != NO_ERROR) {
+      DEBUG("Failed unhooking GetRoomParams: {}\n", error);
+    }
+    g_room_params_trampoline = nullptr;
   }
 }
 

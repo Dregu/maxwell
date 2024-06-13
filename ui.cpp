@@ -788,7 +788,7 @@ void UI::DrawLevel() {
   ImGui::PushItemWidth(100.f);
 
   ImGui::SeparatorText("Room");
-  static bool lockCurrentRoom{false};
+  static bool lockCurrentRoom{true};
   ImGui::Checkbox("Select current room", &lockCurrentRoom);
   if (lockCurrentRoom) {
     selectedRoom.pos = *Max::get().player_room();
@@ -797,31 +797,45 @@ void UI::DrawLevel() {
                                         selectedRoom.pos.y);
   }
   if (selectedRoom.room) {
-    ImGui::InputScalarN("Position", ImGuiDataType_U8, &selectedRoom.room->x, 2);
-    ImGui::InputScalarN("BG", ImGuiDataType_U8, &selectedRoom.room->bgId, 1);
-    ImGui::InputScalarN("Palette", ImGuiDataType_U8,
-                        &selectedRoom.room->pallet_index, 1);
-    ImGui::InputScalarN("IDK", ImGuiDataType_U8, &selectedRoom.room->idk1, 3);
-    ImGui::DragScalar("Water level", ImGuiDataType_U8,
+    ImGui::InputScalarN("Position##RoomPosition", ImGuiDataType_U8,
+                        &selectedRoom.room->x, 2);
+    ImGui::InputScalarN("BG##RoomBG", ImGuiDataType_U8,
+                        &selectedRoom.room->bgId, 1, &u8_one);
+    ImGui::InputScalarN("Palette##RoomPalette", ImGuiDataType_U8,
+                        &selectedRoom.room->params.palette, 1, &u8_one);
+    ImGui::InputScalarN("???##UnknownRoomParams", ImGuiDataType_U8,
+                        &selectedRoom.room->params.idk1, 3);
+    ImGui::DragScalar("Water level##RoomWaterLevel", ImGuiDataType_U8,
                       &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
+  }
+  ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &forcedPalette,
+                     &u8_one);
+  forcedPalette = (forcedPalette + 32) % 32;
+  ImGui::SameLine();
+  ImGui::Checkbox("Forced palette", &options["cheat_palette"].value);
+  if (options["cheat_palette"].value) {
+    Max::get().force_palette = forcedPalette;
+  } else {
+    Max::get().force_palette = std::nullopt;
   }
 
   ImGui::SeparatorText("Selected tile");
   if (selectedTile.tile) {
     ImGui::InputScalar("ID##SelectedTileID", ImGuiDataType_U16,
-                       &selectedTile.tile->id);
+                       &selectedTile.tile->id, &u16_one);
     ImGui::InputScalar("Param##SelectedTileParam", ImGuiDataType_U8,
-                       &selectedTile.tile->param);
+                       &selectedTile.tile->param, &u8_one);
     ImGui::InputScalar("Flags##SelectedTileFlags", ImGuiDataType_U8,
-                       &selectedTile.tile->flags);
+                       &selectedTile.tile->flags, &u8_one);
   }
 
   ImGui::SeparatorText("Editor tile");
-  ImGui::InputScalar("ID##EditorTileID", ImGuiDataType_U16, &editorTile.id);
+  ImGui::InputScalar("ID##EditorTileID", ImGuiDataType_U16, &editorTile.id,
+                     &u16_one);
   ImGui::InputScalar("Param##EditorTileParam", ImGuiDataType_U8,
-                     &editorTile.param);
+                     &editorTile.param, &u8_one);
   ImGui::InputScalar("Flags##EditorTileFlags", ImGuiDataType_U8,
-                     &editorTile.flags);
+                     &editorTile.flags, &u8_one);
 
   ImGui::SeparatorText("Import map");
   if (ImGui::Button("Open Maps folder##OpenMaps")) {
@@ -938,7 +952,16 @@ bool UI::Keys() {
     options["cheat_damage"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_darkness"]))
     options["cheat_darkness"].value ^= true;
-  else if (ImGui::IsKeyChordPressed(keys["toggle_gameboy"]))
+  else if (ImGui::IsKeyChordPressed(keys["toggle_lights"]))
+    options["cheat_lights"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_palette"])) {
+    options["cheat_palette"].value ^= true;
+    if (options["cheat_palette"].value) {
+      Max::get().force_palette = forcedPalette;
+    } else {
+      Max::get().force_palette = std::nullopt;
+    }
+  } else if (ImGui::IsKeyChordPressed(keys["toggle_gameboy"]))
     options["cheat_gameboy"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_hud"]))
     options["cheat_hud"].value ^= true;
@@ -1013,6 +1036,13 @@ void UI::Cheats() {
                           "EB 19"_gh, true);
   } else {
     recover_mem("render_darkness");
+  }
+
+  if (options["cheat_lights"].value && get_address("render_lights")) {
+    write_mem_recoverable("render_lights", get_address("render_lights"),
+                          "E9 8A 00 00 00 90"_gh, true);
+  } else {
+    recover_mem("render_lights");
   }
 
   if (options["cheat_gameboy"].value && get_address("render_gameboy")) {
@@ -1110,11 +1140,13 @@ void UI::HUD() {
 
   if (options["ui_visible"].value && windowScale > 2) {
     std::string hud =
-        fmt::format("{}{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
+        fmt::format("{}{}{}{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
                     options["cheat_damage"].value ? " DAMAGE" : "",
                     options["cheat_noclip"].value ? " NOCLIP" : "",
                     options["cheat_godmode"].value ? " GOD" : "",
-                    options["cheat_darkness"].value ? " LIGHTS" : "",
+                    options["cheat_darkness"].value ? " DARKNESS" : "",
+                    options["cheat_lights"].value ? " LIGHTS" : "",
+                    options["cheat_palette"].value ? " PALETTE" : "",
                     Max::get().player_room()->x, Max::get().player_room()->y,
                     Max::get().player_position()->x,
                     Max::get().player_position()->y, Timestamp());

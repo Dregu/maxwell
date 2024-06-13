@@ -575,6 +575,15 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe(),
     },
     {
+        // RE: L"Lights", jng -> jmp, inside render_game
+        "render_lights"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x102fe9),
+            .set_optional(true)
+            .find_after_inst(
+                "ff 56 48 41 8b 85 a8 d7 19 00 41 03 85 ac d8 19 00"_gh)
+            .at_exe(),
+    },
+    {
         // RE: L"Visibility", 7F 0E -> EB 0E, inside render_game
         "render_gameboy"sv,
         PatternCommandBuffer{}
@@ -663,6 +672,14 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         PatternCommandBuffer{} //.from_exe_base(0x463c0),
             .set_optional(true)
             .find_inst("48 81 c1 78 7f 00 00"_gh)
+            .at_exe()
+            .function_start(),
+    },
+    {
+        "get_room_params"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x2d70),
+            .set_optional(true)
+            .find_inst("48 63 94 90 04 88 1b 00 31 c0"_gh)
             .at_exe()
             .function_start(),
     },
