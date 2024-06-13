@@ -33,6 +33,12 @@ jobs:
           move README.md MAXWELL\README.txt
           7z a MAXWELL.zip MAXWELL\
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MAXWELL
+          path: MAXWELL
+
       - name: Create release
         uses: marvinpinto/action-automatic-releases@v1.1.0
         env:

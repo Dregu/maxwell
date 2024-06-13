@@ -37,9 +37,11 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
 - Save anywhere
 - Adjust window scaling
 - Disable fog of war / darkness
-- Play in b&w gameboy mode
+- Disable spot lights
+- Force bright or funny room palette
 - Hide the game hud
 - Hide the player character
+- Play in b&w gameboy mode
 - Take unobstructed screenshots for mapping
 - Pause and frame advance
   - Ctrl+Tab to toggle
@@ -50,6 +52,8 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
   - Left click to place tile
   - Mouse4 to mark tiles destroyed
   - Hold shift for background layer or fixing destroyed tiles
+  - Search for tiles by ID in the current map
+  - Highlight and mass replace found tiles
   - Import map files exported from the [editor](https://github.com/Redcrafter/Animal-Well-editor)
   - Static tiles will update instantly, dynamic tiles need a room reload
   - Very WIP
