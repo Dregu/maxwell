@@ -684,18 +684,37 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .function_start(),
     },
     {
-        "get_asset"sv, PatternCommandBuffer{}.from_exe_base(0x15d0), // TODO
+        "get_asset"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x15d0),
+            .find_inst("0f 11 50 20 0f 11 48 10"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
-        "decrypt_asset"sv, PatternCommandBuffer{}.from_exe_base(0x1650), // TODO
+        "decrypt_asset"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x1650),
+            .find_inst("8a 04 1f 24 c0 3c 40"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
-        "assets"sv, PatternCommandBuffer{}.from_exe_base(0x20c6000), // TODO
+        "assets"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x20c6000),
+            .get_address("get_asset")
+            .find_next_inst("48 8d 15"_gh)
+            .decode_pc()
+            .at_exe(),
     },
-    /*
     {
-        "load_asset"sv,
-        PatternCommandBuffer{}.from_exe_base(0x776f0),
+        "setup_game"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_inst("48 81 c1 70 d0 89 00 41 b8 00 04 00 00"_gh)
+            .at_exe()
+            .function_start(),
+    },
+    /*{
+        "load_asset"sv, PatternCommandBuffer{}.from_exe_base(0x74450), // TODO
     },
     {
         "bdtp"sv,

@@ -114,42 +114,12 @@ RoomParams HookGetRoomParams(void *a, uint16_t b) {
   return ret;
 }
 
-std::string get_custom_asset_path(uint32_t id) {
-  for (const auto &p : fs::recursive_directory_iterator("MAXWELL\\Mods")) {
-    if (!fs::is_directory(p)) {
-      auto stem = p.path().stem().string();
-      auto fileId = std::atoi(stem.c_str());
-      if (id == fileId && (id != 0 || stem == "0"))
-        return p.path().string();
-    }
-  }
-  return "";
-}
-
-void Max::load_asset(uint32_t id, AssetInfo &asset) {
-  std::string file = get_custom_asset_path(id);
-  if (!assets.contains(id) && file != "") {
-    size_t s = fs::file_size(file);
-    char *buf = (char *)malloc(s);
-    std::ifstream f(file.c_str(), std::ios::in | std::ios::binary);
-    f.read(buf, s);
-    asset.data = buf;
-    asset.size = s;
-    assets[id] = asset;
-    DEBUG("Loaded custom asset: {} {}", id, asset.data);
-  }
-  if (assets.contains(id)) {
-    asset = assets[id];
-    DEBUG("Found custom asset: {} {}", id, asset.data);
-  }
-}
-
 using GetAsset = AssetInfo(uint32_t id);
 GetAsset *g_get_asset_trampoline{nullptr};
 AssetInfo HookGetAsset(uint32_t id) {
   auto asset = g_get_asset_trampoline(id);
-  Max::get().load_asset(id, asset);
-  DEBUG("GetAsset: {} {}", id, asset.data);
+  Max::get().load_custom_asset(id, asset);
+  // DEBUG("GetAsset: {} {}", id, asset.data);
   return asset;
 }
 
@@ -157,9 +127,16 @@ using DecryptAsset = AssetInfo *(uint32_t id, uint8_t *key);
 DecryptAsset *g_decrypt_asset_trampoline{nullptr};
 AssetInfo *HookDecryptAsset(uint32_t id, uint8_t *key) {
   auto *asset = g_decrypt_asset_trampoline(id, key);
-  Max::get().load_asset(id, *asset);
-  DEBUG("DecryptAsset: {} {}", id, asset->data);
+  Max::get().load_custom_asset(id, *asset);
+  // DEBUG("DecryptAsset: {} {}", id, asset->data);
   return asset;
+}
+
+using SetupGame = void(void *);
+SetupGame *g_setup_game_trampoline{nullptr};
+void HookSetupGame(void *a) {
+  g_setup_game_trampoline(a);
+  Max::get().load_mods();
 }
 
 inline bool &get_is_init() {
@@ -179,17 +156,6 @@ Max &Max::get() {
 
     if (auto off = get_address("patch")) {
       write_mem_recoverable("patch", off, "30"_gh, true);
-    }
-
-    {
-      decrypt_layer(193, (uint8_t *)&encryption_keys[0], 2); // space
-      decrypt_layer(52, (uint8_t *)&encryption_keys[1], 3);  // bunny temple
-      decrypt_layer(222, (uint8_t *)&encryption_keys[2], 4); // capsule island
-
-      // TODO
-      // decrypt_asset(30, (uint8_t *)&encryption_keys[1]); // chungus
-      // decrypt_asset(277, (uint8_t *)&encryption_keys[2]); // capsule
-      // decrypt_asset(377, (uint8_t *)&encryption_keys[2]); // tape
     }
 
     if (g_update_state_trampoline =
@@ -262,6 +228,16 @@ Max &Max::get() {
       const LONG error = DetourTransactionCommit();
       if (error != NO_ERROR) {
         DEBUG("Failed hooking DecryptAsset: {}\n", error);
+      }
+    }
+
+    if (g_setup_game_trampoline = (SetupGame *)get_address("setup_game")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_setup_game_trampoline, HookSetupGame);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking SetupGame: {}\n", error);
       }
     }
 
@@ -466,7 +442,7 @@ bool Max::import_map(std::string file, int m) {
   f.read(reinterpret_cast<char *>(&header.signature2),
          sizeof(header.signature2));
 
-  DEBUG("Room Count: {}", header.roomCount);
+  // DEBUG("Room Count: {}", header.roomCount);
   layer->roomCount = header.roomCount;
   layer->world_wrap_x_start = header.world_wrap_x_start;
   layer->world_wrap_x_end = header.world_wrap_x_end;
@@ -487,10 +463,100 @@ size_t Max::decrypt_layer(size_t asset, uint8_t *key, int layer) {
   return decrypt(asset, key, layer);
 }
 
-uint8_t *Max::decrypt_asset(size_t asset, uint8_t *key) {
-  using DecryptFunc = uint8_t *(size_t asset, uint8_t * key);
+AssetInfo *Max::decrypt_asset(uint32_t id, uint8_t *key) {
+  using DecryptFunc = AssetInfo *(uint32_t id, uint8_t * key);
   static DecryptFunc *decrypt = (DecryptFunc *)get_address("decrypt_asset");
-  return decrypt(asset, key);
+  return decrypt(id, key);
+}
+
+void Max::decrypt_stuff() {
+  static bool done{false};
+  if (!done) {
+    done = true;
+    decrypt_layer(193, (uint8_t *)&encryption_keys[0], 2); // space
+    decrypt_layer(52, (uint8_t *)&encryption_keys[1], 3);  // temple
+    decrypt_layer(222, (uint8_t *)&encryption_keys[2], 4); // island
+    // TODO
+    // decrypt_asset(30, (uint8_t *)&encryption_keys[1]); // chungus
+    // decrypt_asset(277, (uint8_t *)&encryption_keys[2]); // capsule
+    // decrypt_asset(377, (uint8_t *)&encryption_keys[2]); // tape
+  }
+}
+
+AssetInfo *Max::get_asset(uint32_t id) {
+  return (AssetInfo *)(get_address("assets") + id * sizeof(AssetInfo));
+}
+
+std::string get_custom_asset_path(uint32_t id) {
+  if (!fs::exists("MAXWELL\\Mods") || !fs::is_directory("MAXWELL\\Mods"))
+    return "";
+  for (const auto &p : fs::recursive_directory_iterator("MAXWELL\\Mods")) {
+    if (!fs::is_directory(p)) {
+      auto stem = p.path().stem().string();
+      auto ext = p.path().extension().string();
+      auto fileId = std::atoi(stem.c_str());
+      if (ext == ".map")
+        continue;
+      if (id == fileId && (fileId != 0 || stem == "0"))
+        return p.path().string();
+    }
+  }
+  return "";
+}
+
+void Max::load_custom_asset(uint32_t id, AssetInfo &asset) {
+  std::string file = get_custom_asset_path(id);
+  if (!assets.contains(id) && file != "") {
+    size_t s = fs::file_size(file);
+    char *buf = (char *)malloc(s);
+    std::ifstream f(file.c_str(), std::ios::in | std::ios::binary);
+    f.read(buf, s);
+    asset.flags &= 0x3f;
+    asset.data = buf;
+    asset.size = s;
+    assets[id] = asset;
+    // DEBUG("Loaded custom asset: {} {}", id, asset.data);
+  }
+  if (assets.contains(id)) {
+    asset = assets[id];
+    // DEBUG("Found custom asset: {} {}", id, asset.data);
+  }
+}
+
+void Max::load_mods() {
+  if (!fs::exists("MAXWELL\\Mods") || !fs::is_directory("MAXWELL\\Mods"))
+    return;
+  for (const auto &p : fs::recursive_directory_iterator("MAXWELL\\Mods")) {
+    if (!fs::is_directory(p)) {
+      auto file = p.path().string();
+      auto stem = p.path().stem().string();
+      auto ext = p.path().extension().string();
+      auto id = std::atoi(stem.c_str());
+      if (ext == ".map") {
+        import_map(file, id);
+        // DEBUG("Loaded map {} from {}", id, p.path().string());
+      } else if (id != 0 || stem == "0") {
+        size_t s = fs::file_size(file);
+        char *buf = (char *)malloc(s);
+        std::ifstream f(file.c_str(), std::ios::in | std::ios::binary);
+        f.read(buf, s);
+        get_asset(id)->flags &= 0x3f;
+        get_asset(id)->data = buf;
+        get_asset(id)->size = s;
+        assets[id] = *get_asset(id);
+        // DEBUG("Loaded mod {} from {}", id, file);
+      }
+    }
+  }
+}
+
+// TODO: I don't know wtf this does
+void *Max::load_asset(uint32_t id, uint8_t b) {
+  using LoadFunc = void *(uint32_t id, uint8_t b);
+  static LoadFunc *load = (LoadFunc *)get_address("load_asset");
+  auto ret = load(id, b);
+  // DEBUG("LoadAsset: {} {} {}", id, b, ret);
+  return ret;
 }
 
 void Max::draw_text(int x, int y, const wchar_t *text) {

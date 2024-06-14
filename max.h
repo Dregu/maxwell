@@ -151,11 +151,15 @@ struct Max {
   Room *room(int m, int x, int y);
   Tile *tile(int m, int rx, int ry, int x, int y, int l);
   bool import_map(std::string file, int m = 0);
-  void load_asset(uint32_t id, AssetInfo &asset);
+  void load_custom_asset(uint32_t id, AssetInfo &asset);
+  void load_mods();
+  static AssetInfo *get_asset(uint32_t id);
+  static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
+  static AssetInfo *decrypt_asset(uint32_t id, uint8_t *key);
+  static void *load_asset(uint32_t id, uint8_t b);
+  void decrypt_stuff();
 
   void draw_text(int x, int y, const wchar_t *text);
-  static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
-  static uint8_t *decrypt_asset(size_t asset, uint8_t *key);
 
   bool skip{false};
   std::optional<bool> paused{std::nullopt};

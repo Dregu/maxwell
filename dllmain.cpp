@@ -12,6 +12,7 @@
 
 #include "hook.h"
 #include "logger.h"
+#include "max.h"
 #include "search.h"
 #include "version.h"
 
@@ -105,6 +106,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
   switch (ul_reason_for_call) {
   case DLL_PROCESS_ATTACH: {
     DisableThreadLibraryCalls(hModule);
+    Max::get();
     CreateThread(nullptr, 0, &AttachThread, static_cast<LPVOID>(hModule), 0,
                  nullptr);
     break;

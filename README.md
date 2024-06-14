@@ -61,3 +61,12 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
   - Plays the flute automatically based on pixels on the mural
   - Blues and reds are half notes, beiges full notes
   - Take out the flute to play your song while in the room
+- Asset mods
+  - WIP, untested, these things might change on a whim
+  - Loads correctly named and formatted loose files recursively from `MAXWELL/Mods`
+  - No error checking
+  - Examples:
+    - `MAXWELL/Mods/2.map` replaces space map
+    - `MAXWELL/Mods/Cool level/0.map` replaces well map
+    - `MAXWELL/Mods/Textures/255.png` replaces main texture atlas
+    - `MAXWELL/Mods/Farts/101.ogg` replaces dog barks with farts

@@ -1024,6 +1024,9 @@ UI::UI() {
     ImGui::InputScalar("world", ImGuiDataType_U64, &v, NULL, NULL, "%p",
                        ImGuiInputTextFlags_ReadOnly);
 
+    if (ImGui::Button("Reload mods"))
+      Max::get().load_mods();
+
     {
       uint8_t *m = GetMural();
       std::string str;
@@ -1121,6 +1124,7 @@ ImVec2 TileToScreen(ImVec2 tile) {
 
 void UI::Cheats() {
   if (doWarp && get_address("warp")) {
+    Max::get().decrypt_stuff();
     write_mem_recoverable("warp", get_address("warp"), "EB"_gh, true);
   } else {
     recover_mem("warp");
