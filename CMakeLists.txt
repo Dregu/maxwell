@@ -66,6 +66,7 @@ add_library(dll SHARED
     search.cpp search.h
     virtual_table.cpp virtual_table.h
     version.cpp version.h
+    image.cpp image.h
     ghidra_byte_string.h
     tokenize.h
     logger.h

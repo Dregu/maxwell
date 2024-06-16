@@ -1,9 +1,13 @@
 #include "max.h"
 
+#include "shlwapi.h"
 #include <Windows.h>
+#include <algorithm>
 #include <array>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <vector>
 
 #include "detours.h"
 #include "ghidra_byte_string.h"
@@ -120,6 +124,8 @@ AssetInfo HookGetAsset(uint32_t id) {
   auto asset = g_get_asset_trampoline(id);
   Max::get().load_custom_asset(id, asset);
   // DEBUG("GetAsset: {} {}", id, asset.data);
+  if (id == 255)
+    Max::get().load_tile_mods(asset);
   return asset;
 }
 
@@ -136,7 +142,7 @@ using SetupGame = void(void *);
 SetupGame *g_setup_game_trampoline{nullptr};
 void HookSetupGame(void *a) {
   g_setup_game_trampoline(a);
-  Max::get().load_mods();
+  Max::get().load_map_mods();
 }
 
 inline bool &get_is_init() {
@@ -324,14 +330,14 @@ Player Max::player() {
   return (Player)(*(size_t *)get_address("slots") + 0x93670);
 }
 
-Coord *Max::player_room() { return (Coord *)(player() + 0x20); }
+S32Vec2 *Max::player_room() { return (S32Vec2 *)(player() + 0x20); }
 
-fCoord *Max::player_position() { return (fCoord *)(player()); }
+FVec2 *Max::player_position() { return (FVec2 *)(player()); }
 
-fCoord *Max::player_velocity() { return (fCoord *)(player() + 0x8); }
+FVec2 *Max::player_velocity() { return (FVec2 *)(player() + 0x8); }
 
-fCoord *Max::player_wheel() {
-  return (fCoord *)(*(size_t *)get_address("slots") + 0x9b0c0);
+FVec2 *Max::player_wheel() {
+  return (FVec2 *)(*(size_t *)get_address("slots") + 0x9b0c0);
 }
 
 int *Max::player_map() {
@@ -339,13 +345,13 @@ int *Max::player_map() {
                  *(uint32_t *)get_address("layer_offset"));
 }
 
-Coord *Max::respawn_room() { return (Coord *)(player() + 0x98); }
+S32Vec2 *Max::respawn_room() { return (S32Vec2 *)(player() + 0x98); }
 
-Coord *Max::respawn_position() { return (Coord *)(player() + 0xa0); }
+S32Vec2 *Max::respawn_position() { return (S32Vec2 *)(player() + 0xa0); }
 
-Coord *Max::warp_room() { return (Coord *)(player() + 0x34); }
+S32Vec2 *Max::warp_room() { return (S32Vec2 *)(player() + 0x34); }
 
-Coord *Max::warp_position() { return (Coord *)(player() + 0x3c); }
+S32Vec2 *Max::warp_position() { return (S32Vec2 *)(player() + 0x3c); }
 
 int *Max::warp_map() { return (int *)(player() + 0x44); }
 
@@ -359,7 +365,7 @@ Directions *Max::player_directions() {
 
 int8_t *Max::player_hp() { return (int8_t *)(slot() + 0x400 + 0x1cc); }
 
-Coord *Max::spawn_room() { return (Coord *)(slot() + 0x400 + 0x1ec); }
+S32Vec2 *Max::spawn_room() { return (S32Vec2 *)(slot() + 0x400 + 0x1ec); }
 
 uint16_t *Max::equipment() { return (uint16_t *)(slot() + 0x400 + 0x1f4); }
 
@@ -487,18 +493,46 @@ AssetInfo *Max::get_asset(uint32_t id) {
   return (AssetInfo *)(get_address("assets") + id * sizeof(AssetInfo));
 }
 
-std::string get_custom_asset_path(uint32_t id) {
+std::vector<fs::path> get_sorted_mod_files() {
+  std::vector<fs::path> mod_files;
   if (!fs::exists("MAXWELL\\Mods") || !fs::is_directory("MAXWELL\\Mods"))
-    return "";
-  for (const auto &p : fs::recursive_directory_iterator("MAXWELL\\Mods")) {
+    return mod_files;
+  std::copy(fs::recursive_directory_iterator("MAXWELL\\Mods"),
+            fs::recursive_directory_iterator(), std::back_inserter(mod_files));
+  std::sort(mod_files.begin(), mod_files.end());
+  return mod_files;
+}
+
+bool has_tile_mods() {
+  for (const auto &p : get_sorted_mod_files()) {
     if (!fs::is_directory(p)) {
-      auto stem = p.path().stem().string();
-      auto ext = p.path().extension().string();
-      auto fileId = std::atoi(stem.c_str());
-      if (ext == ".map")
-        continue;
-      if (id == fileId && (fileId != 0 || stem == "0"))
-        return p.path().string();
+      auto parent = p.parent_path().filename().string();
+      std::transform(parent.begin(), parent.end(), parent.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      auto ext = p.extension().string();
+      std::transform(ext.begin(), ext.end(), ext.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (parent == "tiles" && ext == ".png")
+        return true;
+    }
+  }
+  return false;
+}
+
+std::string get_custom_asset_path(uint32_t id) {
+  for (const auto &p : get_sorted_mod_files()) {
+    if (!fs::is_directory(p)) {
+      auto file = p.string();
+      auto parent = p.parent_path().filename().string();
+      std::transform(parent.begin(), parent.end(), parent.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      auto stem = p.stem().string();
+      auto ext = p.extension().string();
+      std::transform(ext.begin(), ext.end(), ext.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      auto fileId = StrToInt(stem.c_str());
+      if (id == fileId && parent == "assets" && (fileId != 0 || stem == "0"))
+        return file;
     }
   }
   return "";
@@ -515,7 +549,7 @@ void Max::load_custom_asset(uint32_t id, AssetInfo &asset) {
     asset.data = buf;
     asset.size = s;
     assets[id] = asset;
-    // DEBUG("Loaded custom asset: {} {}", id, asset.data);
+    DEBUG("Loaded custom asset {} from {}", id, asset.data);
   }
   if (assets.contains(id)) {
     asset = assets[id];
@@ -523,30 +557,73 @@ void Max::load_custom_asset(uint32_t id, AssetInfo &asset) {
   }
 }
 
-void Max::load_mods() {
-  if (!fs::exists("MAXWELL\\Mods") || !fs::is_directory("MAXWELL\\Mods"))
-    return;
-  for (const auto &p : fs::recursive_directory_iterator("MAXWELL\\Mods")) {
+void Max::load_map_mods() {
+  for (const auto &p : get_sorted_mod_files()) {
     if (!fs::is_directory(p)) {
-      auto file = p.path().string();
-      auto stem = p.path().stem().string();
-      auto ext = p.path().extension().string();
-      auto id = std::atoi(stem.c_str());
-      if (ext == ".map") {
+      auto file = p.string();
+      auto parent = p.parent_path().filename().string();
+      std::transform(parent.begin(), parent.end(), parent.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      auto stem = p.stem().string();
+      auto ext = p.extension().string();
+      std::transform(ext.begin(), ext.end(), ext.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      auto id = StrToInt(stem.c_str());
+      if (ext == ".map" && id >= 0 && id <= 4) {
         import_map(file, id);
-        // DEBUG("Loaded map {} from {}", id, p.path().string());
-      } else if (id != 0 || stem == "0") {
+        DEBUG("Loaded map {} from {}", id, file);
+      }
+    }
+  }
+}
+
+void Max::load_tile_mods(AssetInfo &asset) {
+  if (!has_tile_mods())
+    return;
+
+  Image *atlas = new Image((char *)asset.data, asset.size);
+  DEBUG("Created atlas texture for tile mods");
+
+  for (const auto &p : get_sorted_mod_files()) {
+    if (!fs::is_directory(p)) {
+      auto file = p.string();
+      auto parent = p.parent_path().filename().string();
+      std::transform(parent.begin(), parent.end(), parent.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      auto stem = p.stem().string();
+      auto ext = p.extension().string();
+      std::transform(ext.begin(), ext.end(), ext.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      auto id = StrToInt(stem.c_str());
+      if ((id != 0 || stem == "0") && parent == "tiles" && ext == ".png") {
         size_t s = fs::file_size(file);
         char *buf = (char *)malloc(s);
         std::ifstream f(file.c_str(), std::ios::in | std::ios::binary);
         f.read(buf, s);
-        get_asset(id)->flags &= 0x3f;
-        get_asset(id)->data = buf;
-        get_asset(id)->size = s;
-        assets[id] = *get_asset(id);
-        // DEBUG("Loaded mod {} from {}", id, file);
+        f.close();
+        auto img = Image(buf, s);
+        auto size = img.size();
+        auto pos = (*tile_uvs())[id].pos;
+        for (int y1 = 0; y1 < size.y; y1++) {
+          for (int x1 = 0; x1 < size.x; x1++) {
+            (*atlas)(pos.x + x1, pos.y + y1) = img(x1, y1);
+          }
+        }
+        DEBUG("Loaded tile {} from {}", id, file);
       }
     }
+  }
+
+  {
+    int len;
+    auto image = atlas->get_png(&len);
+    asset.data = (char *)malloc(len);
+    memcpy(asset.data, image, len);
+    asset.flags &= 0x3f;
+    asset.size = len;
+    assets[255] = asset;
+    delete atlas;
+    DEBUG("Saved atlas texture to asset 255");
   }
 }
 
@@ -563,4 +640,8 @@ void Max::draw_text(int x, int y, const wchar_t *text) {
   using DrawTextFunc = void(int x, int y, const wchar_t *text);
   static DrawTextFunc *draw = (DrawTextFunc *)get_address("draw_text");
   draw(x, y, text);
+}
+
+std::array<uv_data, 1024> *Max::tile_uvs() {
+  return (std::array<uv_data, 1024> *)((size_t)get_asset(254)->data + 0xc);
 }

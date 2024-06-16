@@ -15,18 +15,12 @@
 
 #include "ghidra_byte_string.h"
 #include "logger.h"
-#include "max.h"
 #include "memory.h"
 #include "search.h"
 #include "ui.h"
 #include "version.h"
 
 #pragma comment(lib, "version.lib")
-
-// #define STB_IMAGE_IMPLEMENTATION
-// #include "stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
 
 const char s8_zero = 0, s8_one = 1, s8_fifty = 50, s8_min = -128, s8_max = 127;
 const ImU8 u8_zero = 0, u8_one = 1, u8_fifty = 50, u8_min = 0, u8_max = 255;
@@ -350,7 +344,7 @@ void UI::DrawMap() {
   ImGuiContext &g = *GImGui;
 
   static const ImVec2 realmapsize{800, 528};
-  static const std::map<int, std::pair<Coord, Coord>> areas{
+  static const std::map<int, std::pair<S32Vec2, S32Vec2>> areas{
       //{0, {{2, 4}, {18, 20}}},
       {1, {{10, 11}, {13, 13}}},
       {2, {{7, 4}, {14, 20}}},
@@ -367,9 +361,9 @@ void UI::DrawMap() {
     uv0 = {0, 0};
     uv1 = {1, 1};
   }
-  static Coord cpos{0, 0};
-  static Coord wroom{0, 0};
-  static Coord wpos{0, 0};
+  static S32Vec2 cpos{0, 0};
+  static S32Vec2 wroom{0, 0};
+  static S32Vec2 wpos{0, 0};
   static int layer{0};
   ImGui::PushItemWidth(0.2f * mapsize.x);
   ImGui::InputInt2("Room##MinimapRoom", &wroom.x);
@@ -1024,8 +1018,8 @@ UI::UI() {
     ImGui::InputScalar("world", ImGuiDataType_U64, &v, NULL, NULL, "%p",
                        ImGuiInputTextFlags_ReadOnly);
 
-    if (ImGui::Button("Reload mods"))
-      Max::get().load_mods();
+    if (ImGui::Button("Reload map mods"))
+      Max::get().load_map_mods();
 
     {
       uint8_t *m = GetMural();
@@ -1335,7 +1329,7 @@ void UI::HUD() {
     if (fg && options["input_mouse"].value && io.MouseDown[2] &&
         !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
       selectedTile.tile = fg;
-      selectedTile.pos = Coord{rx, ry};
+      selectedTile.pos = S32Vec2{rx, ry};
       selectedTile.room = *Max::get().player_room();
       selectedTile.map = *Max::get().player_map();
       if (ImGui::IsKeyDown((ImGuiKey)keys["editor_modifier"])) {
@@ -1896,8 +1890,7 @@ void UI::SaveScreenShot(std::string name) {
     if (CreateDirectory(L"MAXWELL\\Screenshots", NULL) ||
         ERROR_ALREADY_EXISTS == GetLastError()) {
       name = "MAXWELL\\Screenshots\\" + name + ".png";
-      stbi_write_png(name.c_str(), desc.Width, desc.Height, 4, pData,
-                     dstLocation.PlacedFootprint.Footprint.RowPitch);
+      Image::save_png_from_data(name, pData, desc.Width, desc.Height);
     }
   }
 

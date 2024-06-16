@@ -6,7 +6,10 @@
 #include <deque>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
+
+#include "image.h"
 
 #define SLOT_SIZE 0x27010
 
@@ -30,16 +33,6 @@ enum PLAYER_INPUT : int32_t {
   ACTION = 0x2000,
   ITEM = 0x4000,
   INVENTORY = 0x8000,
-};
-
-struct Coord {
-  int x;
-  int y;
-};
-
-struct fCoord {
-  float x;
-  float y;
 };
 
 struct Directions {
@@ -111,6 +104,34 @@ struct AssetInfo {
   size_t unk3;
 };
 
+struct uv_data {
+  U16Vec2 pos;
+  U16Vec2 size;
+
+  union {
+    struct {
+      bool collides_left : 1;
+      bool collides_right : 1;
+      bool collides_up : 1;
+      bool collides_down : 1;
+
+      bool not_placeable : 1;
+      bool additive : 1;
+
+      bool obscures : 1;
+      bool contiguous : 1;
+      bool blocks_light : 1;
+      bool self_contiguous : 1;
+      bool hidden : 1;
+      bool dirt : 1;
+      bool has_normals : 1;
+      bool uv_light : 1;
+    };
+    uint16_t flags;
+  };
+};
+static_assert(sizeof(uv_data) == 10);
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
@@ -120,21 +141,21 @@ struct Max {
   uint8_t *slot_number();
   Slot slot();
   Player player();
-  Coord *player_room();
-  fCoord *player_position();
-  fCoord *player_velocity();
-  fCoord *player_wheel();
+  S32Vec2 *player_room();
+  FVec2 *player_position();
+  FVec2 *player_velocity();
+  FVec2 *player_wheel();
   int *player_map();
-  Coord *respawn_room();
-  Coord *respawn_position();
-  Coord *warp_room();
-  Coord *warp_position();
+  S32Vec2 *respawn_room();
+  S32Vec2 *respawn_position();
+  S32Vec2 *warp_room();
+  S32Vec2 *warp_position();
   int *warp_map();
   uint8_t *player_flute();
   Directions *player_directions();
   uint8_t *player_state();
   int8_t *player_hp();
-  Coord *spawn_room();
+  S32Vec2 *spawn_room();
   uint16_t *equipment();
   uint8_t *items();
   uint32_t *upgrades();
@@ -152,11 +173,13 @@ struct Max {
   Tile *tile(int m, int rx, int ry, int x, int y, int l);
   bool import_map(std::string file, int m = 0);
   void load_custom_asset(uint32_t id, AssetInfo &asset);
-  void load_mods();
+  void load_map_mods();
+  void load_tile_mods(AssetInfo &asset);
   static AssetInfo *get_asset(uint32_t id);
   static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
   static AssetInfo *decrypt_asset(uint32_t id, uint8_t *key);
   static void *load_asset(uint32_t id, uint8_t b);
+  std::array<uv_data, 1024> *tile_uvs();
   void decrypt_stuff();
 
   void draw_text(int x, int y, const wchar_t *text);
@@ -171,4 +194,6 @@ struct Max {
 
   std::optional<uint8_t> force_palette{std::nullopt};
   std::unordered_map<int, AssetInfo> assets;
+
+  bool atlas_loaded{false};
 };

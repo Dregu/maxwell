@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "image.h"
 #include "max.h"
 
 typedef int ImGuiKeyChord;
@@ -45,15 +46,15 @@ struct Sequencer {
 
 struct SelectedTile {
   Tile *tile{nullptr};
-  Coord room{0, 0};
-  Coord pos{0, 0};
+  S32Vec2 room{0, 0};
+  S32Vec2 pos{0, 0};
   int layer{0};
   int map{0};
 };
 
 struct SelectedRoom {
   Room *room{nullptr};
-  Coord pos{0, 0};
+  S32Vec2 pos{0, 0};
   int map{0};
 };
 
@@ -175,7 +176,7 @@ private:
   std::string screenShotFileName = "MAXWELL";
   std::string screenShotNextFrame = "";
   std::string screenShotThisFrame = "";
-  Coord screenShotRange{1, 1};
+  S32Vec2 screenShotRange{1, 1};
   int screenShotIndex = -1;
   int screenShotFrame = -1;
   bool paused = false;
