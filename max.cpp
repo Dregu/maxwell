@@ -118,6 +118,16 @@ RoomParams HookGetRoomParams(void *a, uint16_t b) {
   return ret;
 }
 
+using GetRoomWater = RoomParams(void *a, uint16_t b);
+GetRoomWater *g_room_water_trampoline{nullptr};
+RoomParams HookGetRoomWater(void *a, uint16_t b) {
+  auto ret = g_room_water_trampoline(a, b);
+  auto wat = Max::get().force_water;
+  if (wat.has_value())
+    ret.palette = wat.value();
+  return ret;
+}
+
 using GetAsset = AssetInfo(uint32_t id);
 GetAsset *g_get_asset_trampoline{nullptr};
 AssetInfo HookGetAsset(uint32_t id) {
@@ -215,6 +225,17 @@ Max &Max::get() {
         DEBUG("Failed hooking GetRoomParams: {}\n", error);
       }
     }
+
+    /* TODO if (g_room_water_trampoline =
+            (GetRoomWater *)get_address("get_room_water")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_room_water_trampoline, HookGetRoomWater);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking GetRoomWater: {}\n", error);
+      }
+    }*/
 
     if (g_get_asset_trampoline = (GetAsset *)get_address("get_asset")) {
       DetourTransactionBegin();
@@ -545,7 +566,7 @@ void Max::load_custom_asset(uint32_t id, AssetInfo &asset) {
     char *buf = (char *)malloc(s);
     std::ifstream f(file.c_str(), std::ios::in | std::ios::binary);
     f.read(buf, s);
-    asset.flags &= 0x3f;
+    asset.type &= AssetType::Normal;
     asset.data = buf;
     asset.size = s;
     assets[id] = asset;
@@ -619,7 +640,7 @@ void Max::load_tile_mods(AssetInfo &asset) {
     auto image = atlas->get_png(&len);
     asset.data = (char *)malloc(len);
     memcpy(asset.data, image, len);
-    asset.flags &= 0x3f;
+    asset.type &= AssetType::Normal;
     asset.size = len;
     assets[255] = asset;
     delete atlas;

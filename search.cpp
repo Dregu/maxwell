@@ -684,6 +684,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .function_start(),
     },
     {
+        "get_room_water"sv,
+        PatternCommandBuffer{}.from_exe_base(0x2c00), // TODO, unused
+    },
+    {
         "get_asset"sv,
         PatternCommandBuffer{} //.from_exe_base(0x15d0),
             .find_inst("0f 11 50 20 0f 11 48 10"_gh)

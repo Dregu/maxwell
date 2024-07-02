@@ -19,6 +19,38 @@ using Slot = size_t;
 using Player = size_t;
 using Options = size_t;
 
+#define ENUM_CLASS_FLAGS(Enum)                                                 \
+  inline constexpr Enum operator|(Enum Lhs, Enum Rhs) {                        \
+    return static_cast<Enum>(static_cast<std::underlying_type_t<Enum>>(Lhs) |  \
+                             static_cast<std::underlying_type_t<Enum>>(Rhs));  \
+  }                                                                            \
+  inline constexpr Enum operator&(Enum Lhs, Enum Rhs) {                        \
+    return static_cast<Enum>(static_cast<std::underlying_type_t<Enum>>(Lhs) &  \
+                             static_cast<std::underlying_type_t<Enum>>(Rhs));  \
+  }                                                                            \
+  inline constexpr Enum operator^(Enum Lhs, Enum Rhs) {                        \
+    return static_cast<Enum>(static_cast<std::underlying_type_t<Enum>>(Lhs) ^  \
+                             static_cast<std::underlying_type_t<Enum>>(Rhs));  \
+  }                                                                            \
+  inline constexpr Enum operator~(Enum E) {                                    \
+    return static_cast<Enum>(~static_cast<std::underlying_type_t<Enum>>(E));   \
+  }                                                                            \
+  inline Enum &operator|=(Enum &Lhs, Enum Rhs) {                               \
+    return Lhs = static_cast<Enum>(                                            \
+               static_cast<std::underlying_type_t<Enum>>(Lhs) |                \
+               static_cast<std::underlying_type_t<Enum>>(Rhs));                \
+  }                                                                            \
+  inline Enum &operator&=(Enum &Lhs, Enum Rhs) {                               \
+    return Lhs = static_cast<Enum>(                                            \
+               static_cast<std::underlying_type_t<Enum>>(Lhs) &                \
+               static_cast<std::underlying_type_t<Enum>>(Rhs));                \
+  }                                                                            \
+  inline Enum &operator^=(Enum &Lhs, Enum Rhs) {                               \
+    return Lhs = static_cast<Enum>(                                            \
+               static_cast<std::underlying_type_t<Enum>>(Lhs) ^                \
+               static_cast<std::underlying_type_t<Enum>>(Rhs));                \
+  }
+
 enum PLAYER_INPUT : int32_t {
   SKIP = -1,
   NONE = 0,
@@ -94,8 +126,23 @@ struct MapHeader {
   uint32_t signature2;
 };
 
+enum class AssetType : uint8_t {
+  Text = 0,
+  Binary = 1,
+  Png = 2,
+  Ogg = 3,
+  SpriteData = 5,
+  Shader = 7,
+  Font = 8,
+
+  Normal = 0x3F,
+  Encrypted = 0x40,
+  Decrypted = 0x80,
+};
+ENUM_CLASS_FLAGS(AssetType);
+
 struct AssetInfo {
-  uint8_t flags;
+  AssetType type;
   void *data;
   uint32_t size;
   uint32_t unk1;
@@ -193,6 +240,7 @@ struct Max {
   std::deque<std::function<void()>> render_queue;
 
   std::optional<uint8_t> force_palette{std::nullopt};
+  std::optional<uint8_t> force_water{std::nullopt};
   std::unordered_map<int, AssetInfo> assets;
 
   bool atlas_loaded{false};

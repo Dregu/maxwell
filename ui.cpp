@@ -348,7 +348,7 @@ void UI::DrawMap() {
       //{0, {{2, 4}, {18, 20}}},
       {1, {{10, 11}, {13, 13}}},
       {2, {{7, 4}, {14, 20}}},
-      {3, {{8, 7}, {13, 10}}},
+      {3, {{8, 7}, {14, 10}}},
       {4, {{11, 12}, {12, 13}}}};
   ImVec2 bordersize{realmapsize.x / 20 * 2, realmapsize.y / 24 * 4};
   ImVec2 mapsize{realmapsize.x - bordersize.x * 2,
