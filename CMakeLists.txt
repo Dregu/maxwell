@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 project(MAXWELL)
 set(CMAKE_CXX_STANDARD 20)
-
-if(MSVC)
-    add_definitions(/bigobj)
-endif()
+add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
 # imgui
 add_library(imgui STATIC
@@ -19,7 +16,6 @@ add_library(imgui STATIC
     imgui/imgui_widgets.cpp
     imgui/imgui_draw.cpp
     imgui/imgui_tables.cpp
-    imgui/imgui_demo.cpp
     imgui/misc/cpp/imgui_stdlib.h
     imgui/misc/cpp/imgui_stdlib.cpp)
 
