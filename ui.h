@@ -115,6 +115,10 @@ private:
         "Party like it's 1989! Enable the B&W death screen shader all the "
         "time.",
         "toggle_gameboy"}},
+      {"cheat_groundhog",
+       {false, "Remove Groundhog Day check",
+        "Patches out the Groundhog Day checks,\nso you can always get up to 4 "
+        "extra hearts."}},
       {"cheat_hud",
        {false, "Hide ingame HUD",
         "Removes all HUD elements, including the menus.", "toggle_hud"}},

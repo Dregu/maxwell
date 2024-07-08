@@ -717,6 +717,14 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe()
             .function_start(),
     },
+    {
+        "groundhog_day"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_inst(".. 81 .. 00 00 02 02"_gh)
+            .offset(12)
+            .at_exe(),
+    },
     /*{
         "load_asset"sv, PatternCommandBuffer{}.from_exe_base(0x74450), // TODO
     },

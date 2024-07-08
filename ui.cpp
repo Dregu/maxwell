@@ -1186,6 +1186,16 @@ void UI::Cheats() {
   if (options["cheat_noclip"].value) {
     *Max::get().player_state() = 18;
   }
+
+  if (options["cheat_groundhog"].value && get_address("groundhog_day")) {
+    write_mem_recoverable("groundhog_day", get_address("groundhog_day"),
+                          get_nop(2), true);
+    write_mem_recoverable("groundhog_day2", get_address("groundhog_day") + 26,
+                          get_nop(2), true);
+  } else {
+    recover_mem("groundhog_day");
+    recover_mem("groundhog_day2");
+  }
 }
 
 void UI::Windows() {
