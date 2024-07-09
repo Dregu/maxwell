@@ -2,7 +2,7 @@
 
 MAXWELL is an ingame ImGui overlay for the game ANIMAL WELL, featuring an inventory editor, warping map, cheats etc.
 
-It has been tested on the 2024-06-06 version 1.0.0.18 on Windows 10. This is the only version officially supported by the latest autobuild, but it might work for older or newer versions too. There might also be compatibility releases for older versions available in the release section, but those probably won't have the latest features.
+It has been tested on the 2024-06-14 version 1.0.0.19 on Windows 10. This is the only version officially supported by the latest autobuild, but it might work for older or newer versions too. There might also be compatibility releases for older versions available in the release section, but those probably won't have the latest features.
 
 **Please go away if you haven't finished the game, this will spoil everything for you.**
 
@@ -16,7 +16,15 @@ This is not a virus, but you probably shouldn't believe a random file on the int
 
 ## Usage
 
-Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/releases/tag/autobuild). Put MAXWELL folder in the game folder and run from there. Check `--help` for command line switches for shortcuts.
+- Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/releases/tag/autobuild)
+- Put `MAXWELL` folder inside the game folder and run `MAXWELL.exe` from there
+  - You can also run or create a shortcut to `MAXWELL.exe --launch_game ..` to launch the game automatically
+  - Check `--help` for other command line switches
+- `MAXWELL.dll` also works with other generic DLL injectors
+- Also works with Wine 9
+- Might work with Proton, but trying to load MAXWELL through Steam will probably just make things more complicated
+- Doesn't seem to work with some builds of Goldberg's emulator if it has overlay enabled
+  - To fix this, create a `Animal Well/steam_settings/disable_overlay.txt` file
 
 ## Features
 
@@ -25,13 +33,6 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
 - Edit most things in player inventory in real time
 - Input any coordinates to warp
 - Right click anywhere on screen to teleport
-- Minimap
-  - Right click to warp to rooms
-  - Reveal whole minimap ingame
-  - Warp to other dimensions
-  - Show other dimension outlines
-  - Track wheel position
-  - Show destroyed tiles
 - Godmode
 - Noclip without cring
 - Save anywhere
@@ -43,6 +44,14 @@ Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/release
 - Hide the player character
 - Play in b&w gameboy mode
 - Take unobstructed screenshots for mapping
+- Always Groundhog Day mode
+- Minimap
+  - Right click to warp to rooms
+  - Reveal whole minimap ingame
+  - Warp to other dimensions
+  - Show other dimension outlines
+  - Track wheel position
+  - Show destroyed tiles
 - Pause and frame advance
   - Ctrl+Tab to toggle
   - Tab to skip one frame
