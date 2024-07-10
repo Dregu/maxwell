@@ -21,8 +21,9 @@ This is not a virus, but you probably shouldn't believe a random file on the int
   - You can also run or create a shortcut to `MAXWELL.exe --launch_game ..` to launch the game automatically
   - Check `--help` for other command line switches
 - `MAXWELL.dll` also works with other generic DLL injectors
-- Also works with Wine 9
-- Might work with Proton, but trying to load MAXWELL through Steam will probably just make things more complicated
+- Also works with Wine 9 / Proton 9
+- You can also rename `MAXWELL.dll` to `xinput9_1_0.dll` and place it next to `Animal Well.exe` to load it without the injector
+  - Use the Steam launch options `PROTON_USE_WINED3D=1 WINEDLLOVERRIDES="xinput9_1_0=n,b" %command%` to load this on Proton
 - Doesn't seem to work with some builds of Goldberg's emulator if it has overlay enabled
   - To fix this, create a `Animal Well/steam_settings/disable_overlay.txt` file
 

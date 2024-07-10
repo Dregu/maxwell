@@ -122,3 +122,16 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
 extern "C" __declspec(dllexport) const char *dll_version() {
   return get_version_cstr();
 }
+
+auto xinput = LoadLibraryA("c:\\Windows\\system32\\xinput9_1_0.dll");
+typedef DWORD(__stdcall *XInputFun)(DWORD, void *);
+auto xinput_get_state =
+    reinterpret_cast<XInputFun>(GetProcAddress(xinput, "XInputGetState"));
+auto xinput_set_state =
+    reinterpret_cast<XInputFun>(GetProcAddress(xinput, "XInputSetState"));
+extern "C" __declspec(dllexport) DWORD XInputGetState(DWORD a, void *b) {
+  return xinput_get_state(a, b);
+}
+extern "C" __declspec(dllexport) DWORD XInputSetState(DWORD a, void *b) {
+  return xinput_set_state(a, b);
+}
