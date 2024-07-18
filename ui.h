@@ -75,6 +75,7 @@ private:
       {"toggle_darkness", ImGuiMod_Ctrl | ImGuiKey_L},
       {"toggle_lights", ImGuiMod_Shift | ImGuiKey_L},
       {"toggle_palette", ImGuiMod_Alt | ImGuiKey_L},
+      {"toggle_clouds", ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_L},
       {"toggle_player", ImGuiMod_Ctrl | ImGuiKey_B},
       {"toggle_gameboy", ImGuiMod_Ctrl | ImGuiKey_K},
       {"toggle_hud", ImGuiMod_Ctrl | ImGuiKey_H},
@@ -125,6 +126,9 @@ private:
       {"cheat_player",
        {false, "Hide player character", "Doesn't render the player character.",
         "toggle_player"}},
+      {"cheat_clouds",
+       {false, "Remove clouds", "Removes the cloudy foreground effects.",
+        "toggle_clouds"}},
       {"input_block",
        {true, "Block game input on UI input",
         "Blocks keyboard input from game\n"

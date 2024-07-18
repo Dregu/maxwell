@@ -660,12 +660,36 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .function_start(),
     },
     {
-        "draw_text"sv,
-        PatternCommandBuffer{} //.from_exe_base(0x71010),
+        "draw_text_big"sv,
+        PatternCommandBuffer{}
             .set_optional(true)
             .find_inst("48 83 ec 58 4d 85 c0"_gh)
             .at_exe()
             .function_start(),
+    },
+    {
+        "draw_text_small"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_inst("48 83 ec 58 89 4c 24 54"_gh)
+            .at_exe()
+            .function_start(),
+    },
+    {
+        "draw_push_color"sv,
+        PatternCommandBuffer{}.from_exe_base(0x177d0),
+    },
+    {
+        "draw_pop_color"sv,
+        PatternCommandBuffer{}.from_exe_base(0x17830),
+    },
+    {
+        "draw_push_shader"sv,
+        PatternCommandBuffer{}.from_exe_base(0x17840),
+    },
+    {
+        "draw_pop_shader"sv,
+        PatternCommandBuffer{}.from_exe_base(0x178a0),
     },
     {
         "render_player"sv,
@@ -674,6 +698,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .find_inst("48 81 c1 78 7f 00 00"_gh)
             .at_exe()
             .function_start(),
+    },
+    {
+        "render_clouds"sv,
+        PatternCommandBuffer{}.from_exe_base(0x103264),
     },
     {
         "get_room_params"sv,

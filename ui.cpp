@@ -753,8 +753,9 @@ void UI::Play() {
     else if (Max::get().inputs.size() > 0 && sequencer.b.has_value())
       Max::get().mural_selection()[1] = sequencer.b.value();
     if (!Max::get().pause()->paused)
-      Max::get().render_queue.push_back(
-          [&]() { Max::get().draw_text(57, 12, L"bunny sequencer 0.2"); });
+      Max::get().render_queue.push_back([&]() {
+        Max::get().draw_text_small(57, 17, L"bunny sequencer 0.2");
+      });
   }
   if (!sequencer.enabled)
     recover_mem("mural_cursor");
@@ -1068,6 +1069,8 @@ bool UI::Keys() {
     options["cheat_darkness"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_lights"]))
     options["cheat_lights"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_clouds"]))
+    options["cheat_clouds"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_palette"])) {
     options["cheat_palette"].value ^= true;
     if (options["cheat_palette"].value) {
@@ -1089,8 +1092,7 @@ bool UI::Keys() {
   else if (ImGui::IsKeyChordPressed(keys["pause"])) {
     paused ^= true;
     Max::get().set_pause = paused;
-  } else if (ImGui::IsKeyChordPressed(keys["skip"], ImGuiInputFlags_Repeat) &&
-             !ImGui::IsWindowFocused(ImGuiHoveredFlags_AnyWindow))
+  } else if (ImGui::IsKeyChordPressed(keys["skip"], ImGuiInputFlags_Repeat))
     Max::get().skip = true;
   else
     return false;
@@ -1165,6 +1167,13 @@ void UI::Cheats() {
                           "EB 0E"_gh, true);
   } else {
     recover_mem("render_gameboy");
+  }
+
+  if (options["cheat_clouds"].value && get_address("render_clouds")) {
+    write_mem_recoverable("render_clouds", get_address("render_clouds"),
+                          "EB 24"_gh, true);
+  } else {
+    recover_mem("render_clouds");
   }
 
   if (options["cheat_hud"].value && get_address("render_hud")) {

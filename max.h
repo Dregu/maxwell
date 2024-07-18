@@ -229,7 +229,9 @@ struct Max {
   std::array<uv_data, 1024> *tile_uvs();
   void decrypt_stuff();
 
-  void draw_text(int x, int y, const wchar_t *text);
+  void draw_text_big(int x, int y, const wchar_t *text);
+  void draw_text_small(int x, int y, const wchar_t *text,
+                       uint32_t color = 0xffffffff, uint32_t shader = 0x29);
 
   bool skip{false};
   std::optional<bool> paused{std::nullopt};

@@ -657,10 +657,29 @@ void *Max::load_asset(uint32_t id, uint8_t b) {
   return ret;
 }
 
-void Max::draw_text(int x, int y, const wchar_t *text) {
-  using DrawTextFunc = void(int x, int y, const wchar_t *text);
-  static DrawTextFunc *draw = (DrawTextFunc *)get_address("draw_text");
+using DrawTextFunc = void(int x, int y, const wchar_t *text);
+using PushColorFunc = void(uint32_t color);
+using PopColorFunc = void();
+void Max::draw_text_big(int x, int y, const wchar_t *text) {
+  static DrawTextFunc *draw = (DrawTextFunc *)get_address("draw_text_big");
   draw(x, y, text);
+}
+void Max::draw_text_small(int x, int y, const wchar_t *text, uint32_t color,
+                          uint32_t shader) {
+  static DrawTextFunc *draw = (DrawTextFunc *)get_address("draw_text_small");
+  static PushColorFunc *push_color =
+      (PushColorFunc *)get_address("draw_push_color");
+  static PopColorFunc *pop_color =
+      (PopColorFunc *)get_address("draw_pop_color");
+  static PushColorFunc *push_shader =
+      (PushColorFunc *)get_address("draw_push_shader");
+  static PopColorFunc *pop_shader =
+      (PopColorFunc *)get_address("draw_pop_shader");
+  push_color(color);
+  push_shader(shader);
+  draw(x, y, text);
+  pop_shader();
+  pop_color();
 }
 
 std::array<uv_data, 1024> *Max::tile_uvs() {
