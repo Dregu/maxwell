@@ -81,8 +81,8 @@ private:
       {"toggle_mouse", ImGuiMod_Ctrl | ImGuiKey_N},
       {"warp", ImGuiMod_Ctrl | ImGuiKey_W},
       {"screenshot", ImGuiKey_Period},
-      {"pause", ImGuiMod_Ctrl | ImGuiKey_Tab},
-      {"skip", ImGuiKey_Tab},
+      {"pause", ImGuiKey_PageUp},
+      {"skip", ImGuiKey_PageDown},
       {"editor_modifier", ImGuiMod_Shift},
   };
   // TODO: Save to ini
@@ -168,6 +168,10 @@ private:
       {"ui_viewports",
        {false, "Multi-viewports",
         "Allow dragging UI windows outside the game window."}},
+      {"ui_scaling",
+       {true, "DPI scaling",
+        "Apply Windows UI scaling.\nMight require a restart to properly resize "
+        "everything."}},
   };
   bool doWarp = false;
   bool inMenu = false;
@@ -177,6 +181,8 @@ private:
       std::chrono::system_clock::now();
   ImVec2 lastMousePos = ImVec2(0, 0);
   int windowScale = 4;
+  float dpiScale = 1.0f;
+  float uiScale = 1.0f;
   std::string screenShotFileName = "MAXWELL";
   std::string screenShotNextFrame = "";
   std::string screenShotThisFrame = "";
@@ -194,7 +200,7 @@ private:
   std::vector<SelectedTile> searchTiles;
 
 public:
-  UI();
+  UI(float scale = 1.0f);
   ~UI();
 
   void Draw();

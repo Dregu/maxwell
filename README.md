@@ -54,8 +54,8 @@ This is not a virus, but you probably shouldn't believe a random file on the int
   - Track wheel position
   - Show destroyed tiles
 - Pause and frame advance
-  - Ctrl+Tab to toggle
-  - Tab to skip one frame
+  - PgUp to toggle
+  - PgDn to skip one frame
 - Rudimentary runtime level editing
   - WIP
   - Change water level

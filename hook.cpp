@@ -248,6 +248,9 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     }
 
     IMGUI_CHECKVERSION();
+    ImGui_ImplWin32_EnableDpiAwareness();
+    auto scale = ImGui_ImplWin32_GetDpiScaleForHwnd(Window);
+
     auto *g = ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
@@ -260,6 +263,8 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
 
     io.Fonts->AddFontFromMemoryCompressedTTF(OLFont_compressed_data,
                                              OLFont_compressed_size, 14.0f);
+    io.Fonts->AddFontFromMemoryCompressedTTF(
+        OLFont_compressed_data, OLFont_compressed_size, 14.0f * scale);
 
     ImGui::StyleColorsDark();
     ImGuiStyle &style = ImGui::GetStyle();
@@ -596,7 +601,7 @@ Status InstallHooks(LPVOID hModule) {
   Hook(140, (void **)&OriginalPresent, HookPresent);
   Hook(145, (void **)&OriginalResizeBuffers, HookResizeBuffers);
 
-  g_UI = new UI();
+  g_UI = new UI(ImGui_ImplWin32_GetDpiScaleForHwnd(Window));
 
   return Status::Success;
 }

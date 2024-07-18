@@ -1,4 +1,5 @@
 #define UNICODE
+#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <Windows.h>
 
@@ -240,14 +241,6 @@ inline bool MenuItem(const char *label, const ImGuiKeyChord key) {
 }
 } // namespace ImGui
 
-static inline ImVec2 operator+(const ImVec2 &lhs, const ImVec2 &rhs) {
-  return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
-}
-
-static inline ImVec2 operator-(const ImVec2 &lhs, const ImVec2 &rhs) {
-  return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y);
-}
-
 template <std::size_t SIZE, typename T>
 void Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
            bool show_number = true) {
@@ -280,7 +273,7 @@ ImVec2 Normalize(ImVec2 pos) {
 }
 
 void UI::DrawPlayer() {
-  ImGui::PushItemWidth(120.f);
+  ImGui::PushItemWidth(120.f * uiScale);
   ImGui::InputScalar("Slot", ImGuiDataType_U8, Max::get().slot_number(), NULL,
                      NULL, "%d", ImGuiInputTextFlags_ReadOnly);
   ImGui::SameLine(0, 4);
@@ -343,7 +336,9 @@ void UI::DrawMap() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
 
-  static const ImVec2 realmapsize{800, 528};
+  ImVec2 realmapsize{800 * uiScale, 528 * uiScale};
+  ImVec2 roomsize{40 * uiScale, 22 * uiScale};
+
   static const std::map<int, std::pair<S32Vec2, S32Vec2>> areas{
       //{0, {{2, 4}, {18, 20}}},
       {1, {{10, 11}, {13, 13}}},
@@ -373,10 +368,10 @@ void UI::DrawMap() {
   ImGui::InputInt("Map##MinimapMap", &layer);
   layer = (layer + 5) % 5;
   ImGui::PopItemWidth();
-  ImGui::SameLine(mapsize.x - 60.f);
+  ImGui::SameLine(mapsize.x - 60.f * uiScale);
   if (ImGui::Button("Refresh##MinimapRefresh",
-                    ImVec2(60.f + ImGui::GetStyle().WindowPadding.x,
-                           ImGui::GetTextLineHeightWithSpacing())) ||
+                    ImVec2(60.f * uiScale + ImGui::GetStyle().WindowPadding.x,
+                           ImGui::GetItemRectSize().y)) ||
       (((options["map_auto"].value || io.MouseDown[1]) &&
         ImGui::GetFrameCount() > lastMinimapFrame + 15)) ||
       ImGui::IsWindowAppearing() || !minimap_init) {
@@ -395,8 +390,8 @@ void UI::DrawMap() {
                        uv1, 0);
     Tooltip("Right click the map to warp\nanywhere on current layer.");
     if (ImGui::IsItemHovered()) {
-      cpos.x = (b.x - d.x) - a.x + c.x + bordersize.x;
-      cpos.y = (b.y - d.y) - a.y + c.y + bordersize.y;
+      cpos.x = ((b.x - d.x) - a.x + c.x + bordersize.x);
+      cpos.y = ((b.y - d.y) - a.y + c.y + bordersize.y);
       wroom.x = cpos.x / realmapsize.x * 800 / 40;
       wroom.y = cpos.y / realmapsize.y * 528 / 22;
       wpos.x = ((int)(cpos.x / realmapsize.x * 800) % 40) * 8;
@@ -411,10 +406,10 @@ void UI::DrawMap() {
         *Max::get().player_state() = 0;
       }
       {
-        auto ax = wroom.x * 40;
-        auto ay = wroom.y * 22;
-        auto bx = ax + 40;
-        auto by = ay + 22;
+        auto ax = wroom.x * roomsize.x;
+        auto ay = wroom.y * roomsize.y;
+        auto bx = ax + roomsize.x;
+        auto by = ay + roomsize.y;
         ImGui::GetWindowDrawList()->AddRect(
             ImVec2(a.x + d.x + ax - c.x - bordersize.x,
                    a.y + d.y + ay - c.y - bordersize.y),
@@ -427,10 +422,10 @@ void UI::DrawMap() {
 
     if (options["map_areas"].value) {
       for (auto &[l, box] : areas) {
-        auto ax = box.first.x * 40;
-        auto ay = box.first.y * 22;
-        auto bx = box.second.x * 40;
-        auto by = box.second.y * 22;
+        auto ax = box.first.x * roomsize.x;
+        auto ay = box.first.y * roomsize.y;
+        auto bx = box.second.x * roomsize.x;
+        auto by = box.second.y * roomsize.y;
         ImGui::GetWindowDrawList()->AddRect(
             ImVec2(a.x + d.x + ax - c.x - bordersize.x,
                    a.y + d.y + ay - c.y - bordersize.y),
@@ -441,10 +436,10 @@ void UI::DrawMap() {
     }
 
     if (areas.contains(layer)) {
-      auto ax = areas.at(layer).first.x * 40;
-      auto ay = areas.at(layer).first.y * 22;
-      auto bx = areas.at(layer).second.x * 40;
-      auto by = areas.at(layer).second.y * 22;
+      auto ax = areas.at(layer).first.x * roomsize.x;
+      auto ay = areas.at(layer).first.y * roomsize.y;
+      auto bx = areas.at(layer).second.x * roomsize.x;
+      auto by = areas.at(layer).second.y * roomsize.y;
       ImGui::GetWindowDrawList()->AddRect(
           ImVec2(a.x + d.x + ax - c.x - bordersize.x,
                  a.y + d.y + ay - c.y - bordersize.y),
@@ -455,10 +450,10 @@ void UI::DrawMap() {
 
     auto pl = *Max::get().player_map();
     if (areas.contains(pl)) {
-      auto ax = areas.at(pl).first.x * 40;
-      auto ay = areas.at(pl).first.y * 22;
-      auto bx = areas.at(pl).second.x * 40;
-      auto by = areas.at(pl).second.y * 22;
+      auto ax = areas.at(pl).first.x * roomsize.x;
+      auto ay = areas.at(pl).first.y * roomsize.y;
+      auto bx = areas.at(pl).second.x * roomsize.x;
+      auto by = areas.at(pl).second.y * roomsize.y;
       ImGui::GetWindowDrawList()->AddRect(
           ImVec2(a.x + d.x + ax - c.x - bordersize.x,
                  a.y + d.y + ay - c.y - bordersize.y),
@@ -468,10 +463,10 @@ void UI::DrawMap() {
     }
 
     {
-      auto px = Max::get().warp_room()->x * 40 +
-                (Max::get().warp_position()->x / 320.f * 40.f);
-      auto py = Max::get().warp_room()->y * 22 +
-                (Max::get().warp_position()->y / 180.f * 22.f);
+      auto px = Max::get().warp_room()->x * roomsize.x +
+                (Max::get().warp_position()->x / 320.f * roomsize.x);
+      auto py = Max::get().warp_room()->y * roomsize.y +
+                (Max::get().warp_position()->y / 180.f * roomsize.y);
       ImGui::GetWindowDrawList()->AddCircleFilled(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
@@ -479,10 +474,10 @@ void UI::DrawMap() {
     }
 
     {
-      auto px = Max::get().player_room()->x * 40 +
-                (Max::get().player_position()->x / 320.f * 40.f);
-      auto py = Max::get().player_room()->y * 22 +
-                (Max::get().player_position()->y / 180.f * 22.f);
+      auto px = Max::get().player_room()->x * roomsize.x +
+                (Max::get().player_position()->x / 320.f * roomsize.x);
+      auto py = Max::get().player_room()->y * roomsize.y +
+                (Max::get().player_position()->y / 180.f * roomsize.y);
       ImGui::GetWindowDrawList()->AddCircleFilled(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
@@ -490,16 +485,16 @@ void UI::DrawMap() {
     }
 
     if (options["map_wheel"].value) {
-      auto px = Max::get().player_room()->x * 40 +
-                (Max::get().player_wheel()->x / 320.f * 40.f);
-      auto py = Max::get().player_room()->y * 22 +
-                (Max::get().player_wheel()->y / 180.f * 22.f);
-      while (px < 80.f)
-        px += 640.f;
-      while (px > 720.f)
-        px -= 640.f;
-      while (py > 440.f)
-        py -= 352.f;
+      auto px = Max::get().player_room()->x * roomsize.x +
+                (Max::get().player_wheel()->x / 320.f * roomsize.x);
+      auto py = Max::get().player_room()->y * roomsize.y +
+                (Max::get().player_wheel()->y / 180.f * roomsize.y);
+      while (px < 80.f * uiScale)
+        px += 640.f * uiScale;
+      while (px > 720.f * uiScale)
+        px -= 640.f * uiScale;
+      while (py > 440.f * uiScale)
+        py -= 352.f * uiScale;
       ImGui::GetWindowDrawList()->AddCircle(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
@@ -523,7 +518,7 @@ void UI::ScaleWindow() {
 
 void UI::DrawOptions() {
   ImGuiIO &io = ImGui::GetIO();
-  ImGui::PushItemWidth(120.f);
+  ImGui::PushItemWidth(120.f * uiScale);
   bool noclip = options["cheat_noclip"].value;
   for (auto &[name, enabled] : options) {
     Option(name);
@@ -620,7 +615,7 @@ void UI::LoadMuralPage(int page) {
 
 void UI::DrawTools() {
   ImGuiIO &io = ImGui::GetIO();
-  ImGui::PushItemWidth(120.f);
+  ImGui::PushItemWidth(120.f * uiScale);
   if (ImGui::CollapsingHeader("Screen shooter  ")) {
     ImGui::InputText("File prefix", &screenShotFileName);
     ImGui::InputInt2("Room range", &screenShotRange.x);
@@ -783,7 +778,7 @@ void UI::DrawTile(Tile &tile) {
 }
 
 void UI::DrawTileRow(Tile &tile) {
-  ImGui::PushItemWidth(40.f);
+  ImGui::PushItemWidth(40.f * uiScale);
   ImGui::InputScalar("##ID", ImGuiDataType_U16, &tile.id, nullptr, nullptr);
   ImGui::SameLine(0, 4);
   ImGui::InputScalar("##Param", ImGuiDataType_U8, &tile.param, nullptr,
@@ -807,8 +802,8 @@ void UI::DrawSelectedTileRow(SelectedTile &tile) {
   ImGui::SameLine(0, 4);
   ImGui::Text("%d,%d %d,%d %s", tile.room.x, tile.room.y, tile.pos.x,
               tile.pos.y, (tile.layer ? "BG" : "FG"));
-  ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f, 0);
-  if (ImGui::Button("Go", ImVec2(24.f, ImGui::GetFrameHeight()))) {
+  ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+  if (ImGui::Button("Go", ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
     *Max::get().warp_map() = tile.map;
     *Max::get().warp_room() = tile.room;
     Max::get().warp_position()->x = 8 * tile.pos.x;
@@ -821,7 +816,7 @@ void UI::DrawLevel() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
 
-  ImGui::PushItemWidth(100.f);
+  ImGui::PushItemWidth(100.f * uiScale);
 
   if (ImGui::CollapsingHeader("Room")) {
     static bool lockCurrentRoom{true};
@@ -879,7 +874,7 @@ void UI::DrawLevel() {
     const bool focused = ImGui::IsItemFocused();
     bool doSearch = false;
     bool doClear = false;
-    ImGui::SameLine(130.f, 4);
+    ImGui::SameLine(130.f * uiScale, 4);
     if (ImGui::Button("Search##SearchTiles") ||
         (focused && ImGui::IsKeyPressed(ImGuiKey_Enter))) {
       doSearch = true;
@@ -918,7 +913,7 @@ void UI::DrawLevel() {
     int i = 0;
     ImGui::PushID("TileSearchResults");
     if (searchTiles.size() > 0) {
-      ImGui::PushItemWidth(126.f);
+      ImGui::PushItemWidth(126.f * uiScale);
       std::string label = fmt::format("Found {} tiles:", searchTiles.size());
       ImGui::LabelText("", label.c_str());
       ImGui::SameLine(0, 4);
@@ -980,10 +975,14 @@ void UI::DrawLevel() {
   ImGui::PopItemWidth();
 }
 
-UI::UI() {
+UI::UI(float scale) {
   Max::get();
   LoadINI();
   options["ui_visible"].value = true;
+
+  dpiScale = scale;
+  if (options["ui_scaling"].value)
+    uiScale = dpiScale;
 
   NewWindow("F1 Player", keys["tool_player"], 0,
             [this]() { this->DrawPlayer(); });
@@ -1446,11 +1445,45 @@ void UI::Draw() {
     return;
   }
 
+  if (options["ui_scaling"].value) {
+    uiScale = dpiScale;
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+
+    auto &style = ImGui::GetStyle();
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                        ImTrunc(style.WindowPadding * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding,
+                        ImTrunc(style.WindowRounding * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize,
+                        ImTrunc(style.WindowMinSize * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+                        ImTrunc(style.FramePadding * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,
+                        ImTrunc(style.CellPadding * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing,
+                        ImTrunc(style.IndentSpacing * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize,
+                        ImTrunc(style.ScrollbarSize * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize,
+                        ImTrunc(style.GrabMinSize * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding,
+                        ImTrunc(style.SeparatorTextPadding * uiScale));
+    ImGui::PushStyleVar(ImGuiStyleVar_DockingSeparatorSize,
+                        ImTrunc(style.DockingSeparatorSize * uiScale));
+  } else {
+    uiScale = 1.0f;
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+  }
+
   Keys();
   Play();
   Windows();
   HUD();
   Cheats();
+
+  ImGui::PopFont();
+  if (options["ui_scaling"].value)
+    ImGui::PopStyleVar(10);
 
   if (ImGui::GetFrameCount() == 20)
     ScaleWindow();
