@@ -1221,6 +1221,8 @@ void UI::Windows() {
           window->detached = true;
       }
       ImGui::EndMainMenuBar();
+    } else {
+      ImGui::PopStyleVar(2);
     }
     for (auto *window : windows) {
       if (!window->detached)
@@ -1445,7 +1447,8 @@ void UI::Draw() {
     return;
   }
 
-  if (options["ui_scaling"].value) {
+  auto ui_scaling = options["ui_scaling"].value; // cache value in case it gets changed
+  if (ui_scaling) {
     uiScale = dpiScale;
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 
@@ -1482,7 +1485,7 @@ void UI::Draw() {
   Cheats();
 
   ImGui::PopFont();
-  if (options["ui_scaling"].value)
+  if (ui_scaling)
     ImGui::PopStyleVar(10);
 
   if (ImGui::GetFrameCount() == 20)
