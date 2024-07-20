@@ -827,28 +827,33 @@ void UI::DrawLevel() {
       selectedRoom.room = Max::get().room(selectedRoom.map, selectedRoom.pos.x,
                                           selectedRoom.pos.y);
     }
+
+    ImGui::BeginDisabled(lockCurrentRoom);
+    if(ImGui::InputInt2("Position##RoomPosition", &selectedRoom.pos.x)) {
+      selectedRoom.room = Max::get().room(selectedRoom.map, selectedRoom.pos.x, selectedRoom.pos.y);
+    }
+    ImGui::EndDisabled();
+
     if (selectedRoom.room) {
-      ImGui::InputScalarN("Position##RoomPosition", ImGuiDataType_U8,
-                          &selectedRoom.room->x, 2);
       ImGui::InputScalarN("BG##RoomBG", ImGuiDataType_U8,
                           &selectedRoom.room->bgId, 1, &u8_one);
-      ImGui::InputScalarN("Palette##RoomPalette", ImGuiDataType_U8,
+      ImGui::InputScalarN("Pallet Index##RoomPalette", ImGuiDataType_U8,
                           &selectedRoom.room->params.palette, 1, &u8_one);
       ImGui::InputScalarN("???##UnknownRoomParams", ImGuiDataType_U8,
                           &selectedRoom.room->params.idk1, 3);
       ImGui::DragScalar("Water level##RoomWaterLevel", ImGuiDataType_U8,
                         &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
-    }
-    ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &forcedPalette,
-                       &u8_one);
-    if (forcedPalette > 31)
-      forcedPalette = 31;
-    ImGui::SameLine(0, 4);
-    ImGui::Checkbox("Forced palette", &options["cheat_palette"].value);
-    if (options["cheat_palette"].value) {
-      Max::get().force_palette = forcedPalette;
-    } else {
-      Max::get().force_palette = std::nullopt;
+      ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &forcedPalette,
+                         &u8_one);
+      if (forcedPalette > 31)
+        forcedPalette = 31;
+      ImGui::SameLine(0, 4);
+      ImGui::Checkbox("Forced palette", &options["cheat_palette"].value);
+      if (options["cheat_palette"].value) {
+        Max::get().force_palette = forcedPalette;
+      } else {
+        Max::get().force_palette = std::nullopt;
+      }
     }
   }
 
@@ -1230,8 +1235,8 @@ void UI::Windows() {
       if (ImGui::Begin(window->title.c_str(), &window->detached,
                        window->flags)) {
         window->cb();
-        ImGui::End();
       }
+      ImGui::End();
     }
   }
 }
