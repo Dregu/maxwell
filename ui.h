@@ -235,6 +235,10 @@ public:
   void LoadMuralPage(int page);
   void RefreshMaps();
 
+  bool GetOption(const std::string& name) {
+    return options[name].value;
+  }
+
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;
   IDXGISwapChain3 *pSwapChain = NULL;

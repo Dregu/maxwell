@@ -214,8 +214,8 @@ void DestroyRenderTarget() {
   // DEBUG("DestroyRenderTarget");
   if (g_Initialized) {
     g_Initialized = false;
-    ImGui_ImplWin32_Shutdown();
     ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
   }
   g_pD3DCommandQueue = nullptr;
   g_FrameContext.clear();
@@ -253,7 +253,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
 
     auto *g = ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // has to be enabled at start for ImGui_ImplWin32_Init to load everything
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     CreateDirectory(L"MAXWELL", NULL);
@@ -322,6 +322,13 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
 
     pD3DDevice->Release();
 
+    // set viewports back to value from options to prevent change mid frame
+    if (g_UI->GetOption("ui_viewports")) {
+      ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    } else {
+      ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+    }
+
     g_Initialized = true;
   }
 
@@ -331,11 +338,10 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     ::DispatchMessage(&msg);
   }
 
-  auto &g = *GImGui;
-  ImGuiIO &io = ImGui::GetIO();
+  auto g = ImGui::GetCurrentContext();
 
-  for (int i = 1; i < g.PlatformIO.Viewports.Size; i++) {
-    ImGuiViewport *viewport = g.PlatformIO.Viewports[i];
+  for (int i = 1; i < g->PlatformIO.Viewports.Size; i++) {
+    ImGuiViewport *viewport = g->PlatformIO.Viewports[i];
     viewport->Flags |= ImGuiViewportFlags_NoFocusOnClick |
                        ImGuiViewportFlags_NoFocusOnAppearing |
                        ImGuiViewportFlags_OwnedByApp;
@@ -363,7 +369,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
   g_pD3DCommandList->ResourceBarrier(1, &barrier);
   g_pD3DCommandList->OMSetRenderTargets(
       1, &currentFrameContext.main_render_target_descriptor, FALSE, nullptr);
-  g_pD3DCommandList->SetDescriptorHeaps(1, &g_pD3DSrvDescHeap);
+  g_pD3DCommandList->SetDescriptorHeaps(1, &g_pD3DSrvDescHeap.p);
   ImGui::Render();
 
   if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -380,7 +386,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
   g_pD3DCommandList->Close();
 
   g_pD3DCommandQueue->ExecuteCommandLists(
-      1, (ID3D12CommandList **)&g_pD3DCommandList);
+      1, (ID3D12CommandList **)&g_pD3DCommandList.p);
 
   return OriginalPresent(pSwapChain, SyncInterval, Flags);
 } // namespace D3D12
