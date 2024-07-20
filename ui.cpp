@@ -812,11 +812,30 @@ void UI::DrawSelectedTileRow(SelectedTile &tile) {
   }
 }
 
+void ColorEdit3(const char *label, uint8_t *col, ImGuiColorEditFlags flags = 0) {
+    float col4[4] { col[0] / 255.0f, col[1] / 255.0f, col[2] / 255.0f, 1.0f };
+
+    ImGui::ColorEdit4(label, col4, flags | ImGuiColorEditFlags_NoAlpha);
+
+    col[0] = col4[0] * 255.f;
+    col[1] = col4[1] * 255.f;
+    col[2] = col4[2] * 255.f;
+}
+
+void ColorEdit4(const char *label, uint8_t *col, ImGuiColorEditFlags flags = 0) {
+    float col4[4] { col[0] / 255.0f, col[1] / 255.0f, col[2] / 255.0f, col[3] / 255.0f };
+
+    ImGui::ColorEdit4(label, col4, flags);
+
+    col[0] = col4[0] * 255.f;
+    col[1] = col4[1] * 255.f;
+    col[2] = col4[2] * 255.f;
+    col[3] = col4[3] * 255.f;
+}
+
 void UI::DrawLevel() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
-
-  ImGui::PushItemWidth(100.f * uiScale);
 
   if (ImGui::CollapsingHeader("Room")) {
     static bool lockCurrentRoom{true};
@@ -853,6 +872,21 @@ void UI::DrawLevel() {
         Max::get().force_palette = forcedPalette;
       } else {
         Max::get().force_palette = std::nullopt;
+      }
+
+      ImGui::SeparatorText("Pallet Data");
+
+      auto amb = Max::get().ambient(selectedRoom.room->params.palette);
+
+      if(amb) {
+        ColorEdit3("ambient light", amb->ambient_light);
+        ColorEdit3("fg ambient multi", amb->fg_ambient_multi);
+        ColorEdit3("bg ambient multi", amb->bg_ambient_multi);
+
+        ColorEdit4("lamp intensity", amb->light_intensity);
+        ImGui::DragFloat3("color dividers", amb->dividers);
+        ImGui::DragFloat("color saturation", &amb->saturation);
+        ImGui::DragFloat("bg texture light multi", &amb->bg_tex_light_multi);
       }
     }
   }
@@ -977,7 +1011,6 @@ void UI::DrawLevel() {
       ImGui::TextWrapped(
           "Put files exported by map editor in MAXWELL/Maps to import!");
   }
-  ImGui::PopItemWidth();
 }
 
 UI::UI(float scale) {
