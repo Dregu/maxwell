@@ -223,6 +223,7 @@ public:
   void DrawMap();
   void DrawTools();
   void DrawOptions();
+  void UpdateOptions();
   void DrawLevel();
   void DrawTile(Tile &tile);
   void DrawTileRow(Tile &tile);

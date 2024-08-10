@@ -277,7 +277,7 @@ void UI::DrawPlayer() {
   ImGui::InputScalar("Slot", ImGuiDataType_U8, Max::get().slot_number(), NULL,
                      NULL, "%d", ImGuiInputTextFlags_ReadOnly);
   ImGui::SameLine(0, 4);
-  if (ImGui::Button("Save game")) {
+  if (ImGui::Button("Save game##SaveGame")) {
     *Max::get().spawn_room() = *Max::get().player_room();
     Max::get().save_game();
   }
@@ -292,36 +292,51 @@ void UI::DrawPlayer() {
     Flags(misc_names, Max::get().upgrades(), false);
 
   if (ImGui::CollapsingHeader("Consumables##PlayerConsumables")) {
-    ImGui::DragScalar("Health", ImGuiDataType_S8, Max::get().player_hp(), 0.1f);
-    ImGui::DragScalar("More health", ImGuiDataType_S8,
+    ImGui::DragScalar("Health##PlayerHealth", ImGuiDataType_S8,
+                      Max::get().player_hp(), 0.1f);
+    ImGui::DragScalar("More health##PlayerMoreHealth", ImGuiDataType_S8,
                       Max::get().player_hp() + 1, 0.1f);
-    ImGui::DragScalar("Keys", ImGuiDataType_U8, Max::get().keys(), 0.1f);
-    ImGui::DragScalar("Matches", ImGuiDataType_U8, Max::get().keys() + 1, 0.1f);
-    ImGui::DragScalar("Firecrackers", ImGuiDataType_U8, Max::get().keys() + 2,
+    ImGui::DragScalar("Keys##PlayerKeys", ImGuiDataType_U8, Max::get().keys(),
                       0.1f);
+    ImGui::DragScalar("Matches##PlayerMatches", ImGuiDataType_U8,
+                      Max::get().keys() + 1, 0.1f);
+    ImGui::DragScalar("Firecrackers##PlayerFirecrackers", ImGuiDataType_U8,
+                      Max::get().keys() + 2, 0.1f);
   }
-  if (ImGui::CollapsingHeader("Position##PlayerPosition")) {
-    ImGui::InputInt2("Room", &Max::get().player_room()->x);
-    ImGui::InputFloat2("Position", &Max::get().player_position()->x);
-    ImGui::InputFloat2("Velocity", &Max::get().player_velocity()->x);
-    ImGui::InputInt2("Spawn room", &Max::get().spawn_room()->x);
-    ImGui::InputInt2("Respawn room", &Max::get().respawn_room()->x);
-    ImGui::InputInt2("Respawn tile", &Max::get().respawn_position()->x);
-    ImGui::InputInt("Map", Max::get().player_map());
-    ImGui::InputFloat2("Wheel", &Max::get().player_wheel()->x);
+  if (ImGui::CollapsingHeader("Position##PlayerPositionAndRoom")) {
+    ImGui::InputInt2("Room##PlayerRoom", &Max::get().player_room()->x);
+    ImGui::InputFloat2("Position##PlayerPosition",
+                       &Max::get().player_position()->x);
+    ImGui::InputFloat2("Velocity##PlayerVelocity",
+                       &Max::get().player_velocity()->x);
+    ImGui::InputInt2("Spawn room##PlayerSpawnRoom",
+                     &Max::get().spawn_room()->x);
+    ImGui::InputInt2("Respawn room##PlayerRespawnRoom",
+                     &Max::get().respawn_room()->x);
+    ImGui::InputInt2("Respawn tile##PlayerRespawnTile",
+                     &Max::get().respawn_position()->x);
+    ImGui::InputInt("Map##PlayerMap", Max::get().player_map());
+    ImGui::InputFloat2("Wheel##PlayerWheelPosition",
+                       &Max::get().player_wheel()->x);
   }
-  if (ImGui::CollapsingHeader("State##PlayerState")) {
-    ImGui::InputScalar("State", ImGuiDataType_U8, Max::get().player_state());
-    ImGui::InputScalar("Flute", ImGuiDataType_U8, Max::get().player_flute());
-    ImGui::InputScalar("Item", ImGuiDataType_U8, Max::get().item());
-    ImGui::InputScalar("Ingame time", ImGuiDataType_U32, Max::get().timer());
-    ImGui::InputScalar("Total time", ImGuiDataType_U32, Max::get().timer() + 1);
-    ImGui::Checkbox("Paused", &Max::get().pause()->paused);
+  if (ImGui::CollapsingHeader("State##PlayerAndGameState")) {
+    ImGui::InputScalar("State##PlayerState", ImGuiDataType_U8,
+                       Max::get().player_state());
+    ImGui::InputScalar("Flute##PlayerFluteDir", ImGuiDataType_U8,
+                       Max::get().player_flute());
+    ImGui::InputScalar("Item##PlayerCurrentItem", ImGuiDataType_U8,
+                       Max::get().item());
+    ImGui::InputScalar("Ingame time##StateIngameTime", ImGuiDataType_U32,
+                       Max::get().timer());
+    ImGui::InputScalar("Total time##StateTotalTime", ImGuiDataType_U32,
+                       Max::get().timer() + 1);
+    ImGui::Checkbox("Paused##StatePaused", &Max::get().pause()->paused);
   }
   if (ImGui::CollapsingHeader("Warp##PlayerWarp")) {
-    ImGui::InputInt2("Warp room", &Max::get().warp_room()->x);
-    ImGui::InputInt2("Warp position", &Max::get().warp_position()->x);
-    ImGui::InputInt("Warp map", Max::get().warp_map());
+    ImGui::InputInt2("Warp room##PlayerWarpRoom", &Max::get().warp_room()->x);
+    ImGui::InputInt2("Warp position##PlayerWarpPosition",
+                     &Max::get().warp_position()->x);
+    ImGui::InputInt("Warp map##PlayerWarpMap", Max::get().warp_map());
     if (ImGui::Button(
             fmt::format("Warp ({})", ImGui::GetKeyChordName(keys["warp"]))
                 .c_str()))
@@ -516,6 +531,14 @@ void UI::ScaleWindow() {
                2);
 }
 
+void UI::UpdateOptions() {
+  if (options["cheat_palette"].value) {
+    Max::get().force_palette = forcedPalette;
+  } else {
+    Max::get().force_palette = std::nullopt;
+  }
+}
+
 void UI::DrawOptions() {
   ImGuiIO &io = ImGui::GetIO();
   ImGui::PushItemWidth(120.f * uiScale);
@@ -525,6 +548,7 @@ void UI::DrawOptions() {
   }
   if (noclip && !options["cheat_noclip"].value)
     *Max::get().player_state() = 0;
+  UpdateOptions();
   if (ImGui::SliderInt("Window scale", &windowScale, 1, 10, "%dx")) {
     ScaleWindow();
   }
@@ -617,12 +641,12 @@ void UI::DrawTools() {
   ImGuiIO &io = ImGui::GetIO();
   ImGui::PushItemWidth(120.f * uiScale);
   if (ImGui::CollapsingHeader("Screen shooter  ")) {
-    ImGui::InputText("File prefix", &screenShotFileName);
-    ImGui::InputInt2("Room range", &screenShotRange.x);
-    if (ImGui::Button("Capture (.)"))
+    ImGui::InputText("File prefix##ScreenshotPrefix", &screenShotFileName);
+    ImGui::InputInt2("Room range##ScreenshotRoomRange", &screenShotRange.x);
+    if (ImGui::Button("Capture (.)##ScreenshotCapture"))
       ScreenShot();
     ImGui::SameLine(0, 4);
-    if (ImGui::Button("Capture range")) {
+    if (ImGui::Button("Capture range##ScreenshotCaptureRange")) {
       *Max::get().warp_room() = *Max::get().player_room();
       Max::get().warp_position()->x = (int)Max::get().player_position()->x;
       Max::get().warp_position()->y = (int)Max::get().player_position()->y;
@@ -645,11 +669,12 @@ void UI::DrawTools() {
       }
       Max::get().inputs.push_back(-1);
     }*/
-    if (ImGui::Checkbox("Enable sequencer", &sequencer.enabled)) {
+    if (ImGui::Checkbox("Enable sequencer##SequencerEnable",
+                        &sequencer.enabled)) {
       Max::get().input = PLAYER_INPUT::SKIP;
       Max::get().inputs.clear();
     }
-    if (ImGui::Button("Clear queue")) {
+    if (ImGui::Button("Clear queue##SequencerClearQueue")) {
       Max::get().input = PLAYER_INPUT::SKIP;
       Max::get().inputs.clear();
     }
@@ -878,11 +903,7 @@ void UI::DrawLevel() {
         forcedPalette = 31;
       ImGui::SameLine(0, 4);
       ImGui::Checkbox("Forced lighting", &options["cheat_palette"].value);
-      if (options["cheat_palette"].value) {
-        Max::get().force_palette = forcedPalette;
-      } else {
-        Max::get().force_palette = std::nullopt;
-      }
+      UpdateOptions();
       if (ImGui::Button("Reset room params##ResetRoomParams") &&
           defaultRoom.contains(selectedRoom.room)) {
         selectedRoom.room->bgId = defaultRoom[selectedRoom.room].bgId;
@@ -1119,6 +1140,7 @@ UI::UI(float scale) {
 UI::~UI() { Max::get().unhook(); }
 
 bool UI::Keys() {
+  auto ret = true;
   if (ImGui::IsKeyReleased((ImGuiKey)keys["escape"]))
     ImGui::SetWindowFocus(nullptr);
   else if (ImGui::IsKeyChordPressed(keys["toggle_ui"]))
@@ -1139,14 +1161,9 @@ bool UI::Keys() {
     options["cheat_lights"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_clouds"]))
     options["cheat_clouds"].value ^= true;
-  else if (ImGui::IsKeyChordPressed(keys["toggle_palette"])) {
+  else if (ImGui::IsKeyChordPressed(keys["toggle_palette"]))
     options["cheat_palette"].value ^= true;
-    if (options["cheat_palette"].value) {
-      Max::get().force_palette = forcedPalette;
-    } else {
-      Max::get().force_palette = std::nullopt;
-    }
-  } else if (ImGui::IsKeyChordPressed(keys["toggle_gameboy"]))
+  else if (ImGui::IsKeyChordPressed(keys["toggle_gameboy"]))
     options["cheat_gameboy"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_hud"]))
     options["cheat_hud"].value ^= true;
@@ -1163,8 +1180,9 @@ bool UI::Keys() {
   } else if (ImGui::IsKeyChordPressed(keys["skip"], ImGuiInputFlags_Repeat))
     Max::get().skip = true;
   else
-    return false;
-  return true;
+    ret = false;
+  UpdateOptions();
+  return ret;
 }
 
 ImVec2 Mouse() {
