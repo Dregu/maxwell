@@ -108,8 +108,9 @@ private:
        {false, "Remove lights",
         "Removes the lighting effect of hanging lights.", "toggle_lights"}},
       {"cheat_palette",
-       {false, "Force color palette",
-        "Forces a specific room color palette.\n(a very bright one by default)",
+       {false, "Force lighting",
+        "Forces a specific room color palette/lighting.\n(a very bright one by "
+        "default)",
         "toggle_palette"}},
       {"cheat_gameboy",
        {false, "Gameboy mode",
@@ -202,6 +203,8 @@ private:
   std::vector<std::filesystem::path> maps;
   uint8_t forcedPalette{26};
   std::vector<SelectedTile> searchTiles;
+  std::unordered_map<Room *, RoomData> defaultRoom;
+  std::unordered_map<uint8_t, LightingData> defaultLighting;
 
 public:
   UI(float scale = 1.0f);
@@ -238,6 +241,8 @@ public:
   void HUD();
   void LoadMuralPage(int page);
   void RefreshMaps();
+
+  bool GetOption(const std::string &name) { return options[name].value; }
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

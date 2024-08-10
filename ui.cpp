@@ -813,13 +813,36 @@ void UI::DrawSelectedTileRow(SelectedTile &tile) {
   }
 }
 
+void ColorEdit3(const char *label, uint8_t *col,
+                ImGuiColorEditFlags flags = 0) {
+  float col4[4]{col[0] / 255.0f, col[1] / 255.0f, col[2] / 255.0f, 1.0f};
+
+  ImGui::ColorEdit4(label, col4, flags | ImGuiColorEditFlags_NoAlpha);
+
+  col[0] = col4[0] * 255.f;
+  col[1] = col4[1] * 255.f;
+  col[2] = col4[2] * 255.f;
+}
+
+void ColorEdit4(const char *label, uint8_t *col,
+                ImGuiColorEditFlags flags = 0) {
+  float col4[4]{col[0] / 255.0f, col[1] / 255.0f, col[2] / 255.0f,
+                col[3] / 255.0f};
+
+  ImGui::ColorEdit4(label, col4, flags);
+
+  col[0] = col4[0] * 255.f;
+  col[1] = col4[1] * 255.f;
+  col[2] = col4[2] * 255.f;
+  col[3] = col4[3] * 255.f;
+}
+
 void UI::DrawLevel() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
 
-  ImGui::PushItemWidth(100.f * uiScale);
-
   if (ImGui::CollapsingHeader("Room")) {
+    ImGui::PushItemWidth(140.f * uiScale);
     static bool lockCurrentRoom{true};
     ImGui::Checkbox("Select current room", &lockCurrentRoom);
     if (lockCurrentRoom) {
@@ -828,29 +851,73 @@ void UI::DrawLevel() {
       selectedRoom.room = Max::get().room(selectedRoom.map, selectedRoom.pos.x,
                                           selectedRoom.pos.y);
     }
+
+    ImGui::BeginDisabled(lockCurrentRoom);
+    if (ImGui::InputInt2("Position##RoomPosition", &selectedRoom.pos.x)) {
+      selectedRoom.room = Max::get().room(selectedRoom.map, selectedRoom.pos.x,
+                                          selectedRoom.pos.y);
+    }
+    ImGui::EndDisabled();
+
     if (selectedRoom.room) {
-      ImGui::InputScalarN("Position##RoomPosition", ImGuiDataType_U8,
-                          &selectedRoom.room->x, 2);
+      if (!defaultRoom.contains(selectedRoom.room))
+        defaultRoom[selectedRoom.room] = {selectedRoom.room->bgId,
+                                          selectedRoom.room->waterLevel,
+                                          selectedRoom.room->params};
       ImGui::InputScalarN("BG##RoomBG", ImGuiDataType_U8,
                           &selectedRoom.room->bgId, 1, &u8_one);
-      ImGui::InputScalarN("Palette##RoomPalette", ImGuiDataType_U8,
+      ImGui::InputScalarN("Lighting##RoomLighting", ImGuiDataType_U8,
                           &selectedRoom.room->params.palette, 1, &u8_one);
       ImGui::InputScalarN("???##UnknownRoomParams", ImGuiDataType_U8,
                           &selectedRoom.room->params.idk1, 3);
       ImGui::DragScalar("Water level##RoomWaterLevel", ImGuiDataType_U8,
                         &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
+      ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &forcedPalette,
+                         &u8_one);
+      if (forcedPalette > 31)
+        forcedPalette = 31;
+      ImGui::SameLine(0, 4);
+      ImGui::Checkbox("Forced lighting", &options["cheat_palette"].value);
+      if (options["cheat_palette"].value) {
+        Max::get().force_palette = forcedPalette;
+      } else {
+        Max::get().force_palette = std::nullopt;
+      }
+      if (ImGui::Button("Reset room params##ResetRoomParams") &&
+          defaultRoom.contains(selectedRoom.room)) {
+        selectedRoom.room->bgId = defaultRoom[selectedRoom.room].bgId;
+        selectedRoom.room->waterLevel =
+            defaultRoom[selectedRoom.room].waterLevel;
+        selectedRoom.room->params = defaultRoom[selectedRoom.room].params;
+      }
+
+      auto palette = options["cheat_palette"].value
+                         ? forcedPalette
+                         : selectedRoom.room->params.palette;
+      ImGui::SeparatorText(fmt::format("Light params ({})", palette).c_str());
+
+      auto amb = Max::get().ambient(palette);
+
+      if (amb) {
+        if (!defaultLighting.contains(palette))
+          defaultLighting[palette] = *amb;
+
+        ColorEdit3("Color", amb->ambient_light);
+        ColorEdit3("FG tile multiplier", amb->fg_ambient_multi);
+        ColorEdit3("BG tile multiplier", amb->bg_ambient_multi);
+
+        ColorEdit4("Lamp intensity", amb->light_intensity);
+        ImGui::DragFloat3("Dividers", amb->dividers, 0.1f);
+        ImGui::DragFloat("Saturation", &amb->saturation, 0.1f);
+        ImGui::DragFloat("BG texture multiplier", &amb->bg_tex_light_multi,
+                         0.1f);
+
+        if (ImGui::Button("Reset light params##ResetRoomLightParams") &&
+            defaultLighting.contains(palette))
+          *amb = defaultLighting[palette];
+      }
     }
-    ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &forcedPalette,
-                       &u8_one);
-    if (forcedPalette > 31)
-      forcedPalette = 31;
-    ImGui::SameLine(0, 4);
-    ImGui::Checkbox("Forced palette", &options["cheat_palette"].value);
-    if (options["cheat_palette"].value) {
-      Max::get().force_palette = forcedPalette;
-    } else {
-      Max::get().force_palette = std::nullopt;
-    }
+    ImGui::PopItemWidth();
   }
 
   ImGui::PushID("TileEditor");
@@ -870,6 +937,7 @@ void UI::DrawLevel() {
 
   ImGui::PushID("TileSearch");
   if (ImGui::CollapsingHeader("Tile search   ")) {
+    ImGui::PushItemWidth(100.f * uiScale);
     static uint16_t searchId{0};
     ImGui::InputScalar("ID", ImGuiDataType_U16, &searchId, &u16_one);
     const bool focused = ImGui::IsItemFocused();
@@ -937,6 +1005,7 @@ void UI::DrawLevel() {
       ImGui::PopID();
     }
     ImGui::PopID();
+    ImGui::PopItemWidth();
   }
   ImGui::PopID();
 
@@ -973,7 +1042,6 @@ void UI::DrawLevel() {
       ImGui::TextWrapped(
           "Put files exported by map editor in MAXWELL/Maps to import!");
   }
-  ImGui::PopItemWidth();
 }
 
 UI::UI(float scale) {
@@ -1230,6 +1298,8 @@ void UI::Windows() {
           window->detached = true;
       }
       ImGui::EndMainMenuBar();
+    } else {
+      ImGui::PopStyleVar(2);
     }
     for (auto *window : windows) {
       if (!window->detached)
@@ -1237,8 +1307,8 @@ void UI::Windows() {
       if (ImGui::Begin(window->title.c_str(), &window->detached,
                        window->flags)) {
         window->cb();
-        ImGui::End();
       }
+      ImGui::End();
     }
   }
 }
@@ -1454,7 +1524,9 @@ void UI::Draw() {
     return;
   }
 
-  if (options["ui_scaling"].value) {
+  auto ui_scaling =
+      options["ui_scaling"].value; // cache value in case it gets changed
+  if (ui_scaling) {
     uiScale = dpiScale;
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 
@@ -1491,7 +1563,7 @@ void UI::Draw() {
   Cheats();
 
   ImGui::PopFont();
-  if (options["ui_scaling"].value)
+  if (ui_scaling)
     ImGui::PopStyleVar(10);
 
   if (ImGui::GetFrameCount() == 20)
