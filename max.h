@@ -110,6 +110,12 @@ struct Room {
   Tile tiles[2][22][40];
 };
 
+struct RoomData {
+  uint8_t bgId;
+  uint8_t waterLevel;
+  RoomParams params;
+};
+
 struct Map {
   uint16_t roomCount;
   uint8_t world_wrap_x_start;
@@ -179,13 +185,13 @@ struct uv_data {
 };
 static_assert(sizeof(uv_data) == 10);
 
-struct AmbientData {
+struct LightingData {
   uint8_t fg_ambient_multi[4]; // increases fg ambient light intensity
   uint8_t bg_ambient_multi[4]; // increases bg ambient light intensity
   uint8_t ambient_light[4];
   uint8_t light_intensity[4];
-  float dividers[3]; // divides colors
-  float saturation; // global saturation
+  float dividers[3];        // divides colors
+  float saturation;         // global saturation
   float bg_tex_light_multi; // amount lights affect background texture
 };
 
@@ -227,7 +233,7 @@ struct Max {
   std::bitset<0xce40 * 8> *map_bits(int n = 0);
   Map *map(int m = 0);
   Room *room(int m, int x, int y);
-  AmbientData* ambient(int id);
+  LightingData *ambient(int id);
   Tile *tile(int m, int rx, int ry, int x, int y, int l);
   bool import_map(std::string file, int m = 0);
   void load_custom_asset(uint32_t id, AssetInfo &asset);

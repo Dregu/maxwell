@@ -439,20 +439,22 @@ Room *Max::room(int m, int x, int y) {
   return nullptr;
 }
 
-AmbientData* Max::ambient(int id) {
-    static std::unique_ptr<std::array<AmbientData, 32>> data = nullptr;
+LightingData *Max::ambient(int id) {
+  static std::unique_ptr<std::array<LightingData, 32>> data = nullptr;
 
-    if(!data) { // the game does not copy the ambient data to memory so we have to sneak in our own pointer to be able to edit the data.
-        data = std::make_unique<std::array<AmbientData, 32>>();
+  if (!data) { // the game does not copy the ambient data to memory so we have
+               // to sneak in our own pointer to be able to edit the data.
+    data = std::make_unique<std::array<LightingData, 32>>();
 
-        auto data_addr = (AmbientData**)(*(size_t *)get_address("layer_base") + 0x89d470);
-        memcpy(data->data(), *data_addr, data->size() * sizeof(AmbientData));
-        *data_addr = data->data();
-    }
+    auto data_addr =
+        (LightingData **)(*(size_t *)get_address("layer_base") + 0x89d470);
+    memcpy(data->data(), *data_addr, data->size() * sizeof(LightingData));
+    *data_addr = data->data();
+  }
 
-    if(id >= 0 && id < 32)
-        return &(*data)[id];
-    return nullptr;
+  if (id >= 0 && id < 32)
+    return &(*data)[id];
+  return nullptr;
 }
 
 Tile *Max::tile(int m, int rx, int ry, int x, int y, int l) {
