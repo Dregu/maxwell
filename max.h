@@ -179,7 +179,7 @@ struct uv_data {
 };
 static_assert(sizeof(uv_data) == 10);
 
-struct AmbientData {
+struct LightingData {
   uint8_t fg_ambient_multi[4]; // increases fg ambient light intensity
   uint8_t bg_ambient_multi[4]; // increases bg ambient light intensity
   uint8_t ambient_light[4];
@@ -227,7 +227,8 @@ struct Max {
   std::bitset<0xce40 * 8> *map_bits(int n = 0);
   Map *map(int m = 0);
   Room *room(int m, int x, int y);
-  AmbientData* ambient(int id);
+  LightingData* lighting(int id);
+  void resetLighting(int id);
   Tile *tile(int m, int rx, int ry, int x, int y, int l);
   bool import_map(std::string file, int m = 0);
   void load_custom_asset(uint32_t id, AssetInfo &asset);

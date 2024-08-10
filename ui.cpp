@@ -876,9 +876,12 @@ void UI::DrawLevel() {
 
       ImGui::SeparatorText("Pallet Data");
 
-      auto amb = Max::get().ambient(selectedRoom.room->params.palette);
+      auto amb = Max::get().lighting(selectedRoom.room->params.palette);
 
       if(amb) {
+        if(ImGui::Button("Reset")) {
+            Max::get().resetLighting(selectedRoom.room->params.palette);
+        }
         ColorEdit3("ambient light", amb->ambient_light);
         ColorEdit3("fg ambient multi", amb->fg_ambient_multi);
         ColorEdit3("bg ambient multi", amb->bg_ambient_multi);

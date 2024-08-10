@@ -439,20 +439,28 @@ Room *Max::room(int m, int x, int y) {
   return nullptr;
 }
 
-AmbientData* Max::ambient(int id) {
-    static std::unique_ptr<std::array<AmbientData, 32>> data = nullptr;
+static std::unique_ptr<std::array<LightingData, 32>> light_data = nullptr;
+static std::span<LightingData> orig_light_data; // used for resetting
 
-    if(!data) { // the game does not copy the ambient data to memory so we have to sneak in our own pointer to be able to edit the data.
-        data = std::make_unique<std::array<AmbientData, 32>>();
+LightingData* Max::lighting(int id) {
+  if(!light_data) { // the game does not copy the ambient data to memory so we have to sneak in our own pointer to be able to edit the data.
+    light_data = std::make_unique<std::array<LightingData, 32>>();
 
-        auto data_addr = (AmbientData**)(*(size_t *)get_address("layer_base") + 0x89d470);
-        memcpy(data->data(), *data_addr, data->size() * sizeof(AmbientData));
-        *data_addr = data->data();
-    }
+    auto data_addr = (LightingData**)(*(size_t *)get_address("layer_base") + 0x89d470);
+    memcpy(light_data->data(), *data_addr, light_data->size() * sizeof(LightingData));
 
-    if(id >= 0 && id < 32)
-        return &(*data)[id];
-    return nullptr;
+    orig_light_data = std::span(*data_addr, 32);
+    *data_addr = light_data->data();
+  }
+
+  if(id >= 0 && id < light_data->size())
+    return &(*light_data)[id];
+  return nullptr;
+}
+
+void Max::resetLighting(int id) {
+  if(light_data != nullptr && id >= 0 && id < orig_light_data.size())
+    (*light_data)[id] = orig_light_data[id];
 }
 
 Tile *Max::tile(int m, int rx, int ry, int x, int y, int l) {
