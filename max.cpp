@@ -1,7 +1,6 @@
 #include "max.h"
 
 #include "shlwapi.h"
-#include <Windows.h>
 #include <algorithm>
 #include <array>
 #include <filesystem>
@@ -155,6 +154,88 @@ void HookSetupGame(void *a) {
   Max::get().load_map_mods();
 }
 
+GAME_INPUT KeyToInput(uint8_t vk) {
+  switch (vk) {
+  case 'W':
+  case VK_UP:
+  case VK_NUMPAD8:
+    return GAME_INPUT::UP;
+  case 'S':
+  case VK_DOWN:
+  case VK_NUMPAD2:
+    return GAME_INPUT::DOWN;
+  case 'A':
+  case VK_LEFT:
+  case VK_NUMPAD4:
+    return GAME_INPUT::LEFT;
+  case 'D':
+  case VK_RIGHT:
+  case VK_NUMPAD6:
+    return GAME_INPUT::RIGHT;
+  case 'V':
+  case 'M':
+    return GAME_INPUT::MAP;
+  case '1':
+    return GAME_INPUT::LB;
+  case '3':
+    return GAME_INPUT::RB;
+  case VK_SPACE:
+  case VK_NUMPAD0:
+    return GAME_INPUT::JUMP;
+  case 'Q':
+  case 'Z':
+  case VK_RETURN:
+  case VK_BACK:
+    return GAME_INPUT::ACTION;
+  case 'E':
+  case 'X':
+  case VK_NUMPAD5:
+    return GAME_INPUT::ITEM;
+  case '2':
+  case 'R':
+  case 'I':
+  case 'C':
+    return GAME_INPUT::INVENTORY;
+  case VK_ESCAPE:
+  case 'P':
+    return GAME_INPUT::PAUSE;
+  case 'H':
+    return GAME_INPUT::HUD;
+  default:
+    return GAME_INPUT::NONE;
+  }
+  return GAME_INPUT::NONE;
+}
+
+uint8_t GetMappedKey(uint8_t vk) {
+  auto i = KeyToInput(vk);
+  if (i != GAME_INPUT::NONE && Max::get().keymap.contains(i))
+    return Max::get().keymap[i];
+  return 0;
+}
+
+using KeyPressed = bool(uint8_t);
+KeyPressed *g_key_pressed_trampoline{nullptr};
+bool HookKeyPressed(uint8_t vk) {
+  auto mk = GetMappedKey(vk);
+  if (mk)
+    return g_key_pressed_trampoline(mk);
+  if (!Max::get().keymap.empty())
+    return false;
+  return g_key_pressed_trampoline(vk);
+}
+
+using KeyDown = uint8_t(uint8_t);
+KeyDown *g_key_down_trampoline{nullptr};
+uint8_t HookKeyDown(uint8_t vk) {
+  auto mk = GetMappedKey(vk);
+  if (mk)
+    return g_key_down_trampoline(mk);
+  if (!Max::get().keymap.empty())
+    return 0;
+  return g_key_down_trampoline(vk);
+}
+
 inline bool &get_is_init() {
   static bool is_init{false};
   return is_init;
@@ -265,6 +346,26 @@ Max &Max::get() {
       const LONG error = DetourTransactionCommit();
       if (error != NO_ERROR) {
         DEBUG("Failed hooking SetupGame: {}\n", error);
+      }
+    }
+
+    if (g_key_pressed_trampoline = (KeyPressed *)get_address("key_pressed")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_key_pressed_trampoline, HookKeyPressed);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking KeyPressed: {}\n", error);
+      }
+    }
+
+    if (g_key_down_trampoline = (KeyDown *)get_address("key_down")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_key_down_trampoline, HookKeyDown);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking KeyDown: {}\n", error);
       }
     }
 

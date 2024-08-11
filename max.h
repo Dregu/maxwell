@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Windows.h>
+#include <Winuser.h>
 #include <array>
 #include <bitset>
 #include <cstdint>
@@ -65,6 +67,23 @@ enum PLAYER_INPUT : int32_t {
   ACTION = 0x2000,
   ITEM = 0x4000,
   INVENTORY = 0x8000,
+};
+
+enum class GAME_INPUT : int32_t {
+  NONE = 0,
+  UP,
+  DOWN,
+  LEFT,
+  RIGHT,
+  MAP,
+  LB,
+  RB,
+  JUMP,
+  ACTION,
+  ITEM,
+  INVENTORY,
+  PAUSE,
+  HUD,
 };
 
 struct Directions {
@@ -261,6 +280,14 @@ struct Max {
   std::optional<uint8_t> force_palette{std::nullopt};
   std::optional<uint8_t> force_water{std::nullopt};
   std::unordered_map<int, AssetInfo> assets;
+  std::unordered_map<GAME_INPUT, uint8_t> keymap{
+      {GAME_INPUT::UP, VK_UP},     {GAME_INPUT::DOWN, VK_DOWN},
+      {GAME_INPUT::LEFT, VK_LEFT}, {GAME_INPUT::RIGHT, VK_RIGHT},
+      {GAME_INPUT::ACTION, 'A'},   {GAME_INPUT::LB, 'S'},
+      {GAME_INPUT::RB, 'D'},       {GAME_INPUT::JUMP, 'Z'},
+      {GAME_INPUT::ITEM, 'X'},     {GAME_INPUT::INVENTORY, 'C'},
+      {GAME_INPUT::MAP, 'V'},      {GAME_INPUT::PAUSE, VK_ESCAPE},
+  };
 
   bool atlas_loaded{false};
 };
