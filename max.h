@@ -84,6 +84,7 @@ enum class GAME_INPUT : int32_t {
   INVENTORY,
   PAUSE,
   HUD,
+  CRING,
 };
 
 enum class BUTTON_ICON : uint8_t {
@@ -296,6 +297,7 @@ struct Max {
       {GAME_INPUT::RB, 'D'},       {GAME_INPUT::JUMP, 'Z'},
       {GAME_INPUT::ITEM, 'X'},     {GAME_INPUT::INVENTORY, 'C'},
       {GAME_INPUT::MAP, 'V'},      {GAME_INPUT::PAUSE, VK_ESCAPE},
+      {GAME_INPUT::HUD, 'H'},      {GAME_INPUT::CRING, 'F'},
   };
 
   bool use_keymap{false};

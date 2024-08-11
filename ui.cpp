@@ -581,14 +581,16 @@ void UI::DrawCustomKey(std::string name, GAME_INPUT i) {
   ImGuiIO &io = ImGui::GetIO();
   auto key = Max::get().keymap[i];
   ImGui::Text("%s", GetKeyName(key));
-  ImGui::SameLine(60.f * uiScale, 4.f);
+  ImGui::SameLine(70.f * uiScale, 4.f);
   ImGui::InputScalar(name.c_str(), ImGuiDataType_U8, &key, NULL, NULL, "0x%x",
-                     ImGuiInputTextFlags_EscapeClearsAll);
+                     ImGuiInputTextFlags_EscapeClearsAll |
+                         ImGuiInputTextFlags_AllowTabInput);
   if (ImGui::IsItemActive()) {
     key = AnyKey();
     if (key) {
       Max::get().keymap[i] = key;
       ImGui::ClearActiveID();
+      SaveINI();
     }
   }
 }
@@ -614,10 +616,10 @@ void UI::DrawOptions() {
                         &options["input_custom"].value))
       Max::get().use_keymap = options["input_custom"].value;
     ImGui::PushItemWidth(40.f * uiScale);
-    DrawCustomKey("Left", GAME_INPUT::LEFT);
-    DrawCustomKey("Right", GAME_INPUT::RIGHT);
     DrawCustomKey("Up", GAME_INPUT::UP);
     DrawCustomKey("Down", GAME_INPUT::DOWN);
+    DrawCustomKey("Left", GAME_INPUT::LEFT);
+    DrawCustomKey("Right", GAME_INPUT::RIGHT);
     DrawCustomKey("Jump", GAME_INPUT::JUMP);
     DrawCustomKey("Action/Back", GAME_INPUT::ACTION);
     DrawCustomKey("Item", GAME_INPUT::ITEM);
@@ -627,6 +629,7 @@ void UI::DrawOptions() {
     DrawCustomKey("Next item", GAME_INPUT::RB);
     DrawCustomKey("Pause", GAME_INPUT::PAUSE);
     DrawCustomKey("HUD", GAME_INPUT::HUD);
+    DrawCustomKey("Cring", GAME_INPUT::CRING);
     ImGui::PopItemWidth();
     ImGui::PopID();
     ImGui::TextUnformatted(
@@ -1930,6 +1933,8 @@ void UI::SaveINI() {
             << (int)Max::get().keymap[GAME_INPUT::PAUSE];
   writeData << "\nhud = 0x" << std::hex
             << (int)Max::get().keymap[GAME_INPUT::HUD];
+  writeData << "\ncring = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::CRING];
 
   writeData << "\n\n";
   writeData.close();
@@ -1992,6 +1997,8 @@ void UI::LoadINI() {
       toml::find_or<uint8_t>(custom_keys, "pause", 0);
   Max::get().keymap[GAME_INPUT::HUD] =
       toml::find_or<uint8_t>(custom_keys, "hud", 0);
+  Max::get().keymap[GAME_INPUT::CRING] =
+      toml::find_or<uint8_t>(custom_keys, "cring", 0);
 
   UpdateOptions();
 

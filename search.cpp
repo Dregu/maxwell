@@ -677,19 +677,19 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     },
     {
         "draw_push_color"sv,
-        PatternCommandBuffer{}.from_exe_base(0x177d0),
+        PatternCommandBuffer{}.from_exe_base(0x177d0), // TODO
     },
     {
         "draw_pop_color"sv,
-        PatternCommandBuffer{}.from_exe_base(0x17830),
+        PatternCommandBuffer{}.from_exe_base(0x17830), // TODO
     },
     {
         "draw_push_shader"sv,
-        PatternCommandBuffer{}.from_exe_base(0x17840),
+        PatternCommandBuffer{}.from_exe_base(0x17840), // TODO
     },
     {
         "draw_pop_shader"sv,
-        PatternCommandBuffer{}.from_exe_base(0x178a0),
+        PatternCommandBuffer{}.from_exe_base(0x178a0), // TODO
     },
     {
         "render_player"sv,

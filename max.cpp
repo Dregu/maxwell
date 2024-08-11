@@ -202,6 +202,8 @@ GAME_INPUT KeyToInput(uint8_t vk) {
     return GAME_INPUT::PAUSE;
   case 'H':
     return GAME_INPUT::HUD;
+  case 'F':
+    return GAME_INPUT::CRING;
   default:
     return GAME_INPUT::NONE;
   }
@@ -272,6 +274,8 @@ void HookDrawActionButton(int x, int y, BUTTON_ICON c) {
   if (i != GAME_INPUT::NONE && Max::get().keymap.contains(i)) {
     if (Max::get().keymap[i] == VK_SPACE) {
       g_draw_action_button_trampoline(x, y, BUTTON_ICON::JUMP);
+    } else if (Max::get().keymap[i] == 'X') {
+      g_draw_action_button_trampoline(x, y, BUTTON_ICON::ITEM);
     } else if (Max::get().keymap[i] >= '0' && Max::get().keymap[i] <= 'Z') {
       const std::wstring ch{(wchar_t)Max::get().keymap[i]};
       Max::get().draw_text_small(x - 7, y + 2, ch.data());
@@ -288,16 +292,20 @@ void HookDrawButton(int x, int y, BUTTON_ICON c) {
     g_draw_button_trampoline(x, y, c);
     return;
   }
-  g_draw_button_trampoline(x, y, BUTTON_ICON::ACTION);
-  Max::get().draw_text_small(x + 2, y + 2, L"Z", 0xff000000);
   auto i = IconToInput(c);
   if (i != GAME_INPUT::NONE && Max::get().keymap.contains(i)) {
     if (Max::get().keymap[i] == VK_SPACE) {
       g_draw_button_trampoline(x, y, BUTTON_ICON::JUMP);
+    } else if (Max::get().keymap[i] == 'X') {
+      g_draw_button_trampoline(x, y, BUTTON_ICON::ITEM);
     } else if (Max::get().keymap[i] >= '0' && Max::get().keymap[i] <= 'Z') {
+      g_draw_button_trampoline(x, y, BUTTON_ICON::ACTION);
+      Max::get().draw_text_small(x + 2, y + 2, L"Z", 0xff000000);
       const std::wstring ch{(wchar_t)Max::get().keymap[i]};
       Max::get().draw_text_small(x + 2, y + 2, ch.data());
     } else {
+      g_draw_button_trampoline(x, y, BUTTON_ICON::ACTION);
+      Max::get().draw_text_small(x + 2, y + 2, L"Z", 0xff000000);
       Max::get().draw_text_small(x + 2, y + 2, L"?");
     }
   }
