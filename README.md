@@ -72,6 +72,9 @@ This is not a virus, but you probably shouldn't believe a random file on the int
   - Plays the flute automatically based on pixels on the mural
   - Blues and reds are half notes, beiges full notes
   - Take out the flute to play your song while in the room
+- Keyboard remapping
+  - Disable all undocumented game keys and remap your own
+  - All hud elements should also display correctly for most keys
 
 ### Mods
 

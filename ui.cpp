@@ -610,7 +610,7 @@ void UI::DrawOptions() {
   }
   ImGui::SliderFloat("Alpha", &ImGui::GetStyle().Alpha, 0.2f, 1.0f, "%.1f");
 
-  if (SubMenu("Custom keys")) {
+  if (SubMenu("Custom keyboard bindings")) {
     ImGui::PushID("CustomKeys");
     if (ImGui::Checkbox("Use custom keyboard bindings",
                         &options["input_custom"].value))
