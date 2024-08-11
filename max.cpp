@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <string>
 #include <vector>
 
 #include "detours.h"
@@ -214,6 +215,26 @@ uint8_t GetMappedKey(uint8_t vk) {
   return 0;
 }
 
+GAME_INPUT IconToInput(BUTTON_ICON c) {
+  switch (c) {
+  case BUTTON_ICON::JUMP:
+    return GAME_INPUT::JUMP;
+  case BUTTON_ICON::ACTION:
+    return GAME_INPUT::ACTION;
+  case BUTTON_ICON::ITEM:
+    return GAME_INPUT::ITEM;
+  case BUTTON_ICON::INVENTORY:
+    return GAME_INPUT::INVENTORY;
+  case BUTTON_ICON::LB:
+    return GAME_INPUT::LB;
+  case BUTTON_ICON::RB:
+    return GAME_INPUT::RB;
+  default:
+    return GAME_INPUT::NONE;
+  }
+  return GAME_INPUT::NONE;
+}
+
 using KeyPressed = bool(uint8_t);
 KeyPressed *g_key_pressed_trampoline{nullptr};
 bool HookKeyPressed(uint8_t vk) {
@@ -234,6 +255,50 @@ uint8_t HookKeyDown(uint8_t vk) {
   if (!Max::get().keymap.empty())
     return 0;
   return g_key_down_trampoline(vk);
+}
+
+using DrawButton = void(int x, int y, BUTTON_ICON c);
+DrawButton *g_draw_action_button_trampoline{nullptr};
+void HookDrawActionButton(int x, int y, BUTTON_ICON c) {
+  if (Max::get().keymap.empty() || *(Max::get().options() + 0x10) != 3) {
+    g_draw_action_button_trampoline(x, y, c);
+    return;
+  }
+  g_draw_action_button_trampoline(x, y, BUTTON_ICON::ACTION);
+  Max::get().draw_text_small(x - 7, y + 2, L"Z", 0xff000000);
+
+  auto i = IconToInput(c);
+  if (i != GAME_INPUT::NONE && Max::get().keymap.contains(i)) {
+    if (Max::get().keymap[i] == VK_SPACE) {
+      g_draw_action_button_trampoline(x, y, BUTTON_ICON::JUMP);
+    } else if (Max::get().keymap[i] >= '0' && Max::get().keymap[i] <= 'Z') {
+      const std::wstring ch{(wchar_t)Max::get().keymap[i]};
+      Max::get().draw_text_small(x - 7, y + 2, ch.data());
+    } else {
+      Max::get().draw_text_small(x - 7, y + 2, L"?");
+    }
+  }
+}
+
+DrawButton *g_draw_button_trampoline{nullptr};
+void HookDrawButton(int x, int y, BUTTON_ICON c) {
+  if (Max::get().keymap.empty() || *(Max::get().options() + 0x10) != 3) {
+    g_draw_button_trampoline(x, y, c);
+    return;
+  }
+  g_draw_button_trampoline(x, y, BUTTON_ICON::ACTION);
+  Max::get().draw_text_small(x + 2, y + 2, L"Z", 0xff000000);
+  auto i = IconToInput(c);
+  if (i != GAME_INPUT::NONE && Max::get().keymap.contains(i)) {
+    if (Max::get().keymap[i] == VK_SPACE) {
+      g_draw_button_trampoline(x, y, BUTTON_ICON::JUMP);
+    } else if (Max::get().keymap[i] >= '0' && Max::get().keymap[i] <= 'Z') {
+      const std::wstring ch{(wchar_t)Max::get().keymap[i]};
+      Max::get().draw_text_small(x + 2, y + 2, ch.data());
+    } else {
+      Max::get().draw_text_small(x + 2, y + 2, L"?");
+    }
+  }
 }
 
 inline bool &get_is_init() {
@@ -366,6 +431,28 @@ Max &Max::get() {
       const LONG error = DetourTransactionCommit();
       if (error != NO_ERROR) {
         DEBUG("Failed hooking KeyDown: {}\n", error);
+      }
+    }
+
+    if (g_draw_button_trampoline = (DrawButton *)get_address("draw_button")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_draw_button_trampoline, HookDrawButton);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking DrawButton: {}\n", error);
+      }
+    }
+
+    if (g_draw_action_button_trampoline =
+            (DrawButton *)get_address("draw_action_button")) {
+      DetourTransactionBegin();
+      DetourUpdateThread(GetCurrentThread());
+      DetourAttach((void **)&g_draw_action_button_trampoline,
+                   HookDrawActionButton);
+      const LONG error = DetourTransactionCommit();
+      if (error != NO_ERROR) {
+        DEBUG("Failed hooking DrawActionButton: {}\n", error);
       }
     }
 

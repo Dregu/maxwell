@@ -86,6 +86,15 @@ enum class GAME_INPUT : int32_t {
   HUD,
 };
 
+enum class BUTTON_ICON : uint8_t {
+  JUMP = 1,
+  ACTION = 2,
+  ITEM = 3,
+  INVENTORY = 4,
+  LB = 8,
+  RB = 9,
+};
+
 struct Directions {
   uint8_t buffer[32];
   uint8_t count;

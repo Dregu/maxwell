@@ -759,6 +759,13 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     {
         "key_pressed"sv, PatternCommandBuffer{}.from_exe_base(0x11c70), // TODO
     },
+    {
+        "draw_button"sv, PatternCommandBuffer{}.from_exe_base(0x6e950), // TODO
+    },
+    {
+        "draw_action_button"sv,
+        PatternCommandBuffer{}.from_exe_base(0x6df70), // TODO
+    },
     /*{
         "load_asset"sv, PatternCommandBuffer{}.from_exe_base(0x74450), // TODO
     },
