@@ -238,29 +238,30 @@ GAME_INPUT IconToInput(BUTTON_ICON c) {
 using KeyPressed = bool(uint8_t);
 KeyPressed *g_key_pressed_trampoline{nullptr};
 bool HookKeyPressed(uint8_t vk) {
+  if (!Max::get().use_keymap)
+    return g_key_pressed_trampoline(vk);
   auto mk = GetMappedKey(vk);
   if (mk)
     return g_key_pressed_trampoline(mk);
-  if (!Max::get().keymap.empty())
-    return false;
-  return g_key_pressed_trampoline(vk);
+  return false;
 }
 
 using KeyDown = uint8_t(uint8_t);
 KeyDown *g_key_down_trampoline{nullptr};
 uint8_t HookKeyDown(uint8_t vk) {
+  if (!Max::get().use_keymap)
+    return g_key_down_trampoline(vk);
   auto mk = GetMappedKey(vk);
   if (mk)
     return g_key_down_trampoline(mk);
-  if (!Max::get().keymap.empty())
-    return 0;
-  return g_key_down_trampoline(vk);
+  return 0;
 }
 
 using DrawButton = void(int x, int y, BUTTON_ICON c);
 DrawButton *g_draw_action_button_trampoline{nullptr};
 void HookDrawActionButton(int x, int y, BUTTON_ICON c) {
-  if (Max::get().keymap.empty() || *(Max::get().options() + 0x10) != 3) {
+  if (Max::get().keymap.empty() || !Max::get().use_keymap ||
+      *(Max::get().options() + 0x10) != 3) {
     g_draw_action_button_trampoline(x, y, c);
     return;
   }
@@ -282,7 +283,8 @@ void HookDrawActionButton(int x, int y, BUTTON_ICON c) {
 
 DrawButton *g_draw_button_trampoline{nullptr};
 void HookDrawButton(int x, int y, BUTTON_ICON c) {
-  if (Max::get().keymap.empty() || *(Max::get().options() + 0x10) != 3) {
+  if (Max::get().keymap.empty() || !Max::get().use_keymap ||
+      *(Max::get().options() + 0x10) != 3) {
     g_draw_button_trampoline(x, y, c);
     return;
   }

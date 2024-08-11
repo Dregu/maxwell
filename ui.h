@@ -134,6 +134,9 @@ private:
        {true, "Block game input on UI input",
         "Blocks keyboard input from game\n"
         "when typing or menus are open."}},
+      {"input_custom",
+       {false, "Use custom keyboard bindings",
+        "Allows you to rebind all in-game\nkeys and disables default keys."}},
       {"input_mouse",
        {true, "Mouse controls",
         "Left click to place tile, middle click to pick tile,\nright click to "
@@ -229,8 +232,11 @@ public:
   void DrawTileRow(Tile &tile);
   void DrawSelectedTile(SelectedTile &tile);
   void DrawSelectedTileRow(SelectedTile &tile);
+  void DrawCustomKey(std::string name, GAME_INPUT i);
 
   bool Button(std::string name, std::string desc = "", std::string key = "");
+  bool SubMenu(std::string name);
+  void EndMenu();
   void SaveINI();
   void LoadINI();
   void ScaleWindow();

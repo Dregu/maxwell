@@ -298,5 +298,6 @@ struct Max {
       {GAME_INPUT::MAP, 'V'},      {GAME_INPUT::PAUSE, VK_ESCAPE},
   };
 
+  bool use_keymap{false};
   bool atlas_loaded{false};
 };

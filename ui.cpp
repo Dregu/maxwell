@@ -537,6 +537,60 @@ void UI::UpdateOptions() {
   } else {
     Max::get().force_palette = std::nullopt;
   }
+  Max::get().use_keymap = options["input_custom"].value;
+}
+
+uint8_t AnyKey() {
+  for (int i = 8; i < 255; ++i)
+    if (ImGui::GetIO().KeysDown[i])
+      return i;
+  return 0;
+}
+
+std::string GetKeyName(unsigned int virtualKey) {
+  unsigned int scanCode = MapVirtualKeyA(virtualKey, MAPVK_VK_TO_VSC);
+
+  // because MapVirtualKey strips the extended bit for some keys
+  switch (virtualKey) {
+  case VK_LEFT:
+  case VK_UP:
+  case VK_RIGHT:
+  case VK_DOWN: // arrow keys
+  case VK_PRIOR:
+  case VK_NEXT: // page up and page down
+  case VK_END:
+  case VK_HOME:
+  case VK_INSERT:
+  case VK_DELETE:
+  case VK_DIVIDE: // numpad slash
+  case VK_NUMLOCK: {
+    scanCode |= 0x100; // set extended bit
+    break;
+  }
+  }
+
+  char keyName[50];
+  if (GetKeyNameTextA(scanCode << 16, keyName, sizeof(keyName)) != 0) {
+    return keyName;
+  } else {
+    return "???";
+  }
+}
+
+void UI::DrawCustomKey(std::string name, GAME_INPUT i) {
+  ImGuiIO &io = ImGui::GetIO();
+  auto key = Max::get().keymap[i];
+  ImGui::Text("%s", GetKeyName(key));
+  ImGui::SameLine(60.f * uiScale, 4.f);
+  ImGui::InputScalar(name.c_str(), ImGuiDataType_U8, &key, NULL, NULL, "0x%x",
+                     ImGuiInputTextFlags_EscapeClearsAll);
+  if (ImGui::IsItemActive()) {
+    key = AnyKey();
+    if (key) {
+      Max::get().keymap[i] = key;
+      ImGui::ClearActiveID();
+    }
+  }
 }
 
 void UI::DrawOptions() {
@@ -553,6 +607,33 @@ void UI::DrawOptions() {
     ScaleWindow();
   }
   ImGui::SliderFloat("Alpha", &ImGui::GetStyle().Alpha, 0.2f, 1.0f, "%.1f");
+
+  if (SubMenu("Custom keys")) {
+    ImGui::PushID("CustomKeys");
+    if (ImGui::Checkbox("Use custom keyboard bindings",
+                        &options["input_custom"].value))
+      Max::get().use_keymap = options["input_custom"].value;
+    ImGui::PushItemWidth(40.f * uiScale);
+    DrawCustomKey("Left", GAME_INPUT::LEFT);
+    DrawCustomKey("Right", GAME_INPUT::RIGHT);
+    DrawCustomKey("Up", GAME_INPUT::UP);
+    DrawCustomKey("Down", GAME_INPUT::DOWN);
+    DrawCustomKey("Jump", GAME_INPUT::JUMP);
+    DrawCustomKey("Action/Back", GAME_INPUT::ACTION);
+    DrawCustomKey("Item", GAME_INPUT::ITEM);
+    DrawCustomKey("Inventory", GAME_INPUT::INVENTORY);
+    DrawCustomKey("Map", GAME_INPUT::MAP);
+    DrawCustomKey("Previous item", GAME_INPUT::LB);
+    DrawCustomKey("Next item", GAME_INPUT::RB);
+    DrawCustomKey("Pause", GAME_INPUT::PAUSE);
+    DrawCustomKey("HUD", GAME_INPUT::HUD);
+    ImGui::PopItemWidth();
+    ImGui::PopID();
+    ImGui::TextUnformatted(
+        "Click an input field and\npress any key to change.");
+    EndMenu();
+  }
+
   if (Button("Save settings"))
     SaveINI();
   if (Button("Load settings"))
@@ -590,6 +671,18 @@ bool UI::Button(std::string name, std::string desc, std::string key) {
   if (desc != "")
     Tooltip(desc);
   return ret;
+}
+
+bool UI::SubMenu(std::string name) {
+  if (inMenu)
+    return ImGui::BeginMenu(name.c_str());
+  else
+    return ImGui::CollapsingHeader(name.c_str());
+}
+
+void UI::EndMenu() {
+  if (inMenu)
+    ImGui::EndMenu();
 }
 
 std::string Timestamp() {
@@ -1809,6 +1902,36 @@ void UI::SaveINI() {
   }
   writeData << "scale = " << std::dec << windowScale << " # int, 1 - 10"
             << std::endl;
+
+  writeData << "\n[custom_keys] # hex keycode, e.g. 0x20 for space";
+  writeData << "\nup = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::UP];
+  writeData << "\ndown = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::DOWN];
+  writeData << "\nleft = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::LEFT];
+  writeData << "\nright = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::RIGHT];
+  writeData << "\njump = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::JUMP];
+  writeData << "\naction = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::ACTION];
+  writeData << "\nitem = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::ITEM];
+  writeData << "\ninventory = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::INVENTORY];
+  writeData << "\nmap = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::MAP];
+  writeData << "\nlb = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::LB];
+  writeData << "\nrb = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::RB];
+  writeData << "\npause = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::PAUSE];
+  writeData << "\nhud = 0x" << std::hex
+            << (int)Max::get().keymap[GAME_INPUT::HUD];
+
+  writeData << "\n\n";
   writeData.close();
 }
 
@@ -1829,10 +1952,48 @@ void UI::LoadINI() {
     SaveINI();
     return;
   }
+
   for (const auto &[name, opt] : options) {
     options[name].value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
   }
   windowScale = toml::find_or<int>(opts, "scale", 4);
+
+  toml::value custom_keys;
+  try {
+    custom_keys = toml::find(data, "custom_keys");
+  } catch (std::exception &) {
+    SaveINI();
+    return;
+  }
+
+  Max::get().keymap[GAME_INPUT::UP] =
+      toml::find_or<uint8_t>(custom_keys, "up", 0);
+  Max::get().keymap[GAME_INPUT::DOWN] =
+      toml::find_or<uint8_t>(custom_keys, "down", 0);
+  Max::get().keymap[GAME_INPUT::LEFT] =
+      toml::find_or<uint8_t>(custom_keys, "left", 0);
+  Max::get().keymap[GAME_INPUT::RIGHT] =
+      toml::find_or<uint8_t>(custom_keys, "right", 0);
+  Max::get().keymap[GAME_INPUT::JUMP] =
+      toml::find_or<uint8_t>(custom_keys, "jump", 0);
+  Max::get().keymap[GAME_INPUT::ACTION] =
+      toml::find_or<uint8_t>(custom_keys, "action", 0);
+  Max::get().keymap[GAME_INPUT::ITEM] =
+      toml::find_or<uint8_t>(custom_keys, "item", 0);
+  Max::get().keymap[GAME_INPUT::INVENTORY] =
+      toml::find_or<uint8_t>(custom_keys, "inventory", 0);
+  Max::get().keymap[GAME_INPUT::MAP] =
+      toml::find_or<uint8_t>(custom_keys, "map", 0);
+  Max::get().keymap[GAME_INPUT::LB] =
+      toml::find_or<uint8_t>(custom_keys, "lb", 0);
+  Max::get().keymap[GAME_INPUT::RB] =
+      toml::find_or<uint8_t>(custom_keys, "rb", 0);
+  Max::get().keymap[GAME_INPUT::PAUSE] =
+      toml::find_or<uint8_t>(custom_keys, "pause", 0);
+  Max::get().keymap[GAME_INPUT::HUD] =
+      toml::find_or<uint8_t>(custom_keys, "hud", 0);
+
+  UpdateOptions();
 
   /*if (options["ui_viewports"].value) {
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
