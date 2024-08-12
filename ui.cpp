@@ -1389,6 +1389,13 @@ void UI::Cheats() {
     recover_mem("render_player");
   }
 
+  if (options["cheat_credits"].value && get_address("skip_credits")) {
+    write_mem_recoverable("skip_credits", get_address("skip_credits"),
+                          get_nop(2), true);
+  } else {
+    recover_mem("skip_credits");
+  }
+
   if (options["cheat_noclip"].value) {
     *Max::get().player_state() = 18;
   }

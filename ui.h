@@ -130,6 +130,9 @@ private:
       {"cheat_clouds",
        {false, "Remove clouds", "Removes the cloudy foreground effects.",
         "toggle_clouds"}},
+      {"cheat_credits",
+       {false, "Skip credits", "Skips credits and drops the key immediately."}},
+
       {"input_block",
        {true, "Block game input on UI input",
         "Blocks keyboard input from game\n"
@@ -142,6 +145,7 @@ private:
         "Left click to place tile, middle click to pick tile,\nright click to "
         "teleport!",
         "toggle_mouse"}},
+
       {"map_auto",
        {false, "Constantly update minimap",
         "This can be choppy if map window is left open.\n"
@@ -162,6 +166,7 @@ private:
        {false, "Show all map borders on minimap",
         "Draws all special map borders instead of only selected layer."}},
       {"map_wheel", {false, "Show wheel on minimap", "For wheel warping."}},
+
       {"ui_coords",
        {true, "Show coordinate tooltip",
         "Show screen and tile coordinates under mouse cursor."}},
