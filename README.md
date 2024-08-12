@@ -74,7 +74,8 @@ This is not a virus, but you probably shouldn't believe a random file on the int
   - Take out the flute to play your song while in the room
 - Keyboard remapping
   - Disable all undocumented game keys and remap your own
-  - All hud elements should also display correctly for most keys
+  - All hud elements should also display correctly for most keys (all alphanumeric + space)
+  - Numpad is left untouched at the moment and works normally
 
 ### Mods
 

@@ -240,7 +240,8 @@ GAME_INPUT IconToInput(BUTTON_ICON c) {
 using KeyPressed = bool(uint8_t);
 KeyPressed *g_key_pressed_trampoline{nullptr};
 bool HookKeyPressed(uint8_t vk) {
-  if (!Max::get().use_keymap)
+  if (!Max::get().use_keymap || vk == VK_LBUTTON ||
+      (vk & VK_NUMPAD0) == VK_NUMPAD0)
     return g_key_pressed_trampoline(vk);
   auto mk = GetMappedKey(vk);
   if (mk)
@@ -251,7 +252,8 @@ bool HookKeyPressed(uint8_t vk) {
 using KeyDown = uint8_t(uint8_t);
 KeyDown *g_key_down_trampoline{nullptr};
 uint8_t HookKeyDown(uint8_t vk) {
-  if (!Max::get().use_keymap)
+  if (!Max::get().use_keymap || vk == VK_LBUTTON ||
+      (vk & VK_NUMPAD0) == VK_NUMPAD0)
     return g_key_down_trampoline(vk);
   auto mk = GetMappedKey(vk);
   if (mk)
