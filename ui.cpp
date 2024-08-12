@@ -599,7 +599,20 @@ void UI::DrawOptions() {
   ImGuiIO &io = ImGui::GetIO();
   ImGui::PushItemWidth(120.f * uiScale);
   bool noclip = options["cheat_noclip"].value;
+  std::string cat;
   for (auto &[name, enabled] : options) {
+    std::string newcat = name.substr(0, name.find("_"));
+    if (newcat != cat) {
+      if (newcat == "cheat")
+        ImGui::SeparatorText("Cheats");
+      else if (newcat == "map")
+        ImGui::SeparatorText("Minimap");
+      else if (newcat == "ui")
+        ImGui::SeparatorText("User interface");
+      else if (newcat == "input")
+        ImGui::SeparatorText("Input");
+      cat = newcat;
+    }
     Option(name);
   }
   if (noclip && !options["cheat_noclip"].value)
@@ -653,10 +666,10 @@ bool UI::Option(std::string name) {
                  ")"
            : "");
   bool ret = false;
-  if (inMenu)
+  /*if (inMenu)
     ret = ImGui::MenuItem(title.c_str(), "", &options[name].value);
-  else
-    ret = ImGui::Checkbox(title.c_str(), &options[name].value);
+  else*/
+  ret = ImGui::Checkbox(title.c_str(), &options[name].value);
   Tooltip(options[name].desc);
   return ret;
 }
@@ -1164,7 +1177,6 @@ void UI::DrawLevel() {
 UI::UI(float scale) {
   Max::get();
   LoadINI();
-  options["ui_visible"].value = true;
 
   dpiScale = scale;
   if (options["ui_scaling"].value)
@@ -1237,10 +1249,14 @@ UI::~UI() { Max::get().unhook(); }
 
 bool UI::Keys() {
   auto ret = true;
+  if (ImGui::IsKeyChordPressed(keys["toggle_ui"])) {
+    options["ui_visible"].value ^= true;
+    SaveINI();
+  }
+  if (!options["ui_visible"].value && options["ui_ignore"].value)
+    return false;
   if (ImGui::IsKeyReleased((ImGuiKey)keys["escape"]))
     ImGui::SetWindowFocus(nullptr);
-  else if (ImGui::IsKeyChordPressed(keys["toggle_ui"]))
-    options["ui_visible"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_mouse"]))
     options["input_mouse"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_noclip"])) {
@@ -1402,7 +1418,9 @@ void UI::Windows() {
         inMenu = true;
         ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
         if (ImGui::BeginMenu(window->title.c_str(), window->key)) {
+          ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {2.f, 2.f});
           window->cb();
+          ImGui::PopStyleVar();
           lastMenuFrame = ImGui::GetFrameCount();
           ImGui::EndMenu();
         }
@@ -1433,18 +1451,6 @@ void UI::HUD() {
   io.MouseDrawCursor = options["ui_visible"].value;
 
   {
-    using namespace std::chrono_literals;
-    auto now = std::chrono::system_clock::now();
-    if (io.MousePos.x != lastMousePos.x || io.MousePos.y != lastMousePos.y) {
-      lastMouseActivity = now;
-      lastMousePos = io.MousePos;
-      io.MouseDrawCursor = true;
-    } else if (lastMouseActivity + 2s < now) {
-      ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-    }
-  }
-
-  {
     std::string version =
         fmt::format("MAXWELL {}", get_version()) + " | GAME " + game_version();
     ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
@@ -1454,6 +1460,33 @@ void UI::HUD() {
                          io.DisplaySize.y -
                              ImGui::GetTextLineHeightWithSpacing() + Base().y),
                   0x99999999, version.c_str());
+    if (ImGui::GetFrameCount() < 600 && !options["ui_visible"].value)
+      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+          ->AddText(ImVec2(io.DisplaySize.x / 2.f -
+                               ImGui::CalcTextSize(
+                                   "MAXWELL is hidden, press F10 to show")
+                                       .x /
+                                   2.f +
+                               Base().x,
+                           io.DisplaySize.y -
+                               ImGui::GetTextLineHeightWithSpacing() * 2 +
+                               Base().y),
+                    0x99999999, "MAXWELL is hidden, press F10 to show");
+  }
+
+  if (!options["ui_visible"].value && options["ui_ignore"].value)
+    return;
+
+  {
+    using namespace std::chrono_literals;
+    auto now = std::chrono::system_clock::now();
+    if (io.MousePos.x != lastMousePos.x || io.MousePos.y != lastMousePos.y) {
+      lastMouseActivity = now;
+      lastMousePos = io.MousePos;
+      io.MouseDrawCursor = true;
+    } else if (lastMouseActivity + 2s < now) {
+      ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    }
   }
 
   if (options["ui_visible"].value && windowScale > 2) {

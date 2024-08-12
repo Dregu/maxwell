@@ -253,7 +253,10 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
 
     auto *g = ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // has to be enabled at start for ImGui_ImplWin32_Init to load everything
+    io.ConfigFlags |=
+        ImGuiConfigFlags_ViewportsEnable; // has to be enabled at start for
+                                          // ImGui_ImplWin32_Init to load
+                                          // everything
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     CreateDirectory(L"MAXWELL", NULL);
@@ -590,6 +593,8 @@ LRESULT APIENTRY WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   if (g_Initialized &&
       ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
     return true;
+  if (msg == WM_SYSCOMMAND && wParam == SC_KEYMENU)
+    return 0;
   return CallWindowProc(OriginalWndProc, hWnd, msg, wParam, lParam);
 }
 
