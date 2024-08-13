@@ -68,6 +68,7 @@ private:
       {"tool_player", ImGuiKey_F1},
       {"tool_map", ImGuiKey_F2},
       {"tool_tools", ImGuiKey_F3},
+      {"tool_level", ImGuiKey_F4},
       {"toggle_ui", ImGuiKey_F10},
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
