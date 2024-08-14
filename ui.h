@@ -123,7 +123,7 @@ private:
         "Patches out the Groundhog Day checks,\nso you can always get up to 4 "
         "extra hearts."}},
       {"cheat_hud",
-       {false, "Hide ingame HUD",
+       {false, "Hide in-game HUD",
         "Removes all HUD elements, including the menus.", "toggle_hud"}},
       {"cheat_player",
        {false, "Hide player character", "Doesn't render the player character.",
@@ -133,6 +133,10 @@ private:
         "toggle_clouds"}},
       {"cheat_credits",
        {false, "Skip credits", "Skips credits and drops the key immediately."}},
+      {"cheat_igt",
+       {false, "Use in-game time",
+        "Replaces total game time with\nIGT that doesn't include paused "
+        "time."}},
 
       {"input_block",
        {true, "Block game input on UI input",
@@ -162,7 +166,7 @@ private:
         "Shows what you haven't seen yet, but darker."}},
       {"map_reveal",
        {false, "Reveal unseen minimap tiles in game",
-        "Marks all tiles seen on the actual ingame map."}},
+        "Marks all tiles seen on the actual in-game map."}},
       {"map_areas",
        {false, "Show all map borders on minimap",
         "Draws all special map borders instead of only selected layer."}},

@@ -279,6 +279,8 @@ struct Max {
   void draw_text_small(int x, int y, const wchar_t *text,
                        uint32_t color = 0xffffffff, uint32_t shader = 0x29);
 
+  uint16_t get_room_tile_flags(int x, int y, uint16_t mask);
+
   bool skip{false};
   std::optional<bool> paused{std::nullopt};
   std::optional<bool> set_pause{std::nullopt};
@@ -300,6 +302,7 @@ struct Max {
       {GAME_INPUT::HUD, 'H'},      {GAME_INPUT::CRING, 'F'},
   };
 
+  bool use_igt{false};
   bool use_keymap{false};
   bool atlas_loaded{false};
 };

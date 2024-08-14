@@ -769,6 +769,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     {
         "skip_credits"sv, PatternCommandBuffer{}.from_exe_base(0x476d9), // TODO
     },
+    {
+        "room_tile_flags"sv,
+        PatternCommandBuffer{}.from_exe_base(0x1A190), // TODO
+    },
     /*{
         "load_asset"sv, PatternCommandBuffer{}.from_exe_base(0x74450), // TODO
     },

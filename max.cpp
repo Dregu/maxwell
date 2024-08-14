@@ -52,6 +52,8 @@ void HookUpdateState(void *a, void *b, void *c, void *d) {
     Max::get().inputs.pop_front();
   }
   g_update_state_trampoline(a, b, c, d);
+  if (Max::get().use_igt)
+    *(Max::get().timer() + 1) = *Max::get().timer();
 }
 
 using Void = void();
@@ -902,4 +904,10 @@ void Max::draw_text_small(int x, int y, const wchar_t *text, uint32_t color,
 
 std::array<uv_data, 1024> *Max::tile_uvs() {
   return (std::array<uv_data, 1024> *)((size_t)get_asset(254)->data + 0xc);
+}
+
+uint16_t Max::get_room_tile_flags(int x, int y, uint16_t mask) {
+  using GetFunc = uint16_t(int x, int y, uint16_t mask);
+  static GetFunc *get = (GetFunc *)get_address("room_tile_flags");
+  return get(x, y, mask);
 }

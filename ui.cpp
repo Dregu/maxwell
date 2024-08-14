@@ -326,7 +326,7 @@ void UI::DrawPlayer() {
                        Max::get().player_flute());
     ImGui::InputScalar("Item##PlayerCurrentItem", ImGuiDataType_U8,
                        Max::get().item());
-    ImGui::InputScalar("Ingame time##StateIngameTime", ImGuiDataType_U32,
+    ImGui::InputScalar("In-game time##StateIngameTime", ImGuiDataType_U32,
                        Max::get().timer());
     ImGui::InputScalar("Total time##StateTotalTime", ImGuiDataType_U32,
                        Max::get().timer() + 1);
@@ -538,6 +538,7 @@ void UI::UpdateOptions() {
     Max::get().force_palette = std::nullopt;
   }
   Max::get().use_keymap = options["input_custom"].value;
+  Max::get().use_igt = options["cheat_igt"].value;
 }
 
 uint8_t AnyKey() {
@@ -1615,8 +1616,10 @@ void UI::HUD() {
                     3.f);
       std::string coord =
           fmt::format("Screen: {},{}\n  Tile: {},{}", x, y, rx, ry);
+      coord += fmt::format("\n Flags: 0x{:X}",
+                           Max::get().get_room_tile_flags(rx, ry, 0xffff));
       if (fg && bg)
-        coord += fmt::format("\n  ID: {},{}", fg->id, bg->id);
+        coord += fmt::format("\n    ID: {},{}", fg->id, bg->id);
       ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
       ImGui::SetTooltip(coord.c_str());
     }
