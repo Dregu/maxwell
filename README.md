@@ -83,6 +83,7 @@ This is not a virus, but you probably shouldn't believe a random file on the int
   - Loads correctly named and formatted loose files recursively from `MAXWELL/Mods`
   - No error checking
   - All original maps, assets and textures can be dumped with the [level editor](https://github.com/Redcrafter/Animal-Well-editor)
+    - Edited light params (asset 179) can be dumped with MAXWELL
   - Supports 3 types of modded files (all files in a mod must be placed in one of these subdirectories)
     - Map mods in `[Mod Name]/Maps/X.map` where `X` is a map index in `0..4`
     - Full asset mods in `[Mod Name]/Assets/Y.whatever` where `Y` is an asset number as dumped by the editor
@@ -92,6 +93,7 @@ This is not a virus, but you probably shouldn't believe a random file on the int
   - Examples:
     - `MAXWELL/Mods/Epic mod/Maps/0.map` replaces well map
     - `MAXWELL/Mods/Epic mod/Assets/101.ogg` replaces dog barks with farts
+    - `MAXWELL/Mods/Epic mod/Assets/179.ambient` replaces the light params
     - `MAXWELL/Mods/Epic mod/Tiles/416.png` replaces only the beanie texture in main texture atlas
     - `MAXWELL/Mods/Epic mod/Tiles/365.png` replaces another thing in main texture atlas
     - `MAXWELL/Mods/Bad mod/Assets/255.png` replaces whole main texture atlas (don't do this, it's dumb and not compatible with multiple mods)

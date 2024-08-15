@@ -1,3 +1,5 @@
+#define UNICODE
+
 #include "max.h"
 
 #include "shlwapi.h"
@@ -641,10 +643,10 @@ Room *Max::room(int m, int x, int y) {
   return nullptr;
 }
 
-LightingData *Max::ambient(int id) {
+LightingData *Max::lighting(int id) {
   static std::unique_ptr<std::array<LightingData, 32>> data = nullptr;
 
-  if (!data) { // the game does not copy the ambient data to memory so we have
+  if (!data) { // the game does not copy the lighting data to memory so we have
                // to sneak in our own pointer to be able to edit the data.
     data = std::make_unique<std::array<LightingData, 32>>();
 
@@ -771,7 +773,7 @@ std::string get_custom_asset_path(uint32_t id) {
       auto ext = p.extension().string();
       std::transform(ext.begin(), ext.end(), ext.begin(),
                      [](unsigned char c) { return std::tolower(c); });
-      auto fileId = StrToInt(stem.c_str());
+      auto fileId = StrToIntA(stem.c_str());
       if (id == fileId && parent == "assets" && (fileId != 0 || stem == "0"))
         return file;
     }
@@ -809,7 +811,7 @@ void Max::load_map_mods() {
       auto ext = p.extension().string();
       std::transform(ext.begin(), ext.end(), ext.begin(),
                      [](unsigned char c) { return std::tolower(c); });
-      auto id = StrToInt(stem.c_str());
+      auto id = StrToIntA(stem.c_str());
       if (ext == ".map" && id >= 0 && id <= 4) {
         import_map(file, id);
         DEBUG("Loaded map {} from {}", id, file);
@@ -835,7 +837,7 @@ void Max::load_tile_mods(AssetInfo &asset) {
       auto ext = p.extension().string();
       std::transform(ext.begin(), ext.end(), ext.begin(),
                      [](unsigned char c) { return std::tolower(c); });
-      auto id = StrToInt(stem.c_str());
+      auto id = StrToIntA(stem.c_str());
       if ((id != 0 || stem == "0") && parent == "tiles" && ext == ".png") {
         size_t s = fs::file_size(file);
         char *buf = (char *)malloc(s);
@@ -910,4 +912,14 @@ uint16_t Max::get_room_tile_flags(int x, int y, uint16_t mask) {
   using GetFunc = uint16_t(int x, int y, uint16_t mask);
   static GetFunc *get = (GetFunc *)get_address("room_tile_flags");
   return get(x, y, mask);
+}
+
+void Max::dump_lighting() {
+  CreateDirectory(L"MAXWELL\\Dump", NULL);
+  CreateDirectory(L"MAXWELL\\Dump\\Assets", NULL);
+  std::string file = "MAXWELL\\Dump\\Assets\\179.ambient";
+  std::ofstream out(file, std::ios::binary);
+  out << "00 0B F0 00 20 00 00 00 00 00 00 00"_gh;
+  out.write(reinterpret_cast<char *>(lighting(0)), 32 * sizeof(LightingData));
+  out.close();
 }

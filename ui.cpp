@@ -1027,7 +1027,7 @@ void UI::DrawLevel() {
                          : selectedRoom.room->params.palette;
       ImGui::SeparatorText(fmt::format("Light params ({})", palette).c_str());
 
-      auto amb = Max::get().ambient(palette);
+      auto amb = Max::get().lighting(palette);
 
       if (amb) {
         if (!defaultLighting.contains(palette))
@@ -1046,6 +1046,11 @@ void UI::DrawLevel() {
         if (ImGui::Button("Reset light params##ResetRoomLightParams") &&
             defaultLighting.contains(palette))
           *amb = defaultLighting[palette];
+        ImGui::SameLine(0, 4);
+        if (ImGui::Button("Dump lighting##DumpRoomLightParams"))
+          Max::get().dump_lighting();
+        Tooltip("Edited lighting asset will be dumped\n"
+                "to: MAXWELL/Dump/Assets/179.ambient");
       }
     }
     ImGui::PopItemWidth();

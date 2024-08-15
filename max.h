@@ -262,7 +262,7 @@ struct Max {
   std::bitset<0xce40 * 8> *map_bits(int n = 0);
   Map *map(int m = 0);
   Room *room(int m, int x, int y);
-  LightingData *ambient(int id);
+  LightingData *lighting(int id);
   Tile *tile(int m, int rx, int ry, int x, int y, int l);
   bool import_map(std::string file, int m = 0);
   void load_custom_asset(uint32_t id, AssetInfo &asset);
@@ -280,6 +280,8 @@ struct Max {
                        uint32_t color = 0xffffffff, uint32_t shader = 0x29);
 
   uint16_t get_room_tile_flags(int x, int y, uint16_t mask);
+
+  void dump_lighting();
 
   bool skip{false};
   std::optional<bool> paused{std::nullopt};
