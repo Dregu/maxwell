@@ -137,6 +137,8 @@ private:
        {false, "Use in-game time",
         "Replaces total game time with\nIGT that doesn't include paused "
         "time."}},
+      {"cheat_water",
+       {false, "Hide water", "Makes water see-through but still functional."}},
 
       {"input_block",
        {true, "Block game input on UI input",

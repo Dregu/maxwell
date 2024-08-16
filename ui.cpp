@@ -1415,6 +1415,13 @@ void UI::Cheats() {
     recover_mem("groundhog_day");
     recover_mem("groundhog_day2");
   }
+
+  if (options["cheat_water"].value && get_address("render_water")) {
+    write_mem_recoverable("cheat_water", get_address("render_water"), "EB"_gh,
+                          true);
+  } else {
+    recover_mem("cheat_water");
+  }
 }
 
 void UI::Windows() {

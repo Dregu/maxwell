@@ -773,6 +773,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         "room_tile_flags"sv,
         PatternCommandBuffer{}.from_exe_base(0x1A190), // TODO
     },
+    {
+        "render_water"sv,
+        PatternCommandBuffer{}.from_exe_base(0x103f4a), // TODO
+    },
     /*{
         "load_asset"sv, PatternCommandBuffer{}.from_exe_base(0x74450), // TODO
     },
