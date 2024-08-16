@@ -63,7 +63,7 @@ ImVec2 Normalize(ImVec2 pos);
 class UI {
 private:
   std::vector<Window *> windows;
-  std::map<std::string, ImGuiKeyChord> keys{
+  std::map<std::string, ImGuiKeyChord> default_keys{
       {"escape", ImGuiKey_Escape},
       {"tool_player", ImGuiKey_F1},
       {"tool_map", ImGuiKey_F2},
@@ -94,8 +94,8 @@ private:
       {"mouse_select_bg", ImGuiMod_Shift | ImGuiKey_MouseMiddle},
       {"mouse_destroy", ImGuiKey_MouseX1},
       {"mouse_fix", ImGuiMod_Shift | ImGuiKey_MouseX1},
-
   };
+  std::map<std::string, ImGuiKeyChord> keys;
   // TODO: Save to ini
   std::map<std::string, Setting> options{
       {"cheat_active",
@@ -241,6 +241,7 @@ private:
   std::vector<SelectedTile> searchTiles;
   std::unordered_map<Room *, RoomData> defaultRoom;
   std::unordered_map<uint8_t, LightingData> defaultLighting;
+  std::string key_to_change = "";
 
 public:
   UI(float scale = 1.0f);
@@ -266,6 +267,8 @@ public:
   void DrawSelectedTile(SelectedTile &tile);
   void DrawSelectedTileRow(SelectedTile &tile);
   void DrawCustomKey(std::string name, GAME_INPUT i);
+  void DrawUIKeys();
+  void KeyCapture();
 
   bool Button(std::string name, std::string desc = "", std::string key = "");
   bool SubMenu(std::string name);

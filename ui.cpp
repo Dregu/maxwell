@@ -572,6 +572,45 @@ uint8_t AnyKey() {
   return 0;
 }
 
+void UI::KeyCapture() {
+  ImGuiIO &io = ImGui::GetIO();
+  io.WantCaptureKeyboard = true;
+  auto base = ImGui::GetMainViewport();
+  ImGui::SetNextWindowSize(base->Size);
+  ImGui::SetNextWindowPos(base->Pos);
+  ImGui::SetNextWindowViewport(base->ID);
+  ImGui::SetNextWindowBgAlpha(0.75);
+  ImGui::Begin("KeyCapture", NULL,
+               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                   ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+                   ImGuiWindowFlags_NoScrollWithMouse |
+                   ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNavFocus |
+                   ImGuiWindowFlags_NoNavInputs |
+                   ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking);
+  ImGui::InvisibleButton("KeyCaptureCanvas", ImGui::GetContentRegionMax(),
+                         ImGuiButtonFlags_MouseButtonLeft |
+                             ImGuiButtonFlags_MouseButtonRight);
+  ImDrawList *dl = ImGui::GetForegroundDrawList();
+  std::string buf =
+      fmt::format("Enter new key/button combo for {}.\nModifiers Ctrl, Alt "
+                  "and Shift are available.",
+                  key_to_change);
+  ImVec2 textsize = ImGui::CalcTextSize(buf.c_str());
+  dl->AddText({base->Pos.x + base->Size.x / 2 - textsize.x / 2,
+               base->Pos.y + base->Size.y / 2 - textsize.y / 2},
+              ImColor(1.0f, 1.0f, 1.0f, .8f), buf.c_str());
+  for (int i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; ++i) {
+    if (ImGui::IsKeyReleased((ImGuiKey)i)) {
+      ImGuiKeyChord key_chord = (ImGuiKeyChord)i;
+      ImGuiKey mods = (ImGuiKey)io.KeyMods;
+      key_chord |= mods;
+      keys[key_to_change] = (ImGuiKeyChord)key_chord;
+      key_to_change = "";
+    }
+  }
+  ImGui::End();
+}
+
 std::string GetKeyName(unsigned int virtualKey) {
   unsigned int scanCode = MapVirtualKeyA(virtualKey, MAPVK_VK_TO_VSC);
 
@@ -605,12 +644,17 @@ std::string GetKeyName(unsigned int virtualKey) {
 void UI::DrawCustomKey(std::string name, GAME_INPUT i) {
   ImGuiIO &io = ImGui::GetIO();
   auto key = Max::get().keymap[i];
+  ImGui::PushID(name.c_str());
+  ImGui::TableNextRow();
+  ImGui::TableNextColumn();
+  ImGui::Text("%s", name.c_str());
+  ImGui::TableNextColumn();
   ImGui::Text("%s", GetKeyName(key));
-  ImGui::SameLine(70.f * uiScale, 4.f);
-  ImGui::InputScalar(name.c_str(), ImGuiDataType_U8, &key, NULL, NULL, "0x%x",
-                     ImGuiInputTextFlags_EscapeClearsAll |
-                         ImGuiInputTextFlags_AllowTabInput);
-  if (ImGui::IsItemActive()) {
+  ImGui::TableNextColumn();
+  ImGui::InputScalar(
+      "##GameKeyCode", ImGuiDataType_U8, &key, NULL, NULL, "0x%x",
+      ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_AllowTabInput);
+  if (ImGui::IsItemActive() && !ImGui::IsKeyReleased(ImGuiKey_MouseLeft)) {
     key = AnyKey();
     if (key) {
       Max::get().keymap[i] = key;
@@ -618,6 +662,58 @@ void UI::DrawCustomKey(std::string name, GAME_INPUT i) {
       SaveINI();
     }
   }
+  ImGui::TableNextColumn();
+  if (ImGui::Button("Unset")) {
+    Max::get().keymap[i] = 0;
+    SaveINI();
+  }
+  ImGui::PopID();
+}
+
+void UI::DrawUIKeys() {
+  ImGuiIO &io = ImGui::GetIO();
+  ImGui::PushID("UIKeys");
+  ImGui::BeginTable("##UIKeysTable", 4);
+  ImGui::TableSetupColumn("Tool");
+  ImGui::TableSetupColumn("Keys");
+  ImGui::TableSetupColumn("Hex", ImGuiTableColumnFlags_WidthFixed,
+                          60.f * uiScale);
+  ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed,
+                          135.f * uiScale);
+  ImGui::TableHeadersRow();
+  for (auto &[name, key] : keys) {
+    ImGui::PushID(name.c_str());
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", name.c_str());
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", ImGui::GetKeyChordName(key));
+    ImGui::TableNextColumn();
+    ImGui::InputScalar("##UIKeyCode", ImGuiDataType_U8, &key, NULL, NULL,
+                       "0x%x", ImGuiInputTextFlags_ReadOnly);
+    ImGui::TableNextColumn();
+    if (ImGui::Button("Set")) {
+      key_to_change = name;
+      SaveINI();
+    }
+    ImGui::SameLine(0, 4);
+    if (ImGui::Button("Unset")) {
+      key = 0;
+      SaveINI();
+    }
+    ImGui::SameLine(0, 4);
+    if (ImGui::Button("Reset")) {
+      key = default_keys[name];
+      SaveINI();
+    }
+    ImGui::PopID();
+  }
+  ImGui::EndTable();
+  ImGui::PopID();
+  ImGui::TextUnformatted(
+      "Click Set and press any key to change.\nModifiers "
+      "Ctrl, Alt and Shift are available.\nMouse controls can also "
+      "be bound to keys.");
 }
 
 void UI::DrawOptions() {
@@ -648,12 +744,19 @@ void UI::DrawOptions() {
   }
   ImGui::SliderFloat("Alpha", &ImGui::GetStyle().Alpha, 0.2f, 1.0f, "%.1f");
 
-  if (SubMenu("Custom keyboard bindings")) {
+  if (SubMenu("Game keyboard bindings")) {
     ImGui::PushID("CustomKeys");
     if (ImGui::Checkbox("Use custom keyboard bindings",
                         &options["input_custom"].value))
       Max::get().use_keymap = options["input_custom"].value;
-    ImGui::PushItemWidth(40.f * uiScale);
+    ImGui::BeginTable("##GameKeysTable", 4);
+    ImGui::TableSetupColumn("Action");
+    ImGui::TableSetupColumn("Key");
+    ImGui::TableSetupColumn("Hex", ImGuiTableColumnFlags_WidthFixed,
+                            60.f * uiScale);
+    ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed,
+                            100.f * uiScale);
+    ImGui::TableHeadersRow();
     DrawCustomKey("Up", GAME_INPUT::UP);
     DrawCustomKey("Down", GAME_INPUT::DOWN);
     DrawCustomKey("Left", GAME_INPUT::LEFT);
@@ -668,10 +771,14 @@ void UI::DrawOptions() {
     DrawCustomKey("Pause", GAME_INPUT::PAUSE);
     DrawCustomKey("HUD", GAME_INPUT::HUD);
     DrawCustomKey("Cring", GAME_INPUT::CRING);
-    ImGui::PopItemWidth();
+    ImGui::EndTable();
     ImGui::PopID();
-    ImGui::TextUnformatted(
-        "Click an input field and\npress any key to change.");
+    ImGui::TextUnformatted("Click an input field and press any key to change.");
+    EndMenu();
+  }
+
+  if (SubMenu("UI keyboard bindings")) {
+    DrawUIKeys();
     EndMenu();
   }
 
@@ -1206,6 +1313,7 @@ void UI::DrawLevel() {
 
 UI::UI(float scale) {
   Max::get();
+  keys = default_keys;
   LoadINI();
 
   dpiScale = scale;
@@ -1218,8 +1326,7 @@ UI::UI(float scale) {
             [this]() { this->DrawMap(); });
   NewWindow("F3 Tools", keys["tool_tools"], 0, [this]() { this->DrawTools(); });
   NewWindow("F4 Level", keys["tool_level"], 0, [this]() { this->DrawLevel(); });
-  NewWindow("Settings", keys["tool_settings"],
-            ImGuiWindowFlags_AlwaysAutoResize,
+  NewWindow("Settings", keys["tool_settings"], 0,
             [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
@@ -1799,7 +1906,10 @@ void UI::Draw() {
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
   }
 
-  Keys();
+  if (key_to_change != "")
+    KeyCapture();
+  else
+    Keys();
   Play();
   Windows();
   HUD();
@@ -2035,6 +2145,11 @@ void UI::SaveINI() {
   writeData << "scale = " << std::dec << windowScale << " # int, 1 - 10"
             << std::endl;
 
+  writeData << "\n[ui_keys] # hex ImGuiKeyChord\n";
+  for (const auto &[name, key] : keys) {
+    writeData << name << " = 0x" << std::hex << key << std::endl;
+  }
+
   writeData << "\n[custom_keys] # hex keycode, e.g. 0x20 for space";
   writeData << "\nup = 0x" << std::hex
             << (int)Max::get().keymap[GAME_INPUT::UP];
@@ -2128,6 +2243,18 @@ void UI::LoadINI() {
       toml::find_or<uint8_t>(custom_keys, "hud", 0);
   Max::get().keymap[GAME_INPUT::CRING] =
       toml::find_or<uint8_t>(custom_keys, "cring", 0);
+
+  toml::value ui_keys;
+  try {
+    ui_keys = toml::find(data, "ui_keys");
+  } catch (std::exception &) {
+    SaveINI();
+    return;
+  }
+
+  for (const auto &[name, key] : default_keys) {
+    keys[name] = (ImGuiKeyChord)toml::find_or<int>(ui_keys, name, (int)key);
+  }
 
   UpdateOptions();
 
