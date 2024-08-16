@@ -89,6 +89,9 @@ private:
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{
+      {"cheat_active",
+       {true, "Enable cheats",
+        "Master switch to disable all cheats,\nignoring their current state."}},
       {"cheat_damage",
        {false, "No damage",
         "Disables taking any damage, but\nkeeps knockback, drowning etc.",
@@ -102,11 +105,11 @@ private:
        {false, "Noclip", "Do the cring thing without the cring.",
         "toggle_noclip"}},
       {"cheat_darkness",
-       {false, "Remove darkness",
+       {false, "Disable darkness",
         "Removes the fog of war effect, see through walls.",
         "toggle_darkness"}},
       {"cheat_lights",
-       {false, "Remove lights",
+       {false, "Disable lamps",
         "Removes the lighting effect of hanging lights.", "toggle_lights"}},
       {"cheat_palette",
        {false, "Force lighting",
@@ -119,7 +122,7 @@ private:
         "time.",
         "toggle_gameboy"}},
       {"cheat_groundhog",
-       {false, "Remove Groundhog Day check",
+       {false, "Disable Groundhog Day check",
         "Patches out the Groundhog Day checks,\nso you can always get up to 4 "
         "extra hearts."}},
       {"cheat_hud",
@@ -129,7 +132,7 @@ private:
        {false, "Hide player character", "Doesn't render the player character.",
         "toggle_player"}},
       {"cheat_clouds",
-       {false, "Remove clouds", "Removes the cloudy foreground effects.",
+       {false, "Disable clouds", "Removes the cloudy foreground effects.",
         "toggle_clouds"}},
       {"cheat_credits",
        {false, "Skip credits", "Skips credits and drops the key immediately."}},
@@ -189,6 +192,9 @@ private:
       {"ui_ignore",
        {true, "Ignore UI input when hidden",
         "Ignore mouse and keyboard commands\nwhen UI is hidden with F10."}},
+      {"ui_ignore_cheats",
+       {false, "Disable cheats when when hidden",
+        "Disables all cheats temporarily\nwhen UI is hidden with F10."}},
       {"ui_viewports",
        {false, "Multi-viewports",
         "Allow dragging UI windows outside the game window."}},
@@ -196,6 +202,8 @@ private:
        {true, "DPI scaling",
         "Apply Windows UI scaling.\nMight require a restart to properly resize "
         "everything."}},
+      {"ui_show_datetime", {true, "Show current time in UI"}},
+      {"ui_show_cheats", {true, "Show enabled cheats in UI"}},
   };
   bool doWarp = false;
   bool inMenu = false;
@@ -266,6 +274,7 @@ public:
   void RefreshMaps();
 
   bool GetOption(const std::string &name) { return options[name].value; }
+  bool CheatsEnabled();
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

@@ -532,13 +532,13 @@ void UI::ScaleWindow() {
 }
 
 void UI::UpdateOptions() {
-  if (options["cheat_palette"].value) {
+  if (options["cheat_palette"].value && CheatsEnabled()) {
     Max::get().force_palette = forcedPalette;
   } else {
     Max::get().force_palette = std::nullopt;
   }
   Max::get().use_keymap = options["input_custom"].value;
-  Max::get().use_igt = options["cheat_igt"].value;
+  Max::get().use_igt = options["cheat_igt"].value && CheatsEnabled();
 }
 
 uint8_t AnyKey() {
@@ -1321,15 +1321,21 @@ ImVec2 TileToScreen(ImVec2 tile) {
                 tile.y * size.y / 22.5f + base.y);
 }
 
+bool UI::CheatsEnabled() {
+  return options["cheat_active"].value &&
+         (options["ui_visible"].value || !options["ui_ignore_cheats"].value);
+}
+
 void UI::Cheats() {
-  if (doWarp && get_address("warp")) {
+  if (doWarp && get_address("warp") && CheatsEnabled()) {
     Max::get().decrypt_stuff();
     write_mem_recoverable("warp", get_address("warp"), "EB"_gh, true);
   } else {
     recover_mem("warp");
   }
 
-  if (options["input_block"].value && get_address("keyboard")) {
+  if (options["input_block"].value && get_address("keyboard") &&
+      CheatsEnabled()) {
     if (Block()) {
       write_mem_recoverable("block", get_address("keyboard"), get_nop(6), true);
     } else {
@@ -1339,48 +1345,54 @@ void UI::Cheats() {
     recover_mem("block");
   }
 
-  if (options["cheat_damage"].value && get_address("damage")) {
+  if (options["cheat_damage"].value && get_address("damage") &&
+      CheatsEnabled()) {
     write_mem_recoverable("damage", get_address("damage"), get_nop(6), true);
   } else {
     recover_mem("damage");
   }
 
-  if (options["cheat_godmode"].value && get_address("god")) {
+  if (options["cheat_godmode"].value && get_address("god") && CheatsEnabled()) {
     write_mem_recoverable("god", get_address("god"), "E9 71 01 00 00 90"_gh,
                           true);
   } else {
     recover_mem("god");
   }
 
-  if (options["cheat_darkness"].value && get_address("render_darkness")) {
+  if (options["cheat_darkness"].value && get_address("render_darkness") &&
+      CheatsEnabled()) {
     write_mem_recoverable("render_darkness", get_address("render_darkness"),
                           "EB 19"_gh, true);
   } else {
     recover_mem("render_darkness");
   }
 
-  if (options["cheat_lights"].value && get_address("render_lights")) {
+  if (options["cheat_lights"].value && get_address("render_lights") &&
+      CheatsEnabled()) {
     write_mem_recoverable("render_lights", get_address("render_lights"),
                           "E9 8A 00 00 00 90"_gh, true);
   } else {
     recover_mem("render_lights");
   }
 
-  if (options["cheat_gameboy"].value && get_address("render_gameboy")) {
+  if (options["cheat_gameboy"].value && get_address("render_gameboy") &&
+      CheatsEnabled()) {
     write_mem_recoverable("render_gameboy", get_address("render_gameboy"),
                           "EB 0E"_gh, true);
   } else {
     recover_mem("render_gameboy");
   }
 
-  if (options["cheat_clouds"].value && get_address("render_clouds")) {
+  if (options["cheat_clouds"].value && get_address("render_clouds") &&
+      CheatsEnabled()) {
     write_mem_recoverable("render_clouds", get_address("render_clouds"),
                           "EB 24"_gh, true);
   } else {
     recover_mem("render_clouds");
   }
 
-  if (options["cheat_hud"].value && get_address("render_hud")) {
+  if (options["cheat_hud"].value && get_address("render_hud") &&
+      CheatsEnabled()) {
     write_mem_recoverable(
         "render_hud", get_address("render_hud"), "EB 74"_gh,
         true); // jmp over this and the next if that renders some more text
@@ -1388,25 +1400,28 @@ void UI::Cheats() {
     recover_mem("render_hud");
   }
 
-  if (options["cheat_player"].value && get_address("render_player")) {
+  if (options["cheat_player"].value && get_address("render_player") &&
+      CheatsEnabled()) {
     write_mem_recoverable("render_player", get_address("render_player"),
                           "C3"_gh, true);
   } else {
     recover_mem("render_player");
   }
 
-  if (options["cheat_credits"].value && get_address("skip_credits")) {
+  if (options["cheat_credits"].value && get_address("skip_credits") &&
+      CheatsEnabled()) {
     write_mem_recoverable("skip_credits", get_address("skip_credits"),
                           get_nop(2), true);
   } else {
     recover_mem("skip_credits");
   }
 
-  if (options["cheat_noclip"].value) {
+  if (options["cheat_noclip"].value && CheatsEnabled()) {
     *Max::get().player_state() = 18;
   }
 
-  if (options["cheat_groundhog"].value && get_address("groundhog_day")) {
+  if (options["cheat_groundhog"].value && get_address("groundhog_day") &&
+      CheatsEnabled()) {
     write_mem_recoverable("groundhog_day", get_address("groundhog_day"),
                           get_nop(2), true);
     write_mem_recoverable("groundhog_day2", get_address("groundhog_day") + 26,
@@ -1416,7 +1431,8 @@ void UI::Cheats() {
     recover_mem("groundhog_day2");
   }
 
-  if (options["cheat_water"].value && get_address("render_water")) {
+  if (options["cheat_water"].value && get_address("render_water") &&
+      CheatsEnabled()) {
     write_mem_recoverable("cheat_water", get_address("render_water"), "EB"_gh,
                           true);
   } else {
@@ -1510,17 +1526,35 @@ void UI::HUD() {
   }
 
   if (options["ui_visible"].value && windowScale > 2) {
-    std::string hud =
-        fmt::format("{}{}{}{}{}{} ROOM:{},{} POS:{:.0f},{:.0f} {}",
-                    options["cheat_damage"].value ? " DAMAGE" : "",
-                    options["cheat_noclip"].value ? " NOCLIP" : "",
-                    options["cheat_godmode"].value ? " GOD" : "",
-                    options["cheat_darkness"].value ? " DARKNESS" : "",
-                    options["cheat_lights"].value ? " LIGHTS" : "",
-                    options["cheat_palette"].value ? " PALETTE" : "",
-                    Max::get().player_room()->x, Max::get().player_room()->y,
-                    Max::get().player_position()->x,
-                    Max::get().player_position()->y, Timestamp());
+    std::string hud;
+    if (options["ui_show_cheats"].value)
+      hud += fmt::format(
+          "CHEATS:{}{}{}{}{}{}{}{}{}{}{}{}{}{} | INPUT:{}{}{}",
+          options["cheat_active"].value ? "" : " DISABLED",
+          options["cheat_damage"].value && CheatsEnabled() ? " NODAMAGE" : "",
+          options["cheat_noclip"].value && CheatsEnabled() ? " NOCLIP" : "",
+          options["cheat_godmode"].value && CheatsEnabled() ? " GODMODE" : "",
+          options["cheat_darkness"].value && CheatsEnabled() ? " NODARKNESS"
+                                                             : "",
+          options["cheat_lights"].value && CheatsEnabled() ? " NOLAMPS" : "",
+          options["cheat_palette"].value && CheatsEnabled() ? " LIGHTING" : "",
+          options["cheat_water"].value && CheatsEnabled() ? " NOWATER" : "",
+          options["cheat_clouds"].value && CheatsEnabled() ? " NOCLOUDS" : "",
+          options["cheat_hud"].value && CheatsEnabled() ? " NOHUD" : "",
+          options["cheat_player"].value && CheatsEnabled() ? " NOBEAN" : "",
+          options["cheat_credits"].value && CheatsEnabled() ? " NOCREDITS" : "",
+          options["cheat_groundhog"].value && CheatsEnabled() ? " GROUNDHOG"
+                                                              : "",
+          options["cheat_igt"].value && CheatsEnabled() ? " IGT" : "",
+
+          options["input_block"].value ? " BLOCK" : "",
+          options["input_custom"].value ? " CUSTOM" : "",
+          options["input_mouse"].value ? " MOUSE" : "");
+    if (options["ui_show_datetime"].value) {
+      if (options["ui_show_cheats"].value)
+        hud += " | ";
+      hud += Timestamp();
+    }
     ImGui::GetForegroundDrawList(ImGui::GetMainViewport())
         ->AddText(ImVec2(io.DisplaySize.x - ImGui::CalcTextSize(hud.c_str()).x -
                              ImGui::GetStyle().WindowPadding.x + Base().x,
