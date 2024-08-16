@@ -1320,14 +1320,12 @@ UI::UI(float scale) {
   if (options["ui_scaling"].value)
     uiScale = dpiScale;
 
-  NewWindow("F1 Player", keys["tool_player"], 0,
-            [this]() { this->DrawPlayer(); });
-  NewWindow("F2 Minimap", keys["tool_map"], ImGuiWindowFlags_AlwaysAutoResize,
+  NewWindow("Player", keys["tool_player"], 0, [this]() { this->DrawPlayer(); });
+  NewWindow("Minimap", keys["tool_map"], ImGuiWindowFlags_AlwaysAutoResize,
             [this]() { this->DrawMap(); });
-  NewWindow("F3 Tools", keys["tool_tools"], 0, [this]() { this->DrawTools(); });
-  NewWindow("F4 Level", keys["tool_level"], 0, [this]() { this->DrawLevel(); });
-  NewWindow("Settings", keys["tool_settings"], 0,
-            [this]() { this->DrawOptions(); });
+  NewWindow("Tools", keys["tool_tools"], 0, [this]() { this->DrawTools(); });
+  NewWindow("Level", keys["tool_level"], 0, [this]() { this->DrawLevel(); });
+  NewWindow("Settings", ImGuiKey_None, 0, [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
     ImGui::SeparatorText("Patterns");
