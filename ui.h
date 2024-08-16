@@ -85,7 +85,16 @@ private:
       {"screenshot", ImGuiKey_Period},
       {"pause", ImGuiKey_PageUp},
       {"skip", ImGuiKey_PageDown},
-      {"editor_modifier", ImGuiMod_Shift},
+      {"submit_modifier", ImGuiMod_Ctrl},
+
+      {"mouse_edit_fg", ImGuiKey_MouseLeft},
+      {"mouse_edit_bg", ImGuiMod_Shift | ImGuiKey_MouseLeft},
+      {"mouse_warp", ImGuiKey_MouseRight},
+      {"mouse_select_fg", ImGuiKey_MouseMiddle},
+      {"mouse_select_bg", ImGuiMod_Shift | ImGuiKey_MouseMiddle},
+      {"mouse_destroy", ImGuiKey_MouseX1},
+      {"mouse_fix", ImGuiMod_Shift | ImGuiKey_MouseX1},
+
   };
   // TODO: Save to ini
   std::map<std::string, Setting> options{

@@ -239,6 +239,28 @@ inline bool MenuItem(const char *label, const ImGuiKeyChord key) {
   ImGui::GetKeyChordName(key);
   return ImGui::MenuItem(label, shortcut) || ImGui::IsKeyChordPressed(key);
 }
+bool IsKeyChordDown(ImGuiKeyChord key_chord) {
+  ImGuiContext &g = *GImGui;
+  key_chord = FixupKeyChord(key_chord);
+  ImGuiKey mods = (ImGuiKey)(key_chord & ImGuiMod_Mask_);
+  if (g.IO.KeyMods != mods)
+    return false;
+  ImGuiKey key = (ImGuiKey)(key_chord & ~ImGuiMod_Mask_);
+  if (key == ImGuiKey_None)
+    key = ConvertSingleModFlagToKey(mods);
+  if (!IsKeyDown(key))
+    return false;
+  return true;
+}
+bool IsKeyChordReleased(ImGuiKeyChord key_chord) {
+  ImGuiContext &g = *GImGui;
+  key_chord = FixupKeyChord(key_chord);
+  ImGuiKey mods = (ImGuiKey)(key_chord & ImGuiMod_Mask_);
+  ImGuiKey key = (ImGuiKey)(key_chord & ~ImGuiMod_Mask_);
+  if (key == ImGuiKey_None)
+    key = ConvertSingleModFlagToKey(mods);
+  return IsKeyReleased(key) || IsKeyReleased(mods);
+}
 } // namespace ImGui
 
 template <std::size_t SIZE, typename T>
@@ -387,7 +409,8 @@ void UI::DrawMap() {
   if (ImGui::Button("Refresh##MinimapRefresh",
                     ImVec2(60.f * uiScale + ImGui::GetStyle().WindowPadding.x,
                            ImGui::GetItemRectSize().y)) ||
-      (((options["map_auto"].value || io.MouseDown[1]) &&
+      (((options["map_auto"].value ||
+         ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_warp"])) &&
         ImGui::GetFrameCount() > lastMinimapFrame + 15)) ||
       ImGui::IsWindowAppearing() || !minimap_init) {
     CreateMap();
@@ -411,13 +434,14 @@ void UI::DrawMap() {
       wroom.y = cpos.y / realmapsize.y * 528 / 22;
       wpos.x = ((int)(cpos.x / realmapsize.x * 800) % 40) * 8;
       wpos.y = ((int)(cpos.y / realmapsize.y * 528) % 22) * 8;
-      if (io.MouseDown[1]) {
+      if (ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_warp"])) {
         *Max::get().player_state() = 18;
         *Max::get().warp_room() = wroom;
         *Max::get().warp_position() = wpos;
         *Max::get().warp_map() = layer;
         doWarp = true;
-      } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
+      } else if (ImGui::IsKeyChordReleased((ImGuiKey)keys["mouse_warp"]) &&
+                 *Max::get().player_state() == 18) {
         *Max::get().player_state() = 0;
       }
       {
@@ -1083,7 +1107,7 @@ void UI::DrawLevel() {
     if (ImGui::Button("Search##SearchTiles") ||
         (focused && ImGui::IsKeyPressed(ImGuiKey_Enter))) {
       doSearch = true;
-      doClear = !ImGui::IsKeyDown(ImGuiMod_Ctrl);
+      doClear = !ImGui::IsKeyDown((ImGuiKey)keys["submit_modifier"]);
     }
     ImGui::SameLine(0, 4);
     if (ImGui::Button("Add##AddTiles")) {
@@ -1594,20 +1618,6 @@ void UI::HUD() {
     int ry = y / 8;
 
     bool inbound = x > 0 && x < 320 && y > 0 && y < 180;
-
-    if (options["input_mouse"].value && io.MouseDown[1] &&
-        !io.WantCaptureMouse) {
-      if (inbound || (ImGui::GetFrameCount() % 10) == 0) {
-        Max::get().player_position()->x = x - 4;
-        Max::get().player_position()->y = y - 4;
-      }
-      Max::get().player_velocity()->x = 0;
-      Max::get().player_velocity()->y = 0;
-      *Max::get().player_state() = 18;
-    } else if (io.MouseReleased[1] && *Max::get().player_state() == 18) {
-      *Max::get().player_state() = 0;
-    }
-
     auto *fg =
         Max::get().tile(*Max::get().player_map(), Max::get().player_room()->x,
                         Max::get().player_room()->y, rx, ry, 0);
@@ -1615,42 +1625,72 @@ void UI::HUD() {
         Max::get().tile(*Max::get().player_map(), Max::get().player_room()->x,
                         Max::get().player_room()->y, rx, ry, 1);
 
-    if (fg && options["input_mouse"].value && io.MouseDown[2] &&
-        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-      selectedTile.tile = fg;
-      selectedTile.pos = S32Vec2{rx, ry};
-      selectedTile.room = *Max::get().player_room();
-      selectedTile.map = *Max::get().player_map();
-      if (ImGui::IsKeyDown((ImGuiKey)keys["editor_modifier"])) {
-        editorTile.id = bg->id;
-        editorTile.param = bg->param;
-        editorTile.flags = bg->flags;
-      } else {
+    if (options["input_mouse"].value) {
+      if (ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_warp"]) &&
+          !io.WantCaptureMouse) {
+        if (inbound || (ImGui::GetFrameCount() % 10) == 0) {
+          Max::get().player_position()->x = x - 4;
+          Max::get().player_position()->y = y - 4;
+        }
+        Max::get().player_velocity()->x = 0;
+        Max::get().player_velocity()->y = 0;
+        *Max::get().player_state() = 18;
+      } else if (ImGui::IsKeyChordReleased((ImGuiKey)keys["mouse_warp"]) &&
+                 *Max::get().player_state() == 18) {
+        *Max::get().player_state() = 0;
+      }
+
+      if (fg && ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_select_fg"]) &&
+          !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+        selectedTile.tile = fg;
+        selectedTile.pos = S32Vec2{rx, ry};
+        selectedTile.room = *Max::get().player_room();
+        selectedTile.map = *Max::get().player_map();
         editorTile.id = fg->id;
         editorTile.param = fg->param;
         editorTile.flags = fg->flags;
       }
-    }
 
-    if (fg && options["input_mouse"].value && io.MouseDown[0] &&
-        !io.WantCaptureMouse) {
-      if (ImGui::IsKeyDown((ImGuiKey)keys["editor_modifier"])) {
-        bg->id = editorTile.id;
-        bg->param = editorTile.param;
-        bg->flags = editorTile.flags;
-      } else {
+      if (fg && ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_select_bg"]) &&
+          !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+        selectedTile.tile = fg;
+        selectedTile.pos = S32Vec2{rx, ry};
+        selectedTile.room = *Max::get().player_room();
+        selectedTile.map = *Max::get().player_map();
+        editorTile.id = bg->id;
+        editorTile.param = bg->param;
+        editorTile.flags = bg->flags;
+      }
+
+      if (fg && ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_edit_fg"]) &&
+          !io.WantCaptureMouse) {
         fg->id = editorTile.id;
         fg->param = editorTile.param;
         fg->flags = editorTile.flags;
       }
-    }
 
-    if (options["input_mouse"].value && io.MouseDown[3] &&
-        !io.WantCaptureMouse) {
-      auto broken = !ImGui::IsKeyDown((ImGuiKey)keys["editor_modifier"]);
-      int bit = Max::get().player_room()->y * 20 * 40 * 22 + ry * 20 * 40 +
-                Max::get().player_room()->x * 40 + rx;
-      Max::get().map_bits(2)->set(bit, broken);
+      if (bg && ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_edit_bg"]) &&
+          !io.WantCaptureMouse) {
+        bg->id = editorTile.id;
+        bg->param = editorTile.param;
+        bg->flags = editorTile.flags;
+      }
+
+      if (ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_destroy"]) &&
+          !io.WantCaptureMouse) {
+        auto broken = true;
+        int bit = Max::get().player_room()->y * 20 * 40 * 22 + ry * 20 * 40 +
+                  Max::get().player_room()->x * 40 + rx;
+        Max::get().map_bits(2)->set(bit, broken);
+      }
+
+      if (ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_fix"]) &&
+          !io.WantCaptureMouse) {
+        auto broken = false;
+        int bit = Max::get().player_room()->y * 20 * 40 * 22 + ry * 20 * 40 +
+                  Max::get().player_room()->x * 40 + rx;
+        Max::get().map_bits(2)->set(bit, broken);
+      }
     }
 
     if (options["ui_coords"].value && inbound &&
