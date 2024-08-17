@@ -1,12 +1,12 @@
 [submodule "imgui"]
 	path = imgui
-	url = git@github.com:ocornut/imgui
+	url = https://github.com/ocornut/imgui
 [submodule "detours"]
 	path = detours
-	url = git@github.com:microsoft/detours
+	url = https://github.com/microsoft/detours
 [submodule "fmt"]
 	path = fmt
-	url = git@github.com:fmtlib/fmt
+	url = https://github.com/fmtlib/fmt
 [submodule "toml11"]
 	path = toml11
-	url = git@github.com:ToruNiina/toml11
+	url = https://github.com/ToruNiina/toml11

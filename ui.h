@@ -202,7 +202,7 @@ private:
        {true, "Ignore UI input when hidden",
         "Ignore mouse and keyboard commands\nwhen UI is hidden with F10."}},
       {"ui_ignore_cheats",
-       {false, "Disable cheats when when hidden",
+       {false, "Disable cheats when hidden",
         "Disables all cheats temporarily\nwhen UI is hidden with F10."}},
       {"ui_viewports",
        {false, "Multi-viewports",
