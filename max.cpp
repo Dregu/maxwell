@@ -606,6 +606,14 @@ uint8_t *Max::options() {
   return (uint8_t *)(*(size_t *)get_address("slots") + 0x400 + 0x75048);
 }
 
+uint64_t *Max::eggs() { return (uint64_t *)(slot() + 0x418 + 0x188); }
+
+uint8_t *Max::flames() { return (uint8_t *)(slot() + 0x418 + 0x21e); }
+
+uint64_t *Max::chests() { return (uint64_t *)(slot() + 0x418 + 0x120); }
+
+uint16_t *Max::candles() { return (uint16_t *)(slot() + 0x418 + 0x1e0); }
+
 Pause *Max::pause() {
   return (Pause *)((*(size_t *)get_address("slots") + 0x93608));
 };

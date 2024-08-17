@@ -254,6 +254,10 @@ struct Max {
   uint8_t *keys();
   uint8_t *item();
   uint8_t *options();
+  uint64_t *eggs();
+  uint8_t *flames();
+  uint64_t *chests();
+  uint16_t *candles();
   Pause *pause();
   uint32_t *timer();
   void save_game();

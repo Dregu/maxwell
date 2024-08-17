@@ -24,7 +24,8 @@
 #pragma comment(lib, "version.lib")
 
 const char s8_zero = 0, s8_one = 1, s8_fifty = 50, s8_min = -128, s8_max = 127;
-const ImU8 u8_zero = 0, u8_one = 1, u8_fifty = 50, u8_min = 0, u8_max = 255;
+const ImU8 u8_zero = 0, u8_one = 1, u8_fifty = 50, u8_min = 0, u8_max = 255,
+           u8_five = 5;
 const short s16_zero = 0, s16_one = 1, s16_fifty = 50, s16_min = -32768,
             s16_max = 32767;
 const ImU16 u16_zero = 0, u16_one = 1, u16_fifty = 50, u16_min = 0,
@@ -92,6 +93,73 @@ std::array misc_names{
     "NoDiscInShrine",
     "NoDiscInStatue",
     "Unknown",
+};
+
+std::array egg_names{
+    "Reference Egg",
+    "Brown Egg",
+    "Raw Egg",
+    "Pickled Egg",
+    "Big Egg",
+    "Swan Egg",
+    "Forbidden Egg",
+    "Shadow Egg",
+    "Vanity Egg",
+    "Egg As A Service",
+    "Depraved Egg",
+    "Chaos Egg",
+    "Upside Down Egg",
+    "Evil Egg",
+    "Sweet Egg",
+    "Chocolate Egg",
+    "Value Egg",
+    "Plant Egg",
+    "Red Egg",
+    "Orange Egg",
+    "Sour Egg",
+    "Post Modern Egg",
+    "Universal Basic Egg",
+    "Laissez-faire Egg",
+    "Zen Egg",
+    "Future Egg",
+    "Friendship Egg",
+    "Truth Egg",
+    "Transcendental Egg",
+    "Ancient Egg",
+    "Magic Egg",
+    "Mystic Egg",
+    "Holiday Egg",
+    "Rain Egg",
+    "Razzle Egg",
+    "Dazzle Egg",
+    "Virtual Egg",
+    "Normal Egg",
+    "Great Egg",
+    "Gorgeous Egg",
+    "Planet Egg",
+    "Moon Egg",
+    "Galaxy Egg",
+    "Sunset Egg",
+    "Goodnight Egg",
+    "Dream Egg",
+    "Travel Egg",
+    "Promise Egg",
+    "Ice Egg",
+    "Fire Egg",
+    "Bubble Egg",
+    "Desert Egg",
+    "Clover Egg",
+    "Brick Egg",
+    "Neon Egg",
+    "Iridescent Egg",
+    "Rust Egg",
+    "Scarlet Egg",
+    "Sapphire Egg",
+    "Ruby Egg",
+    "Jade Egg",
+    "Obsidian Egg",
+    "Crystal Egg",
+    "Golden Egg",
 };
 
 const std::map<std::string, PLAYER_INPUT> notes{
@@ -281,6 +349,19 @@ void Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
   }
 }
 
+template <typename T>
+void UnnamedFlags(const char *name, T *flag_field, int num, int offset = 0) {
+  for (int idx{0}; idx < num; ++idx) {
+    T value = (T)std::pow(2, idx);
+    bool on = (*flag_field & value) == value;
+
+    if (ImGui::Checkbox(fmt::format("{} {}", name, idx + 1 + offset).c_str(),
+                        &on)) {
+      *flag_field ^= value;
+    }
+  }
+}
+
 ImVec2 Normalize(ImVec2 pos) {
   ImGuiIO &io = ImGui::GetIO();
   ImVec2 res = io.DisplaySize;
@@ -312,6 +393,29 @@ void UI::DrawPlayer() {
     Flags(item_names, Max::get().items(), false);
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc"))
     Flags(misc_names, Max::get().upgrades(), false);
+  if (ImGui::CollapsingHeader("Eggs##PlayerEggs"))
+    Flags(egg_names, Max::get().eggs(), false);
+  if (ImGui::CollapsingHeader("Candles##PlayerCandles")) {
+    UnnamedFlags("Candle", Max::get().candles(), 16);
+  }
+  if (ImGui::CollapsingHeader("Chests##PlayerChests")) {
+    UnnamedFlags("Chest", Max::get().chests(), 64);
+    UnnamedFlags("Chest", Max::get().chests() + 1, 64, 64);
+  }
+  if (ImGui::CollapsingHeader("Flames##PlayerFlames")) {
+    ImGui::SliderScalar("Blue Flame / Seahorse##BlueFlameSlider",
+                        ImGuiDataType_U8, Max::get().flames(), &u8_zero,
+                        &u8_five);
+    ImGui::SliderScalar("Purple Flame / Dog##PurpleFlameSlider",
+                        ImGuiDataType_U8, Max::get().flames() + 1, &u8_zero,
+                        &u8_five);
+    ImGui::SliderScalar("Violet Flame / Chameleon##VioletFlameSlider",
+                        ImGuiDataType_U8, Max::get().flames() + 2, &u8_zero,
+                        &u8_five);
+    ImGui::SliderScalar("Green Flame / Ostrich##GreenFlameSlider",
+                        ImGuiDataType_U8, Max::get().flames() + 3, &u8_zero,
+                        &u8_five);
+  }
 
   if (ImGui::CollapsingHeader("Consumables##PlayerConsumables")) {
     ImGui::DragScalar("Health##PlayerHealth", ImGuiDataType_S8,
