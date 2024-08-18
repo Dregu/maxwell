@@ -48,51 +48,52 @@ const double f64_zero = 0., f64_one = 1., f64_lo_a = -1000000000000000.0,
              f64_hi_a = +1000000000000000.0;
 
 std::array equipment_names{
-    "Unknown", "Firecrackers", "Flute",  "Lantern", "Top",   "Disc",    "BWand",
-    "Yoyo",    "Slink",        "Remote", "Ball",    "Wheel", "UVLight",
+    "",     "Firecrackers", "Flute",    "Lantern", "Top",
+    "Disc", "Bubble Wand",  "Yoyo",     "Slink",   "Remote",
+    "Ball", "Wheel",        "UV Light",
 };
 
 std::array item_names{
-    "MockDisc",  "SMedal",  "Cake",   "HouseKey",
-    "OfficeKey", "CageKey", "EMedal", "FPack",
+    "Mock Disc",  "Snake Medal", "Cake",      "House key",
+    "Office key", "Closet key",  "Eel Medal", "Fanny Pack",
 };
 
 std::array misc_names{
-    "HouseOpened",
-    "OfficeOpened",
-    "ClosetOpened",
-    "Unknown",
-    "Unknown",
-    "Unknown",
-    "Unknown",
-    "Unknown",
+    "House opened",
+    "Office opened",
+    "Closet opened",
+    "",
+    "",
+    "",
+    "",
+    "",
 
-    "SwitchState",
-    "MapCollected",
-    "StampsCollected",
-    "PencilCollected",
-    "ChameleonDefeated",
-    "CRingCollected",
-    "EatenByChameleon",
-    "InsertedSMedal",
+    "Switch state",
+    "Map collected",
+    "Stamps collected",
+    "Pencil collected",
+    "Chameleon defeated",
+    "C.Ring collected",
+    "Eaten by chameleon",
+    "Snake Medal inserted",
 
-    "EMedalInserted",
-    "WingsAcquired",
-    "WokeUp",
-    "BBWandUpgrade",
-    "ManticoreEgg65",
-    "AllCandlesLit",
-    "SingularityActive",
-    "ManticoreEggPlaced",
+    "Eel Medal inserted",
+    "Wings acquired",
+    "Woke up",
+    "B.B.Wand upgrade",
+    "65th Egg acquired",
+    "All candles lit",
+    "Torus active",
+    "65th Egg placed",
 
-    "BatDefeated",
-    "OstrichFreed",
-    "OstrichDefeated",
-    "EelFightActive",
-    "EelDefeated",
-    "NoDiscInShrine",
-    "NoDiscInStatue",
-    "Unknown",
+    "Bat defeated",
+    "Ostrich freed",
+    "Ostrich defeated",
+    "Eel fight active",
+    "Eel defeated",
+    "No disc in shrine",
+    "No disc in statue",
+    "",
 };
 
 std::array egg_names{
@@ -160,6 +161,45 @@ std::array egg_names{
     "Obsidian Egg",
     "Crystal Egg",
     "Golden Egg",
+};
+
+std::array bunny_names{
+    "Tutorial Bunny",
+    "Illegal 1",
+    "Origami Bunny",
+    "Crow Bunny",
+    "Ghost Bunny",
+    "Illegal 2",
+    "Fish Mural Bunny",
+    "Map Numbers Bunny",
+    "TV Bunny",
+    "UV Bunny",
+    "Bulb Bunny",
+    "Chinchilla Bunny",
+    "Illegal 3",
+    "Illegal 4",
+    "Illegal 5",
+    "Bunny Mural Bunny",
+    "Illegal 6",
+    "Illegal 7",
+    "Illegal 8",
+    "Illegal 9",
+    "Illegal 10",
+    "Illegal 11",
+    "Duck Bunny",
+    "Illegal 12",
+    "Illegal 13",
+    "Ghost Dog Bunny",
+    "Illegal 14",
+    "Illegal 15",
+    "Dream Bunny",
+    "Illegal 16",
+    "Floor Is Lava Bunny",
+    "Spike Room Bunny",
+};
+
+std::array portal_names{
+    "Eel", "Frog", "Fish", "Bear", "Dog", "Bird", "Squirrel", "Hippo",
 };
 
 const std::map<std::string, PLAYER_INPUT> notes{
@@ -333,8 +373,8 @@ bool IsKeyChordReleased(ImGuiKeyChord key_chord) {
 
 template <std::size_t SIZE, typename T>
 void Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
-           bool show_number = true) {
-  for (int idx{0}; idx < SIZE && idx < sizeof(T) * 8; ++idx) {
+           bool show_number = false, int first = 0) {
+  for (int idx{first}; idx < SIZE && idx < sizeof(T) * 8; ++idx) {
     T value = (T)std::pow(2, idx);
     bool on = (*flag_field & value) == value;
 
@@ -387,22 +427,108 @@ void UI::DrawPlayer() {
   Tooltip("This sets your current room as spawn and runs the save function "
           "anywhere.\nIn rooms without a phone you will spawn near the "
           "top left corner.");
-  if (ImGui::CollapsingHeader("Equipment##PlayerEquipment"))
-    Flags(equipment_names, Max::get().equipment(), false);
-  if (ImGui::CollapsingHeader("Items##PlayerItems"))
-    Flags(item_names, Max::get().items(), false);
+  if (ImGui::CollapsingHeader("Equipment##PlayerEquipment")) {
+    bool disc = *Max::get().equipment() & (1 << 5);
+    bool all = *Max::get().equipment() & 0x1FFE;
+    if (ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment", &all)) {
+      if (all)
+        *Max::get().equipment() = 0x1FFE;
+      else
+        *Max::get().equipment() = 0;
+    }
+    ImGui::Separator();
+    Flags(equipment_names, Max::get().equipment());
+    if (!disc && *Max::get().equipment() & (1 << 5) &&
+        (*Max::get().upgrades() & 0x60000000) == 0)
+      *Max::get().upgrades() |= 0x20000000;
+  }
+  if (ImGui::CollapsingHeader("Items##PlayerItems")) {
+    bool all = *Max::get().items();
+    if (ImGui::Checkbox("Unlock all items##UnlockAllItems", &all)) {
+      if (all) {
+        *Max::get().items() = 0xFF;
+        *Max::get().shards() = 2;
+        *(Max::get().shards() + 12) = 2;
+        *(Max::get().shards() + 24) = 2;
+      } else {
+        *Max::get().items() = 0;
+        *Max::get().shards() = 0;
+        *(Max::get().shards() + 12) = 0;
+        *(Max::get().shards() + 24) = 0;
+      }
+    }
+    ImGui::Separator();
+    Flags(item_names, Max::get().items());
+    bool shards[3];
+    shards[0] = *Max::get().shards();
+    shards[1] = *(Max::get().shards() + 12);
+    shards[2] = *(Max::get().shards() + 24);
+    if (ImGui::Checkbox("##Shard1", &shards[0]))
+      *Max::get().shards() = shards[0] * 2;
+    ImGui::SameLine(0, 4);
+    if (ImGui::Checkbox("##Shard2", &shards[1]))
+      *(Max::get().shards() + 12) = shards[1] * 2;
+    ImGui::SameLine(0, 4);
+    if (ImGui::Checkbox("Kangaroo shards##Shard3", &shards[2]))
+      *(Max::get().shards() + 24) = shards[2] * 2;
+  }
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc"))
-    Flags(misc_names, Max::get().upgrades(), false);
-  if (ImGui::CollapsingHeader("Eggs##PlayerEggs"))
-    Flags(egg_names, Max::get().eggs(), false);
+    Flags(misc_names, Max::get().upgrades());
+  if (ImGui::CollapsingHeader("Eggs##PlayerEggs")) {
+    bool all = *Max::get().eggs();
+    if (ImGui::Checkbox("Unlock all eggs##UnlockAllEggs", &all)) {
+      if (all) {
+        *Max::get().eggs() = 0xFFFFFFFFFFFFFFFF;
+        *Max::get().upgrades() |= (1 << 20);
+      } else {
+        *Max::get().eggs() = 0;
+        *Max::get().upgrades() &= ~(1 << 20);
+      }
+    }
+    ImGui::Separator();
+    Flags(egg_names, Max::get().eggs());
+    ImGui::CheckboxFlags("65th Egg", Max::get().upgrades(), 1 << 20);
+  }
+  if (ImGui::CollapsingHeader("Bunnies##PlayerBunnies")) {
+    bool all = *Max::get().bunnies() & 0xD2408FDD;
+    if (ImGui::Checkbox("Unlock legal bunnies##UnlockLegalBunnies", &all)) {
+      if (all)
+        *Max::get().bunnies() = 0xD2408FDD;
+      else
+        *Max::get().bunnies() = 0;
+    }
+    ImGui::Separator();
+    Flags(bunny_names, Max::get().bunnies());
+  }
   if (ImGui::CollapsingHeader("Candles##PlayerCandles")) {
+    ImGui::TextWrapped("Only the first 9 candles exist on a vanilla map.");
+    bool all = *Max::get().candles();
+    if (ImGui::Checkbox("Unlock legal candles##UnlockAllCandles", &all)) {
+      if (all) {
+        *Max::get().candles() = 0x1FF;
+      } else {
+        *Max::get().candles() = 0;
+      }
+    }
+    ImGui::Separator();
     UnnamedFlags("Candle", Max::get().candles(), 16);
   }
   if (ImGui::CollapsingHeader("Chests##PlayerChests")) {
+    ImGui::TextWrapped("Only the first 102 chests exist on a vanilla map.");
     UnnamedFlags("Chest", Max::get().chests(), 64);
     UnnamedFlags("Chest", Max::get().chests() + 1, 64, 64);
   }
   if (ImGui::CollapsingHeader("Flames##PlayerFlames")) {
+    bool all = *Max::get().flames() == 5;
+    if (ImGui::Checkbox("Place all flames##UnlockAllFlames", &all)) {
+      for (int i = 0; i < 4; ++i)
+        if (all) {
+          *(Max::get().flames() + i) = 5;
+        } else {
+          *(Max::get().flames() + i) = 0;
+        }
+    }
+    ImGui::Separator();
     ImGui::SliderScalar("Blue Flame / Seahorse##BlueFlameSlider",
                         ImGuiDataType_U8, Max::get().flames(), &u8_zero,
                         &u8_five);
@@ -416,8 +542,38 @@ void UI::DrawPlayer() {
                         ImGuiDataType_U8, Max::get().flames() + 3, &u8_zero,
                         &u8_five);
   }
-
+  if (ImGui::CollapsingHeader("Animal head portals##PlayerPortals")) {
+    bool all = *Max::get().portals();
+    if (ImGui::Checkbox("Unlock all portals##UnlockAllPortals", &all)) {
+      if (all) {
+        *Max::get().portals() = 0xfe;
+        *(Max::get().portals() + 1) = 0xfe;
+        *Max::get().upgrades() &= ~(1 << 27);
+        *Max::get().upgrades() |= (1 << 28);
+      } else {
+        *Max::get().portals() = 0;
+        *(Max::get().portals() + 1) = 0;
+        *Max::get().upgrades() &= ~(1 << 27);
+        *Max::get().upgrades() &= ~(1 << 28);
+      }
+    }
+    ImGui::SeparatorText("Heads seen");
+    ImGui::PushID("AnimalHeadsSeen");
+    ImGui::CheckboxFlags("Eel fight active", Max::get().upgrades(), 1 << 27);
+    Flags(portal_names, Max::get().portals(), false, 1);
+    ImGui::PopID();
+    ImGui::PushID("AnimalHeadsUnlocked");
+    ImGui::SeparatorText("Heads unlocked");
+    ImGui::CheckboxFlags("Eel", Max::get().upgrades(), 1 << 28);
+    Flags(portal_names, Max::get().portals() + 1, false, 1);
+    ImGui::PopID();
+  }
+  if (*Max::get().upgrades() & (1 << 28))
+    *Max::get().upgrades() &= ~(1 << 27);
   if (ImGui::CollapsingHeader("Consumables##PlayerConsumables")) {
+    bool all = false;
+    ImGui::Checkbox("Max out stats##UnlockMaxStats",
+                    &options["cheat_stats"].value);
     ImGui::DragScalar("Health##PlayerHealth", ImGuiDataType_S8,
                       Max::get().player_hp(), 0.1f);
     ImGui::DragScalar("More health##PlayerMoreHealth", ImGuiDataType_S8,
@@ -1506,6 +1662,8 @@ bool UI::Keys() {
     options["cheat_godmode"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_damage"]))
     options["cheat_damage"].value ^= true;
+  else if (ImGui::IsKeyChordPressed(keys["toggle_stats"]))
+    options["cheat_stats"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_darkness"]))
     options["cheat_darkness"].value ^= true;
   else if (ImGui::IsKeyChordPressed(keys["toggle_lights"]))
@@ -1670,6 +1828,15 @@ void UI::Cheats() {
                           true);
   } else {
     recover_mem("cheat_water");
+  }
+
+  if (options["cheat_stats"].value) {
+    if (*Max::get().player_hp() < 12)
+      *Max::get().player_hp() = 12;
+    *(Max::get().player_hp() + 1) = 4;
+    *Max::get().keys() = 9;
+    *(Max::get().keys() + 1) = 9;
+    *(Max::get().keys() + 2) = 255;
   }
 }
 
