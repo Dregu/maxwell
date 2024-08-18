@@ -167,7 +167,7 @@ std::array bunny_names{
     "Tutorial Bunny",
     "Illegal 1",
     "Origami Bunny",
-    "Crow Bunny",
+    "Spike Room Bunny",
     "Ghost Bunny",
     "Illegal 2",
     "Fish Mural Bunny",
@@ -195,7 +195,7 @@ std::array bunny_names{
     "Dream Bunny",
     "Illegal 16",
     "Floor Is Lava Bunny",
-    "Spike Room Bunny",
+    "Crow Bunny",
 };
 
 std::array portal_names{
@@ -1327,8 +1327,8 @@ void UI::DrawSelectedTile(SelectedTile &tile) {
 void UI::DrawSelectedTileRow(SelectedTile &tile) {
   DrawTileRow(*tile.tile);
   ImGui::SameLine(0, 4);
-  ImGui::Text("%d,%d %d,%d %s", tile.room.x, tile.room.y, tile.pos.x,
-              tile.pos.y, (tile.layer ? "BG" : "FG"));
+  ImGui::Text("%02d,%02d %02d,%02d %s", tile.room.x, tile.room.y, tile.pos.x,
+              tile.pos.y, (tile.layer ? "B" : "F"));
   ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
   if (ImGui::Button("Go", ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
     *Max::get().warp_map() = tile.map;
@@ -1505,6 +1505,18 @@ void UI::DrawLevel() {
           }
         }
       }
+      std::sort(searchTiles.begin(), searchTiles.end(),
+                [](const auto &a, const auto &b) {
+                  return (a.room.y < b.room.y) ||
+                         (a.room.y == b.room.y && a.room.x < b.room.x) ||
+                         (a.room.y == b.room.y && a.room.x == b.room.x &&
+                          a.pos.y < b.pos.y) ||
+                         (a.room.y == b.room.y && a.room.x == b.room.x &&
+                          a.pos.y == b.pos.y && a.pos.x < b.pos.x) ||
+                         (a.room.y == b.room.y && a.room.x == b.room.x &&
+                          a.pos.y == b.pos.y && a.pos.x == b.pos.x &&
+                          a.layer < b.layer);
+                });
     }
     int i = 0;
     ImGui::PushID("TileSearchResults");
@@ -2076,8 +2088,13 @@ void UI::HUD() {
           ->AddRect(TileToScreen(ImVec2(rx, ry)),
                     TileToScreen(ImVec2(rx + 1, ry + 1)), 0xddffffff, 0, 0,
                     3.f);
-      std::string coord =
-          fmt::format("Screen: {},{}\n  Tile: {},{}", x, y, rx, ry);
+      int wx = 320 * Max::get().player_room()->x + x;
+      int wy = 180 * Max::get().player_room()->y + y;
+      int mx = 40 * Max::get().player_room()->x + rx;
+      int my = 22 * Max::get().player_room()->y + ry;
+      std::string coord = fmt::format(
+          "Screen: {},{}\n  Tile: {},{}\n World: {},{}\n   Map: {},{}", x, y,
+          rx, ry, wx, wy, mx, my);
       coord += fmt::format("\n Flags: 0x{:X}",
                            Max::get().get_room_tile_flags(rx, ry, 0xffff));
       if (fg && bg)
