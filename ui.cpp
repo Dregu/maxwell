@@ -799,6 +799,16 @@ void UI::DrawMap() {
                  a.y + d.y + py - c.y - bordersize.y),
           4.f, 0xee00ffee, 0, 1.5f);
     }
+
+    if (options["map_uv_bunny"].value &&
+        (*Max::get().bunnies() & (1 << 9)) == 0) {
+      auto px = ((Max::get().uv_bunny()->x + 16.f) / 320.f * roomsize.x);
+      auto py = ((Max::get().uv_bunny()->y + 48.f) / 180.f * roomsize.y);
+      ImGui::GetWindowDrawList()->AddCircleFilled(
+          ImVec2(a.x + d.x + px - c.x - bordersize.x,
+                 a.y + d.y + py - c.y - bordersize.y),
+          4.f, rand() | 0xff000000);
+    }
   }
 }
 

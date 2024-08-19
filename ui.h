@@ -189,6 +189,10 @@ private:
        {false, "Show all map borders on minimap",
         "Draws all special map borders instead of only selected layer."}},
       {"map_wheel", {false, "Show wheel on minimap", "For wheel warping."}},
+      {"map_uv_bunny",
+       {false, "Show UV bunny on minimap",
+        "The UV bunny follows a path around the common areas next to the hub\n"
+        "room, but turns around if it's about to run into your UV light."}},
 
       {"ui_coords",
        {true, "Show coordinate tooltip",

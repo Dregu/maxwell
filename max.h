@@ -237,6 +237,7 @@ struct Max {
   FVec2 *player_position();
   FVec2 *player_velocity();
   FVec2 *player_wheel();
+  FVec2 *uv_bunny();
   int *player_map();
   S32Vec2 *respawn_room();
   S32Vec2 *respawn_position();

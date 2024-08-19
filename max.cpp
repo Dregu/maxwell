@@ -565,6 +565,10 @@ FVec2 *Max::player_wheel() {
   return (FVec2 *)(*(size_t *)get_address("slots") + 0x9b0c0);
 }
 
+FVec2 *Max::uv_bunny() {
+  return (FVec2 *)(*(size_t *)get_address("slots") + 0x754a8 + 0x30ec8);
+}
+
 int *Max::player_map() {
   return (int *)(*(size_t *)get_address("layer_base") +
                  *(uint32_t *)get_address("layer_offset"));
