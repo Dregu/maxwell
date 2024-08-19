@@ -429,7 +429,7 @@ void UI::DrawPlayer() {
           "top left corner.");
   if (ImGui::CollapsingHeader("Equipment##PlayerEquipment")) {
     bool disc = *Max::get().equipment() & (1 << 5);
-    bool all = *Max::get().equipment() & 0x1FFE;
+    bool all = (*Max::get().equipment() & 0x1FFE) == 0x1FFE;
     if (ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment", &all)) {
       if (all)
         *Max::get().equipment() = 0x1FFE;
@@ -443,7 +443,7 @@ void UI::DrawPlayer() {
       *Max::get().upgrades() |= 0x20000000;
   }
   if (ImGui::CollapsingHeader("Items##PlayerItems")) {
-    bool all = *Max::get().items();
+    bool all = *Max::get().items() == 0xFF;
     if (ImGui::Checkbox("Unlock all items##UnlockAllItems", &all)) {
       if (all) {
         *Max::get().items() = 0xFF;
@@ -475,7 +475,7 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc"))
     Flags(misc_names, Max::get().upgrades());
   if (ImGui::CollapsingHeader("Eggs##PlayerEggs")) {
-    bool all = *Max::get().eggs();
+    bool all = *Max::get().eggs() == 0xFFFFFFFFFFFFFFFF;
     if (ImGui::Checkbox("Unlock all eggs##UnlockAllEggs", &all)) {
       if (all) {
         *Max::get().eggs() = 0xFFFFFFFFFFFFFFFF;
@@ -490,7 +490,7 @@ void UI::DrawPlayer() {
     ImGui::CheckboxFlags("65th Egg", Max::get().upgrades(), 1 << 20);
   }
   if (ImGui::CollapsingHeader("Bunnies##PlayerBunnies")) {
-    bool all = *Max::get().bunnies() & 0xD2408FDD;
+    bool all = *Max::get().bunnies() == 0xD2408FDD;
     if (ImGui::Checkbox("Unlock legal bunnies##UnlockLegalBunnies", &all)) {
       if (all)
         *Max::get().bunnies() = 0xD2408FDD;
@@ -502,7 +502,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Candles##PlayerCandles")) {
     ImGui::TextWrapped("Only the first 9 candles exist on a vanilla map.");
-    bool all = *Max::get().candles();
+    bool all = (*Max::get().candles() & 0x1FF) == 0x1FF;
     if (ImGui::Checkbox("Unlock legal candles##UnlockAllCandles", &all)) {
       if (all) {
         *Max::get().candles() = 0x1FF;
@@ -519,7 +519,7 @@ void UI::DrawPlayer() {
     UnnamedFlags("Chest", Max::get().chests() + 1, 64, 64);
   }
   if (ImGui::CollapsingHeader("Flames##PlayerFlames")) {
-    bool all = *Max::get().flames() == 5;
+    bool all = *(uint32_t *)Max::get().flames() == 0x05050505;
     if (ImGui::Checkbox("Place all flames##UnlockAllFlames", &all)) {
       for (int i = 0; i < 4; ++i)
         if (all) {
@@ -543,7 +543,7 @@ void UI::DrawPlayer() {
                         &u8_five);
   }
   if (ImGui::CollapsingHeader("Animal head portals##PlayerPortals")) {
-    bool all = *Max::get().portals();
+    bool all = (*Max::get().portals() & 0xfe) == 0xfe;
     if (ImGui::Checkbox("Unlock all portals##UnlockAllPortals", &all)) {
       if (all) {
         *Max::get().portals() = 0xfe;
