@@ -633,8 +633,8 @@ void UI::DrawMap() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
 
-  ImVec2 realmapsize{800 * uiScale, 528 * uiScale};
-  ImVec2 roomsize{40 * uiScale, 22 * uiScale};
+  ImVec2 realmapsize{800 * uiScale * mapScale, 528 * uiScale * mapScale};
+  ImVec2 roomsize{40 * uiScale * mapScale, 22 * uiScale * mapScale};
 
   static const std::map<int, std::pair<S32Vec2, S32Vec2>> areas{
       //{0, {{2, 4}, {18, 20}}},
@@ -665,10 +665,11 @@ void UI::DrawMap() {
   ImGui::InputInt("Map##MinimapMap", &layer);
   layer = (layer + 5) % 5;
   ImGui::PopItemWidth();
-  ImGui::SameLine(mapsize.x - 60.f * uiScale);
-  if (ImGui::Button("Refresh##MinimapRefresh",
-                    ImVec2(60.f * uiScale + ImGui::GetStyle().WindowPadding.x,
-                           ImGui::GetItemRectSize().y)) ||
+  ImGui::SameLine(mapsize.x - 60.f * uiScale * mapScale);
+  if (ImGui::Button(
+          "Refresh##MinimapRefresh",
+          ImVec2(60.f * uiScale * mapScale + ImGui::GetStyle().WindowPadding.x,
+                 ImGui::GetItemRectSize().y)) ||
       (((options["map_auto"].value ||
          ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_warp"])) &&
         ImGui::GetFrameCount() > lastMinimapFrame + 15)) ||
@@ -774,13 +775,13 @@ void UI::DrawMap() {
 
     {
       auto px = Max::get().player_room()->x * roomsize.x +
-                (Max::get().player_position()->x / 320.f * roomsize.x);
+                ((Max::get().player_position()->x + 4.f) / 320.f * roomsize.x);
       auto py = Max::get().player_room()->y * roomsize.y +
-                (Max::get().player_position()->y / 180.f * roomsize.y);
+                ((Max::get().player_position()->y + 4.f) / 180.f * roomsize.y);
       ImGui::GetWindowDrawList()->AddCircleFilled(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
-          3.f, 0xee0000ee);
+          3.f * uiScale * mapScale, 0xee0000ee);
     }
 
     if (options["map_wheel"].value) {
@@ -788,16 +789,16 @@ void UI::DrawMap() {
                 (Max::get().player_wheel()->x / 320.f * roomsize.x);
       auto py = Max::get().player_room()->y * roomsize.y +
                 (Max::get().player_wheel()->y / 180.f * roomsize.y);
-      while (px < 80.f * uiScale)
-        px += 640.f * uiScale;
-      while (px > 720.f * uiScale)
-        px -= 640.f * uiScale;
-      while (py > 440.f * uiScale)
-        py -= 352.f * uiScale;
+      while (px < 80.f * uiScale * mapScale)
+        px += 640.f * uiScale * mapScale;
+      while (px > 720.f * uiScale * mapScale)
+        px -= 640.f * uiScale * mapScale;
+      while (py > 440.f * uiScale * mapScale)
+        py -= 352.f * uiScale * mapScale;
       ImGui::GetWindowDrawList()->AddCircle(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
-          4.f, 0xee00ffee, 0, 1.5f);
+          4.f * uiScale * mapScale, 0xee00ffee, 0, 1.5f * uiScale * mapScale);
     }
 
     if (options["map_uv_bunny"].value &&
@@ -807,7 +808,20 @@ void UI::DrawMap() {
       ImGui::GetWindowDrawList()->AddCircleFilled(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
-          4.f, rand() | 0xff000000);
+          4.f * uiScale * mapScale, rand() | 0xff000000);
+    }
+
+    for (auto &tile : searchTiles) {
+      auto px =
+          tile.room.x * roomsize.x + (tile.pos.x * 8.f / 320.f * roomsize.x);
+      auto py =
+          tile.room.y * roomsize.y + (tile.pos.y * 8.f / 180.f * roomsize.y);
+      ImGui::GetWindowDrawList()->AddRectFilled(
+          ImVec2(a.x + d.x + px - c.x - bordersize.x - uiScale * mapScale,
+                 a.y + d.y + py - c.y - bordersize.y - uiScale * mapScale),
+          ImVec2(a.x + d.x + px - c.x - bordersize.x + uiScale * mapScale,
+                 a.y + d.y + py - c.y - bordersize.y + uiScale * mapScale),
+          0xffffff33);
     }
   }
 }
@@ -1009,6 +1023,7 @@ void UI::DrawOptions() {
   if (noclip && !options["cheat_noclip"].value)
     *Max::get().player_state() = 0;
   UpdateOptions();
+  ImGui::SliderFloat("Minimap scale", &mapScale, 1.f, 5.f, "%.1fx");
   if (ImGui::SliderInt("Window scale", &windowScale, 1, 10, "%dx")) {
     ScaleWindow();
   }
@@ -2440,6 +2455,8 @@ void UI::SaveINI() {
   }
   writeData << "scale = " << std::dec << windowScale << " # int, 1 - 10"
             << std::endl;
+  writeData << "map_scale = " << std::dec << mapScale << " # float, 1 - 5"
+            << std::endl;
 
   writeData << "\n[ui_keys] # hex ImGuiKeyChord\n";
   for (const auto &[name, key] : keys) {
@@ -2502,6 +2519,7 @@ void UI::LoadINI() {
     options[name].value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
   }
   windowScale = toml::find_or<int>(opts, "scale", 4);
+  mapScale = toml::find_or<float>(opts, "map_scale", 1.f);
 
   toml::value custom_keys;
   try {

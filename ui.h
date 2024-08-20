@@ -232,6 +232,7 @@ private:
   int windowScale = 4;
   float dpiScale = 1.0f;
   float uiScale = 1.0f;
+  float mapScale = 1.0f;
   std::string screenShotFileName = "MAXWELL";
   std::string screenShotNextFrame = "";
   std::string screenShotThisFrame = "";
