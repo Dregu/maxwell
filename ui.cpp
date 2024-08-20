@@ -438,17 +438,32 @@ ImVec2 Normalize(ImVec2 pos) {
 
 void SearchTiles(std::vector<SelectedTile> &searchTiles, uint16_t searchId,
                  int mapId = -1) {
-  if (mapId == -1)
+  Max::get().decrypt_stuff();
+  int mapMin, mapMax;
+  if (mapId == -1) {
     mapId = *Max::get().player_map();
-  Map *map = Max::get().map(mapId);
-  for (int r = 0; r < map->roomCount; ++r) {
-    for (int l = 0; l < 2; ++l) {
-      for (int y = 0; y < 22; ++y) {
-        for (int x = 0; x < 40; ++x) {
-          Room &room = map->rooms[r];
-          if (room.tiles[l][y][x].id == searchId) {
-            searchTiles.emplace_back(SelectedTile{
-                &room.tiles[l][y][x], {room.x, room.y}, {x, y}, l, mapId});
+    mapMin = mapId;
+    mapMax = mapId;
+  } else if (mapId == s32_max) {
+    mapMin = 0;
+    mapMax = 4;
+  } else if (mapId >= 0 && mapId <= 4) {
+    mapMin = mapId;
+    mapMax = mapId;
+  } else {
+    return;
+  }
+  for (mapId = mapMin; mapId <= mapMax; ++mapId) {
+    Map *map = Max::get().map(mapId);
+    for (int r = 0; r < map->roomCount; ++r) {
+      for (int l = 0; l < 2; ++l) {
+        for (int y = 0; y < 22; ++y) {
+          for (int x = 0; x < 40; ++x) {
+            Room &room = map->rooms[r];
+            if (room.tiles[l][y][x].id == searchId) {
+              searchTiles.emplace_back(SelectedTile{
+                  &room.tiles[l][y][x], {room.x, room.y}, {x, y}, l, mapId});
+            }
           }
         }
       }
@@ -456,14 +471,17 @@ void SearchTiles(std::vector<SelectedTile> &searchTiles, uint16_t searchId,
   }
   std::sort(
       searchTiles.begin(), searchTiles.end(), [](const auto &a, const auto &b) {
-        return (a.room.y < b.room.y) ||
-               (a.room.y == b.room.y && a.room.x < b.room.x) ||
-               (a.room.y == b.room.y && a.room.x == b.room.x &&
-                a.pos.y < b.pos.y) ||
-               (a.room.y == b.room.y && a.room.x == b.room.x &&
-                a.pos.y == b.pos.y && a.pos.x < b.pos.x) ||
-               (a.room.y == b.room.y && a.room.x == b.room.x &&
-                a.pos.y == b.pos.y && a.pos.x == b.pos.x && a.layer < b.layer);
+        return (a.map < b.map) || (a.map == b.map && a.room.y < b.room.y) ||
+               (a.map == b.map && a.room.y == b.room.y &&
+                a.room.x < b.room.x) ||
+               (a.map == b.map && a.room.y == b.room.y &&
+                a.room.x == b.room.x && a.pos.y < b.pos.y) ||
+               (a.map == b.map && a.room.y == b.room.y &&
+                a.room.x == b.room.x && a.pos.y == b.pos.y &&
+                a.pos.x < b.pos.x) ||
+               (a.map == b.map && a.room.y == b.room.y &&
+                a.room.x == b.room.x && a.pos.y == b.pos.y &&
+                a.pos.x == b.pos.x && a.layer < b.layer);
       });
 }
 
@@ -1172,7 +1190,7 @@ void UI::DrawMap() {
                    a.y + d.y + ay - c.y - bordersize.y),
             ImVec2(a.x + d.x + bx - c.x - bordersize.x,
                    a.y + d.y + by - c.y - bordersize.y),
-            0xff00eeee, 0, 0, 1.0f);
+            0xff00eeee, 0, 0, 1.0f * uiScale * mapScale);
       }
     }
 
@@ -1186,7 +1204,7 @@ void UI::DrawMap() {
                  a.y + d.y + ay - c.y - bordersize.y),
           ImVec2(a.x + d.x + bx - c.x - bordersize.x,
                  a.y + d.y + by - c.y - bordersize.y),
-          0xff00ff00, 0, 0, 3.0f);
+          0xff00ff00, 0, 0, 3.0f * uiScale * mapScale);
     }
 
     auto pl = *Max::get().player_map();
@@ -1200,7 +1218,7 @@ void UI::DrawMap() {
                  a.y + d.y + ay - c.y - bordersize.y),
           ImVec2(a.x + d.x + bx - c.x - bordersize.x,
                  a.y + d.y + by - c.y - bordersize.y),
-          0xff0000ff, 0, 0, 3.0f);
+          0xff0000ff, 0, 0, 3.0f * uiScale * mapScale);
     }
 
     {
@@ -1211,7 +1229,7 @@ void UI::DrawMap() {
       ImGui::GetWindowDrawList()->AddCircleFilled(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
-          3.f, 0xff00eeee);
+          3.f * uiScale * mapScale, 0xff00eeee);
     }
 
     if (options["map_uv_bunny"].value &&
@@ -1236,7 +1254,7 @@ void UI::DrawMap() {
       ImGui::GetWindowDrawList()->AddCircle(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
-          3.f * uiScale * mapScale, 0xffffffff, 0, 2.f);
+          3.f * uiScale * mapScale, 0xffffffff, 0, 1.f * uiScale * mapScale);
     }
 
     if (options["map_wheel"].value) {
@@ -1283,7 +1301,7 @@ void UI::DrawMap() {
                    a.y + d.y + ay - c.y - bordersize.y),
             ImVec2(a.x + d.x + bx - c.x - bordersize.x,
                    a.y + d.y + by - c.y - bordersize.y),
-            0xccffffff, 0, 0, 1.0f);
+            0xccffffff, 0, 0, 1.0f * uiScale * mapScale);
       }
     }
   }
@@ -1815,8 +1833,8 @@ void UI::DrawSelectedTile(SelectedTile &tile) {
 void UI::DrawSelectedTileRow(SelectedTile &tile) {
   DrawTileRow(*tile.tile);
   ImGui::SameLine(0, 4);
-  ImGui::Text("%02d,%02d %02d,%02d %s", tile.room.x, tile.room.y, tile.pos.x,
-              tile.pos.y, (tile.layer ? "B" : "F"));
+  ImGui::Text("M:%d R:%02d,%02d T:%02d,%02d L:%s", tile.map, tile.room.x,
+              tile.room.y, tile.pos.x, tile.pos.y, (tile.layer ? "BG" : "FG"));
   ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
   if (ImGui::Button("Go", ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
     *Max::get().warp_map() = tile.map;
@@ -1952,13 +1970,16 @@ void UI::DrawLevel() {
 
   ImGui::PushID("TileSearch");
   if (ImGui::CollapsingHeader("Tile search   ")) {
-    ImGui::PushItemWidth(100.f * uiScale);
-    static uint16_t searchId{0};
-    ImGui::InputScalar("ID", ImGuiDataType_U16, &searchId, &u16_one);
+    static bool searchAll{false};
+    static std::string searchStr;
+    ImGui::PushItemWidth(
+        std::max(ImGui::GetContentRegionAvail().x, 340.f * uiScale));
+    ImGui::InputTextWithHint("##TileSearchIds", "Enter tile IDs (e.g 420 0x45)",
+                             &searchStr);
+    ImGui::PopItemWidth();
     const bool focused = ImGui::IsItemFocused();
     bool doSearch = false;
     bool doClear = false;
-    ImGui::SameLine(130.f * uiScale, 4);
     if (ImGui::Button("Search##SearchTiles") ||
         (focused && ImGui::IsKeyPressed(ImGuiKey_Enter))) {
       doSearch = true;
@@ -1972,10 +1993,41 @@ void UI::DrawLevel() {
     ImGui::SameLine(0, 4);
     if (ImGui::Button("Clear##ClearTiles"))
       doClear = true;
+    ImGui::SameLine(0, 4);
+    ImGui::Checkbox("All maps##SearchAllMaps", &searchAll);
     if (doClear)
       searchTiles.clear();
     if (doSearch) {
-      SearchTiles(searchTiles, searchId);
+      std::vector<uint16_t> searchIds;
+      std::replace(searchStr.begin(), searchStr.end(), ',', ' ');
+      std::string::iterator new_end = std::unique(
+          searchStr.begin(), searchStr.end(),
+          [=](char lhs, char rhs) { return (lhs == rhs) && (lhs == ' '); });
+      searchStr.erase(new_end, searchStr.end());
+      std::string word;
+      std::stringstream ss(searchStr);
+      while (!ss.eof()) {
+        uint16_t id = 0;
+        ss >> word;
+        try {
+          if (word.starts_with("0x")) {
+            word = word.substr(2);
+            id = std::stoi(word, 0, 16);
+          } else
+            id = std::stoi(word);
+        } catch (std::exception &) {
+        };
+        if (id)
+          searchIds.push_back(id);
+      }
+      for (auto searchId : searchIds)
+        SearchTiles(searchTiles, searchId, searchAll ? s32_max : -1);
+      searchTiles.erase(
+          std::unique(searchTiles.begin(), searchTiles.end(),
+                      [](const SelectedTile &a, const SelectedTile &b) {
+                        return a.tile == b.tile;
+                      }),
+          searchTiles.end());
     }
     int i = 0;
     ImGui::PushID("TileSearchResults");
@@ -2003,7 +2055,6 @@ void UI::DrawLevel() {
       ImGui::PopID();
     }
     ImGui::PopID();
-    ImGui::PopItemWidth();
   }
   ImGui::PopID();
 
@@ -2887,10 +2938,10 @@ void UI::SaveINI() {
   for (const auto &[name, opt] : options) {
     writeData << name << " = " << std::dec << opt.value << std::endl;
   }
-  writeData << "scale = " << std::dec << windowScale << " # int, 1 - 10"
-            << std::endl;
-  writeData << "map_scale = " << std::dec << mapScale << " # float, 1 - 5"
-            << std::endl;
+  writeData << "scale_window = " << std::fixed << std::setprecision(2)
+            << windowScale << " # int, 1 - 10" << std::endl;
+  writeData << "scale_map = " << std::fixed << std::setprecision(2) << mapScale
+            << " # float, 1 - 5" << std::endl;
 
   writeData << "\n[ui_keys] # hex ImGuiKeyChord\n";
   for (const auto &[name, key] : keys) {
@@ -2934,16 +2985,14 @@ void UI::SaveINI() {
 void UI::LoadINI() {
   std::string file = "MAXWELL\\MAXWELL.ini";
   toml::value data;
+  toml::value opts;
+  toml::value custom_keys;
+  toml::value ui_keys;
   try {
     data = toml::parse(file);
-  } catch (std::exception &) {
-    SaveINI();
-    return;
-  }
-
-  toml::value opts;
-  try {
     opts = toml::find(data, "options");
+    custom_keys = toml::find(data, "custom_keys");
+    ui_keys = toml::find(data, "ui_keys");
   } catch (std::exception &) {
     SaveINI();
     return;
@@ -2952,16 +3001,8 @@ void UI::LoadINI() {
   for (const auto &[name, opt] : options) {
     options[name].value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
   }
-  windowScale = toml::find_or<int>(opts, "scale", 4);
-  mapScale = toml::find_or<float>(opts, "map_scale", 1.f);
-
-  toml::value custom_keys;
-  try {
-    custom_keys = toml::find(data, "custom_keys");
-  } catch (std::exception &) {
-    SaveINI();
-    return;
-  }
+  windowScale = toml::find_or<int>(opts, "scale_window", 4);
+  mapScale = toml::find_or<float>(opts, "scale_map", 1.f);
 
   Max::get().keymap[GAME_INPUT::UP] =
       toml::find_or<uint8_t>(custom_keys, "up", 0);
@@ -2991,14 +3032,6 @@ void UI::LoadINI() {
       toml::find_or<uint8_t>(custom_keys, "hud", 0);
   Max::get().keymap[GAME_INPUT::CRING] =
       toml::find_or<uint8_t>(custom_keys, "cring", 0);
-
-  toml::value ui_keys;
-  try {
-    ui_keys = toml::find(data, "ui_keys");
-  } catch (std::exception &) {
-    SaveINI();
-    return;
-  }
 
   for (const auto &[name, key] : default_keys) {
     keys[name] = (ImGuiKeyChord)toml::find_or<int>(ui_keys, name, (int)key);
