@@ -647,11 +647,25 @@ void UI::DrawPlayer() {
       auto goto_item =
           Flags(equipment_names, Max::get().equipment(), false, 0, true);
       if (goto_item != -1) {
-        static const std::array item_tiles{-1,  383, 169, 109, 634, 381, 162,
-                                           334, 417, 466, 637, 643, 323};
-        auto tile = GetNthTile(item_tiles[goto_item]);
+        static const std::array<TargetTile, 16> item_tiles{{{u16_max},
+                                                            {383},
+                                                            {169},
+                                                            {109},
+                                                            {634},
+                                                            {381, 0, 3, 6},
+                                                            {162},
+                                                            {334},
+                                                            {417},
+                                                            {466},
+                                                            {637},
+                                                            {643},
+                                                            {323}}};
+        auto tileId = item_tiles[goto_item].tile;
+        auto tile = GetNthTile(tileId, item_tiles[goto_item].n,
+                               item_tiles[goto_item].map);
         if (tile.has_value())
-          WarpToTile(tile.value());
+          WarpToTile(tile.value(), item_tiles[goto_item].x,
+                     item_tiles[goto_item].y);
       }
     }
     if (!disc && *Max::get().equipment() & (1 << 5) &&
@@ -679,11 +693,14 @@ void UI::DrawPlayer() {
     {
       auto goto_item = Flags(item_names, Max::get().items(), false, 0, true);
       if (goto_item != -1) {
-        static const std::array item_tiles{382, 469, 32,  257,
-                                           617, 618, 679, 780};
-        auto tile = GetNthTile(item_tiles[goto_item]);
+        static const std::array<TargetTile, 8> item_tiles{
+            {{382}, {469}, {32}, {257}, {617}, {618}, {679, 0, 4, 6}, {780}}};
+        auto tileId = item_tiles[goto_item].tile;
+        auto tile = GetNthTile(tileId, item_tiles[goto_item].n,
+                               item_tiles[goto_item].map);
         if (tile.has_value())
-          WarpToTile(tile.value());
+          WarpToTile(tile.value(), item_tiles[goto_item].x,
+                     item_tiles[goto_item].y);
       }
     }
     bool shards[3];
@@ -727,7 +744,7 @@ void UI::DrawPlayer() {
           {442},
           {352, 0, 4, 10},
           {161},
-          {352, 0, 4, 10},
+          {352, 1, 11},
           {449},
           {678},
           {794, 0, 18, 13, 3},
