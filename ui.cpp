@@ -372,34 +372,55 @@ bool IsKeyChordReleased(ImGuiKeyChord key_chord) {
 } // namespace ImGui
 
 template <std::size_t SIZE, typename T>
-void Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
-           bool show_number = false, int first = 0) {
+int UI::Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
+              bool show_number, int first, bool go_button) {
+  int n = -1;
+  ImGui::PushID((int)(size_t)&names_array);
   for (int idx{first}; idx < SIZE && idx < sizeof(T) * 8; ++idx) {
     T value = (T)std::pow(2, idx);
     bool on = (*flag_field & value) == value;
-
-    if (names_array[idx][0] != '\0' &&
-        ImGui::Checkbox(
-            show_number
-                ? fmt::format("{}: {}", idx + 1, names_array[idx]).c_str()
-                : names_array[idx],
-            &on)) {
-      *flag_field ^= value;
+    ImGui::PushID(idx);
+    if (names_array[idx][0] != '\0') {
+      if (ImGui::Checkbox(
+              show_number
+                  ? fmt::format("{}: {}", idx + 1, names_array[idx]).c_str()
+                  : names_array[idx],
+              &on)) {
+        *flag_field ^= value;
+      }
+      if (go_button) {
+        ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+        if (ImGui::Button("Go",
+                          ImVec2(24.f * uiScale, ImGui::GetFrameHeight())))
+          n = idx;
+      }
     }
+    ImGui::PopID();
   }
+  ImGui::PopID();
+  return n;
 }
 
 template <typename T>
-void UnnamedFlags(const char *name, T *flag_field, int num, int offset = 0) {
+int UI::UnnamedFlags(const char *name, T *flag_field, int num, int offset,
+                     bool go_button) {
+  int n = -1;
   for (int idx{0}; idx < num; ++idx) {
     T value = (T)std::pow(2, idx);
     bool on = (*flag_field & value) == value;
-
+    ImGui::PushID(idx);
     if (ImGui::Checkbox(fmt::format("{} {}", name, idx + 1 + offset).c_str(),
                         &on)) {
       *flag_field ^= value;
     }
+    if (go_button) {
+      ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+      if (ImGui::Button("Go", ImVec2(24.f * uiScale, ImGui::GetFrameHeight())))
+        n = idx;
+    }
+    ImGui::PopID();
   }
+  return n;
 }
 
 ImVec2 Normalize(ImVec2 pos) {
@@ -413,6 +434,54 @@ ImVec2 Normalize(ImVec2 pos) {
     res.y = res.x / 16 * 9;
   }
   return ImVec2(pos.x / res.x * 320.f, pos.y / res.y * 180.f);
+}
+
+void SearchTiles(std::vector<SelectedTile> &searchTiles, uint16_t searchId,
+                 int mapId = -1) {
+  if (mapId == -1)
+    mapId = *Max::get().player_map();
+  Map *map = Max::get().map(mapId);
+  for (int r = 0; r < map->roomCount; ++r) {
+    for (int l = 0; l < 2; ++l) {
+      for (int y = 0; y < 22; ++y) {
+        for (int x = 0; x < 40; ++x) {
+          Room &room = map->rooms[r];
+          if (room.tiles[l][y][x].id == searchId) {
+            searchTiles.emplace_back(SelectedTile{
+                &room.tiles[l][y][x], {room.x, room.y}, {x, y}, l, mapId});
+          }
+        }
+      }
+    }
+  }
+  std::sort(
+      searchTiles.begin(), searchTiles.end(), [](const auto &a, const auto &b) {
+        return (a.room.y < b.room.y) ||
+               (a.room.y == b.room.y && a.room.x < b.room.x) ||
+               (a.room.y == b.room.y && a.room.x == b.room.x &&
+                a.pos.y < b.pos.y) ||
+               (a.room.y == b.room.y && a.room.x == b.room.x &&
+                a.pos.y == b.pos.y && a.pos.x < b.pos.x) ||
+               (a.room.y == b.room.y && a.room.x == b.room.x &&
+                a.pos.y == b.pos.y && a.pos.x == b.pos.x && a.layer < b.layer);
+      });
+}
+
+std::optional<SelectedTile> GetNthTile(uint16_t searchId, int n = 0,
+                                       int mapId = 0) {
+  std::vector<SelectedTile> searchTiles;
+  SearchTiles(searchTiles, searchId, mapId);
+  if (searchTiles.size() > n)
+    return searchTiles[n];
+  return std::nullopt;
+}
+
+void UI::WarpToTile(SelectedTile tile, int offsetx, int offsety) {
+  *Max::get().warp_map() = tile.map;
+  *Max::get().warp_room() = tile.room;
+  Max::get().warp_position()->x = 8 * (tile.pos.x + offsetx);
+  Max::get().warp_position()->y = 8 * (tile.pos.y + offsety);
+  doWarp = true;
 }
 
 void UI::DrawPlayer() {
@@ -437,7 +506,17 @@ void UI::DrawPlayer() {
         *Max::get().equipment() = 0;
     }
     ImGui::Separator();
-    Flags(equipment_names, Max::get().equipment());
+    {
+      auto goto_item =
+          Flags(equipment_names, Max::get().equipment(), false, 0, true);
+      if (goto_item != -1) {
+        static const std::array item_tiles{-1,  383, 169, 109, 634, 381, 162,
+                                           334, 417, 466, 637, 643, 323};
+        auto tile = GetNthTile(item_tiles[goto_item]);
+        if (tile.has_value())
+          WarpToTile(tile.value());
+      }
+    }
     if (!disc && *Max::get().equipment() & (1 << 5) &&
         (*Max::get().upgrades() & 0x60000000) == 0)
       *Max::get().upgrades() |= 0x20000000;
@@ -458,7 +537,16 @@ void UI::DrawPlayer() {
       }
     }
     ImGui::Separator();
-    Flags(item_names, Max::get().items());
+    {
+      auto goto_item = Flags(item_names, Max::get().items(), false, 0, true);
+      if (goto_item != -1) {
+        static const std::array item_tiles{382, 469, 32,  257,
+                                           617, 618, 679, 780};
+        auto tile = GetNthTile(item_tiles[goto_item]);
+        if (tile.has_value())
+          WarpToTile(tile.value());
+      }
+    }
     bool shards[3];
     shards[0] = *Max::get().shards();
     shards[1] = *(Max::get().shards() + 12);
@@ -472,8 +560,51 @@ void UI::DrawPlayer() {
     if (ImGui::Checkbox("Kangaroo shards##Shard3", &shards[2]))
       *(Max::get().shards() + 24) = shards[2] * 2;
   }
-  if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc"))
-    Flags(misc_names, Max::get().upgrades());
+  if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc")) {
+    auto goto_item = Flags(misc_names, Max::get().upgrades(), false, 0, true);
+    if (goto_item != -1) {
+      static const std::array<TargetTile, 32> item_tiles{{
+          {610, 0, 1},
+          {615, 0, 1},
+          {616, 0, -1},
+          {0},
+          {0},
+          {0},
+          {0},
+          {0},
+          {30, 27},
+          {214},
+          {149},
+          {442},
+          {352, 0, 4, 10},
+          {161},
+          {352, 0, 4, 10},
+          {449},
+          {678},
+          {794, 0, 18, 13, 3},
+          {73},
+          {708},
+          {711},
+          {723, 0, 2, 2},
+          {481},
+          {774},
+          {568, 0, 9, 9},
+          {597, 0, 11, 9},
+          {597, 3, 0, 0},
+          {668, 1, 0, 0},
+          {668, 1, 0, 0},
+          {341, 0, 9, 4},
+          {381, 0, 3, 6},
+          {0},
+      }};
+      auto tileId = item_tiles[goto_item].tile;
+      auto tile = GetNthTile(tileId, item_tiles[goto_item].n,
+                             item_tiles[goto_item].map);
+      if (tile.has_value())
+        WarpToTile(tile.value(), item_tiles[goto_item].x,
+                   item_tiles[goto_item].y);
+    }
+  }
   if (ImGui::CollapsingHeader("Eggs##PlayerEggs")) {
     bool all = *Max::get().eggs() == 0xFFFFFFFFFFFFFFFF;
     if (ImGui::Checkbox("Unlock all eggs##UnlockAllEggs", &all)) {
@@ -486,7 +617,12 @@ void UI::DrawPlayer() {
       }
     }
     ImGui::Separator();
-    Flags(egg_names, Max::get().eggs());
+    auto goto_egg = Flags(egg_names, Max::get().eggs(), true, 0, true);
+    if (goto_egg != -1) {
+      auto tile = GetNthTile(90, goto_egg);
+      if (tile.has_value())
+        WarpToTile(tile.value());
+    }
     ImGui::CheckboxFlags("65th Egg", Max::get().upgrades(), 1 << 20);
   }
   if (ImGui::CollapsingHeader("Bunnies##PlayerBunnies")) {
@@ -500,6 +636,29 @@ void UI::DrawPlayer() {
     ImGui::Separator();
     Flags(bunny_names, Max::get().bunnies());
   }
+  if (ImGui::CollapsingHeader("Squirrels spooked##PlayerSquirrels")) {
+    ImGui::TextWrapped("Only the first 13 squirrels exist on a vanilla map.");
+    bool all = (*Max::get().squirrels() & 0x1FFF) == 0x1FFF;
+    if (ImGui::Checkbox("Spook all squirrels##SpookAllSquirrels", &all)) {
+      if (all) {
+        *Max::get().squirrels() = 0x1FFF;
+      } else {
+        *Max::get().squirrels() = 0;
+      }
+    }
+    ImGui::Separator();
+    {
+      auto goto_squirrel =
+          UnnamedFlags("Squirrel", Max::get().squirrels(), 16, 0, true);
+      if (goto_squirrel >= 0) {
+        auto tile = GetNthTile(583, goto_squirrel);
+        if (tile.has_value()) {
+          auto squirrel = tile.value();
+          WarpToTile(squirrel, (squirrel.tile->flags & 1) ? 2 : 1, 2);
+        }
+      }
+    }
+  }
   if (ImGui::CollapsingHeader("Candles##PlayerCandles")) {
     ImGui::TextWrapped("Only the first 9 candles exist on a vanilla map.");
     bool all = (*Max::get().candles() & 0x1FF) == 0x1FF;
@@ -511,7 +670,15 @@ void UI::DrawPlayer() {
       }
     }
     ImGui::Separator();
-    UnnamedFlags("Candle", Max::get().candles(), 16);
+    {
+      auto goto_candle =
+          UnnamedFlags("Candle", Max::get().candles(), 16, 0, true);
+      if (goto_candle >= 0) {
+        auto tile = GetNthTile(37, goto_candle);
+        if (tile.has_value())
+          WarpToTile(tile.value());
+      }
+    }
   }
   if (ImGui::CollapsingHeader("Chests##PlayerChests")) {
     ImGui::TextWrapped("Only the first 102 chests exist on a vanilla map.");
@@ -529,18 +696,47 @@ void UI::DrawPlayer() {
         }
     }
     ImGui::Separator();
+    std::optional<SelectedTile> flameTile;
     ImGui::SliderScalar("Blue Flame / Seahorse##BlueFlameSlider",
                         ImGuiDataType_U8, Max::get().flames(), &u8_zero,
                         &u8_five);
+    ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+    if (ImGui::Button("Go##GoBlueFlame",
+                      ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
+      flameTile = GetNthTile(627, 2);
+      if (flameTile.has_value())
+        WarpToTile(flameTile.value());
+    }
     ImGui::SliderScalar("Purple Flame / Dog##PurpleFlameSlider",
                         ImGuiDataType_U8, Max::get().flames() + 1, &u8_zero,
                         &u8_five);
+    ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+    if (ImGui::Button("Go##GoPurpleFlame",
+                      ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
+      flameTile = GetNthTile(627, 0);
+      if (flameTile.has_value())
+        WarpToTile(flameTile.value());
+    }
     ImGui::SliderScalar("Violet Flame / Chameleon##VioletFlameSlider",
                         ImGuiDataType_U8, Max::get().flames() + 2, &u8_zero,
                         &u8_five);
+    ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+    if (ImGui::Button("Go##GoVioletFlame",
+                      ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
+      flameTile = GetNthTile(627, 1);
+      if (flameTile.has_value())
+        WarpToTile(flameTile.value());
+    }
     ImGui::SliderScalar("Green Flame / Ostrich##GreenFlameSlider",
                         ImGuiDataType_U8, Max::get().flames() + 3, &u8_zero,
                         &u8_five);
+    ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+    if (ImGui::Button("Go##GoGreenFlame",
+                      ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
+      flameTile = GetNthTile(627, 3);
+      if (flameTile.has_value())
+        WarpToTile(flameTile.value());
+    }
   }
   if (ImGui::CollapsingHeader("Animal head portals##PlayerPortals")) {
     bool all = (*Max::get().portals() & 0xfe) == 0xfe;
@@ -560,7 +756,27 @@ void UI::DrawPlayer() {
     ImGui::SeparatorText("Heads seen");
     ImGui::PushID("AnimalHeadsSeen");
     ImGui::CheckboxFlags("Eel fight active", Max::get().upgrades(), 1 << 27);
-    Flags(portal_names, Max::get().portals(), false, 1);
+    ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+    if (ImGui::Button("Go##GoEelPortal",
+                      ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
+      auto tile = GetNthTile(425, 8);
+      if (tile.has_value())
+        WarpToTile(tile.value());
+    }
+    {
+      auto goto_portal =
+          Flags(portal_names, Max::get().portals(), false, 1, true);
+      if (goto_portal >= 0) {
+        static const std::array portal_idx{-1, 5, 3, 1, 0, 2, -1, 4};
+        std::optional<SelectedTile> tile;
+        if (goto_portal != 6)
+          tile = GetNthTile(425, portal_idx[goto_portal]);
+        else
+          tile = GetNthTile(779);
+        if (tile.has_value())
+          WarpToTile(tile.value());
+      }
+    }
     ImGui::PopID();
     ImGui::PushID("AnimalHeadsUnlocked");
     ImGui::SeparatorText("Heads unlocked");
@@ -1512,36 +1728,7 @@ void UI::DrawLevel() {
     if (doClear)
       searchTiles.clear();
     if (doSearch) {
-      auto *map = Max::get().map(*Max::get().player_map());
-      for (int r = 0; r < map->roomCount; ++r) {
-        for (int l = 0; l < 2; ++l) {
-          for (int y = 0; y < 22; ++y) {
-            for (int x = 0; x < 40; ++x) {
-              Room &room = map->rooms[r];
-              if (room.tiles[l][y][x].id == searchId) {
-                searchTiles.emplace_back(
-                    SelectedTile{&room.tiles[l][y][x],
-                                 {room.x, room.y},
-                                 {x, y},
-                                 l,
-                                 *Max::get().player_map()});
-              }
-            }
-          }
-        }
-      }
-      std::sort(searchTiles.begin(), searchTiles.end(),
-                [](const auto &a, const auto &b) {
-                  return (a.room.y < b.room.y) ||
-                         (a.room.y == b.room.y && a.room.x < b.room.x) ||
-                         (a.room.y == b.room.y && a.room.x == b.room.x &&
-                          a.pos.y < b.pos.y) ||
-                         (a.room.y == b.room.y && a.room.x == b.room.x &&
-                          a.pos.y == b.pos.y && a.pos.x < b.pos.x) ||
-                         (a.room.y == b.room.y && a.room.x == b.room.x &&
-                          a.pos.y == b.pos.y && a.pos.x == b.pos.x &&
-                          a.layer < b.layer);
-                });
+      SearchTiles(searchTiles, searchId);
     }
     int i = 0;
     ImGui::PushID("TileSearchResults");

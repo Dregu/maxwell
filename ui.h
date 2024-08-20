@@ -58,6 +58,14 @@ struct SelectedRoom {
   int map{0};
 };
 
+struct TargetTile {
+  uint16_t tile;
+  int n;
+  int x;
+  int y;
+  int map;
+};
+
 ImVec2 Normalize(ImVec2 pos);
 
 class UI {
@@ -296,6 +304,13 @@ public:
 
   bool GetOption(const std::string &name) { return options[name].value; }
   bool CheatsEnabled();
+  template <std::size_t SIZE, typename T>
+  int Flags(const std::array<const char *, SIZE> names_array, T *flag_field,
+            bool show_number = false, int first = 0, bool go_button = false);
+  template <typename T>
+  int UnnamedFlags(const char *name, T *flag_field, int num, int offset = 0,
+                   bool go_button = false);
+  void WarpToTile(SelectedTile tile, int offsetx = 0, int offsety = 0);
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

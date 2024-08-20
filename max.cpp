@@ -620,6 +620,8 @@ uint16_t *Max::candles() { return (uint16_t *)(slot() + 0x418 + 0x1e0); }
 
 uint32_t *Max::bunnies() { return (uint32_t *)(slot() + 0x418 + 0x198); }
 
+uint16_t *Max::squirrels() { return (uint16_t *)(slot() + 0x418 + 0x19c); }
+
 uint8_t *Max::portals() { return (uint8_t *)(slot() + 0x418 + 0x223); }
 
 uint8_t *Max::shards() { return (uint8_t *)(slot() + 0x418 + 0x1F4 + 0xa); }

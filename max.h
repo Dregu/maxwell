@@ -260,6 +260,7 @@ struct Max {
   uint64_t *chests();
   uint16_t *candles();
   uint32_t *bunnies();
+  uint16_t *squirrels();
   uint8_t *portals();
   uint8_t *shards();
   Pause *pause();
