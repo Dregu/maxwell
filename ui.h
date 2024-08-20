@@ -229,6 +229,7 @@ private:
         "everything."}},
       {"ui_show_datetime", {true, "Show current time in UI"}},
       {"ui_show_cheats", {true, "Show enabled cheats in UI"}},
+      {"ui_debug", {false, "Show debug information"}},
   };
   bool doWarp = false;
   bool inMenu = false;
@@ -311,6 +312,8 @@ public:
   int UnnamedFlags(const char *name, T *flag_field, int num, int offset = 0,
                    bool go_button = false);
   void WarpToTile(SelectedTile tile, int offsetx = 0, int offsety = 0);
+
+  template <typename T> void DebugPtr(T *ptr);
 
   HWND hWnd;
   ID3D12Device *pD3DDevice = NULL;

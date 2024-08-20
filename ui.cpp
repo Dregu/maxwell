@@ -504,6 +504,12 @@ void UI::WarpToTile(SelectedTile tile, int offsetx, int offsety) {
   doWarp = true;
 }
 
+template <typename T> void UI::DebugPtr(T *ptr) {
+  if (options["ui_debug"].value)
+    ImGui::InputScalar("Address", ImGuiDataType_U64, &ptr, 0, 0, "%X",
+                       ImGuiInputTextFlags_ReadOnly);
+}
+
 void UI::DrawPlayer() {
   ImGui::PushItemWidth(120.f * uiScale);
   ImGui::InputScalar("Slot", ImGuiDataType_U8, Max::get().slot_number(), NULL,
@@ -652,6 +658,7 @@ void UI::DrawPlayer() {
 
   if (ImGui::CollapsingHeader("Equipment##PlayerEquipment")) {
     ImGui::PushID("PlayerSectionEquipment");
+    DebugPtr(Max::get().equipment());
     bool disc = *Max::get().equipment() & (1 << 5);
     bool all = (*Max::get().equipment() & 0x1FFE) == 0x1FFE;
     if (ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment", &all)) {
@@ -693,6 +700,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Items##PlayerItems")) {
     ImGui::PushID("PlayerSectionItems");
+    DebugPtr(Max::get().items());
     bool all = *Max::get().items() == 0xFF;
     if (ImGui::Checkbox("Unlock all items##UnlockAllItems", &all)) {
       if (all) {
@@ -737,6 +745,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc")) {
     ImGui::PushID("PlayerSectionMisc");
+    DebugPtr(Max::get().upgrades());
     bool all = *Max::get().upgrades() == 0x57FFFFFF;
     if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades", &all)) {
       if (all) {
@@ -792,6 +801,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Eggs##PlayerEggs")) {
     ImGui::PushID("PlayerSectionEggs");
+    DebugPtr(Max::get().eggs());
     bool all = *Max::get().eggs() == 0xFFFFFFFFFFFFFFFF;
     if (ImGui::Checkbox("Unlock all eggs##UnlockAllEggs", &all)) {
       if (all) {
@@ -821,6 +831,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Bunnies##PlayerBunnies")) {
     ImGui::PushID("PlayerSectionBunnies");
+    DebugPtr(Max::get().bunnies());
     bool all = *Max::get().bunnies() == 0xD2408FDD;
     if (ImGui::Checkbox("Unlock legal bunnies##UnlockLegalBunnies", &all)) {
       if (all)
@@ -883,6 +894,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Squirrels##PlayerSquirrels")) {
     ImGui::PushID("PlayerSectionSquirrels");
+    DebugPtr(Max::get().squirrels());
     ImGui::TextWrapped("Only the first 13 squirrels exist on a vanilla map.");
     bool all = (*Max::get().squirrels() & 0x1FFF) == 0x1FFF;
     if (ImGui::Checkbox("Spook all squirrels##SpookAllSquirrels", &all)) {
@@ -908,6 +920,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Candles##PlayerCandles")) {
     ImGui::PushID("PlayerSectionCandles");
+    DebugPtr(Max::get().candles());
     ImGui::TextWrapped("Only the first 9 candles exist on a vanilla map.");
     bool all = (*Max::get().candles() & 0x1FF) == 0x1FF;
     if (ImGui::Checkbox("Unlock legal candles##UnlockAllCandles", &all)) {
@@ -931,6 +944,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Chests##PlayerChests")) {
     ImGui::PushID("PlayerSectionChests");
+    DebugPtr(Max::get().chests());
     ImGui::TextWrapped("Only the first 102 chests exist on a vanilla map.");
     UnnamedFlags("Chest", Max::get().chests(), 64);
     UnnamedFlags("Chest", Max::get().chests() + 1, 64, 64);
@@ -938,6 +952,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Flames##PlayerFlames")) {
     ImGui::PushID("PlayerSectionFlames");
+    DebugPtr(Max::get().flames());
     bool all = *(uint32_t *)Max::get().flames() == 0x05050505;
     if (ImGui::Checkbox("Place all flames##UnlockAllFlames", &all)) {
       for (int i = 0; i < 4; ++i)
@@ -993,6 +1008,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Animal head portals##PlayerPortals")) {
     ImGui::PushID("PlayerSectionPortals");
+    DebugPtr(Max::get().portals());
     bool all = (*Max::get().portals() & 0xfe) == 0xfe;
     if (ImGui::Checkbox("Unlock all portals##UnlockAllPortals", &all)) {
       if (all) {
@@ -1042,6 +1058,7 @@ void UI::DrawPlayer() {
   if (*Max::get().upgrades() & (1 << 28))
     *Max::get().upgrades() &= ~(1 << 27);
   if (ImGui::CollapsingHeader("Consumables##PlayerConsumables")) {
+    DebugPtr(Max::get().equipment());
     ImGui::PushID("PlayerSectionConsumables");
     ImGui::Checkbox("Max out stats##UnlockMaxStats",
                     &options["cheat_stats"].value);
@@ -1059,6 +1076,7 @@ void UI::DrawPlayer() {
   }
   if (ImGui::CollapsingHeader("Position##PlayerPositionAndRoom")) {
     ImGui::PushID("PlayerSectionPosition");
+    DebugPtr(Max::get().player_position());
     ImGui::InputInt2("Room##PlayerRoom", &Max::get().player_room()->x);
     ImGui::InputFloat2("Position##PlayerPosition",
                        &Max::get().player_position()->x);
@@ -2371,7 +2389,8 @@ void UI::Windows() {
     if (ImGui::BeginMainMenuBar()) {
       ImGui::PopStyleVar(2);
       for (auto *window : windows) {
-        if (window->detached)
+        if (window->detached ||
+            (window->title == "Debug" && !options["ui_debug"].value))
           continue;
         inMenu = true;
         ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
@@ -2392,7 +2411,8 @@ void UI::Windows() {
       ImGui::PopStyleVar(2);
     }
     for (auto *window : windows) {
-      if (!window->detached)
+      if (!window->detached ||
+          (window->title == "Debug" && !options["ui_debug"].value))
         continue;
       if (ImGui::Begin(window->title.c_str(), &window->detached,
                        window->flags)) {
@@ -2593,7 +2613,8 @@ void UI::HUD() {
 
     if (options["ui_coords"].value && inbound &&
         ImGui::GetMouseCursor() != ImGuiMouseCursor_None &&
-        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+        !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) &&
+        !ImGui::IsAnyMouseDown()) {
       ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
           ->AddRect(TileToScreen(ImVec2(rx, ry)),
                     TileToScreen(ImVec2(rx + 1, ry + 1)), 0xddffffff, 0, 0,
