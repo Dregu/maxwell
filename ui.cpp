@@ -469,6 +469,8 @@ void SearchTiles(std::vector<SelectedTile> &searchTiles, uint16_t searchId,
 
 std::optional<SelectedTile> GetNthTile(uint16_t searchId, int n = 0,
                                        int mapId = 0) {
+  if (searchId == u16_max)
+    return std::nullopt;
   std::vector<SelectedTile> searchTiles;
   SearchTiles(searchTiles, searchId, mapId);
   if (searchTiles.size() > n)
@@ -623,7 +625,14 @@ void UI::DrawPlayer() {
       if (tile.has_value())
         WarpToTile(tile.value());
     }
-    ImGui::CheckboxFlags("65th Egg", Max::get().upgrades(), 1 << 20);
+    ImGui::CheckboxFlags("65: th Egg", Max::get().upgrades(), 1 << 20);
+    ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+    if (ImGui::Button("Go##Go65thEgg",
+                      ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
+      auto tile = GetNthTile(711);
+      if (tile.has_value())
+        WarpToTile(tile.value());
+    }
   }
   if (ImGui::CollapsingHeader("Bunnies##PlayerBunnies")) {
     bool all = *Max::get().bunnies() == 0xD2408FDD;
@@ -634,9 +643,58 @@ void UI::DrawPlayer() {
         *Max::get().bunnies() = 0;
     }
     ImGui::Separator();
-    Flags(bunny_names, Max::get().bunnies());
+    auto goto_item = Flags(bunny_names, Max::get().bunnies(), true, 0, true);
+    if (goto_item != -1) {
+      static const std::array<TargetTile, 32> item_tiles{{
+          {550, 11, 1, 3}, // Tutorial / water spike
+          {550, 14, 1, 3}, // I1
+          {550, 3, 1, 3},  // Origami
+          {550, 0, 1, 3},  // Disc spike
+          {117, 10},       // Ghost
+          {550, 7, 1, 3},  // I2
+          {550, 10, 1, 3}, // Fish mural
+          {550, 5, 1, 3},  // Numbers Mason
+          {482, 0, 1, 2},  // TV
+          {797, 0, 1, 3},  // UV
+          {550, 13, 1, 3}, // Bulb
+          {550, 9, 1, 3},  // Chinchilla
+          {u16_max},       // I3
+          {550, 8, 1, 3},  // I4
+          {550, 15, 1, 3}, // I5
+          {293, 0, 1, 3},  // Bunny mural
+          {550, 17, 1, 3}, // I6
+          {u16_max},       // I7
+          {550, 12, 1, 3}, // I8
+          {u16_max},       // I9
+          {u16_max},       // I10
+          {u16_max},       // I11
+          {580, 0, 1, 3},  // Duck
+          {550, 1, 1, 3},  // I12
+          {550, 6, 1, 3},  // I13
+          {798, 0, 1, 5},  // Ghost dog
+          {u16_max},       // I14
+          {550, 16, 1, 3}, // I15
+          {u16_max},       // Dream
+          {u16_max},       // I16
+          {550, 4, 1, 3},  // Lava secret
+          {550, 2, 1, 3},  // Crows
+      }};
+      auto tileId = item_tiles[goto_item].tile;
+      std::optional<SelectedTile> tile;
+      if (tileId == 797 && (*Max::get().bunnies() & (1 << 9)) == 0) {
+        auto pos = *Max::get().uv_bunny();
+        int x = (int)pos.x / 8;
+        int y = (int)pos.y / 8;
+        tile = SelectedTile{nullptr, {x / 40, y / 22}, {x % 40, y % 22}};
+      } else
+        tile = GetNthTile(tileId, item_tiles[goto_item].n,
+                          item_tiles[goto_item].map);
+      if (tile.has_value())
+        WarpToTile(tile.value(), item_tiles[goto_item].x,
+                   item_tiles[goto_item].y);
+    }
   }
-  if (ImGui::CollapsingHeader("Squirrels spooked##PlayerSquirrels")) {
+  if (ImGui::CollapsingHeader("Squirrels##PlayerSquirrels")) {
     ImGui::TextWrapped("Only the first 13 squirrels exist on a vanilla map.");
     bool all = (*Max::get().squirrels() & 0x1FFF) == 0x1FFF;
     if (ImGui::Checkbox("Spook all squirrels##SpookAllSquirrels", &all)) {
