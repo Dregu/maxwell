@@ -498,7 +498,142 @@ void UI::DrawPlayer() {
   Tooltip("This sets your current room as spawn and runs the save function "
           "anywhere.\nIn rooms without a phone you will spawn near the "
           "top left corner.");
+  if (ImGui::CollapsingHeader("Unlock everything##PlayerEverything")) {
+    ImGui::PushID("PlayerSectionEverything");
+    auto everything = ImGui::Button(
+        "UNLOCK EVERYTHING",
+        ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() * 2));
+    if (everything) {
+      if (*Max::get().player_hp() < 12)
+        *Max::get().player_hp() = 12;
+      *(Max::get().player_hp() + 1) = 4;
+      *Max::get().keys() = 9;
+      *(Max::get().keys() + 1) = 9;
+      *(Max::get().keys() + 2) = 255;
+    }
+    {
+      bool disc = *Max::get().equipment() & (1 << 5);
+      bool all = (*Max::get().equipment() & 0x1FFE) == 0x1FFE;
+      if (ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment2", &all) ||
+          everything) {
+        if (everything || all)
+          *Max::get().equipment() = 0x1FFE;
+        else
+          *Max::get().equipment() = 0;
+      }
+      if (!disc && *Max::get().equipment() & (1 << 5) &&
+          (*Max::get().upgrades() & 0x60000000) == 0)
+        *Max::get().upgrades() |= 0x20000000;
+    }
+    {
+      bool all = *Max::get().items() == 0xFF;
+      if (ImGui::Checkbox("Unlock all items##UnlockAllItems2", &all) ||
+          everything) {
+        if (everything || all) {
+          *Max::get().items() = 0xFF;
+          *Max::get().shards() = 2;
+          *(Max::get().shards() + 12) = 2;
+          *(Max::get().shards() + 24) = 2;
+        } else {
+          *Max::get().items() = 0;
+          *Max::get().shards() = 0;
+          *(Max::get().shards() + 12) = 0;
+          *(Max::get().shards() + 24) = 0;
+        }
+      }
+    }
+    {
+      bool all = *Max::get().upgrades() == 0x57FFFFFF;
+      if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades2", &all) ||
+          everything) {
+        if (everything || all) {
+          *Max::get().upgrades() = 0x57FFFFFF;
+        } else {
+          *Max::get().upgrades() = 0;
+        }
+      }
+    }
+    {
+      bool all = *Max::get().eggs() == 0xFFFFFFFFFFFFFFFF;
+      if (ImGui::Checkbox("Unlock all eggs##UnlockAllEggs2", &all) ||
+          everything) {
+        if (everything || all) {
+          *Max::get().eggs() = 0xFFFFFFFFFFFFFFFF;
+          *Max::get().upgrades() |= (1 << 20);
+        } else {
+          *Max::get().eggs() = 0;
+          *Max::get().upgrades() &= ~(1 << 20);
+        }
+      }
+    }
+    {
+      bool all = *Max::get().bunnies() == 0xD2408FDD;
+      if (ImGui::Checkbox("Unlock legal bunnies##UnlockLegalBunnies2", &all) ||
+          everything) {
+        if (everything || all)
+          *Max::get().bunnies() = 0xD2408FDD;
+        else
+          *Max::get().bunnies() = 0;
+      }
+    }
+    {
+      bool all = (*Max::get().squirrels() & 0x1FFF) == 0x1FFF;
+      if (ImGui::Checkbox("Spook all squirrels##SpookAllSquirrels2", &all) ||
+          everything) {
+        if (everything || all) {
+          *Max::get().squirrels() = 0x1FFF;
+        } else {
+          *Max::get().squirrels() = 0;
+        }
+      }
+    }
+    {
+      bool all = (*Max::get().candles() & 0x1FF) == 0x1FF;
+      if (ImGui::Checkbox("Unlock legal candles##UnlockAllCandles2", &all) ||
+          everything) {
+        if (everything || all) {
+          *Max::get().candles() = 0x1FF;
+        } else {
+          *Max::get().candles() = 0;
+        }
+      }
+    }
+    {
+      bool all = *(uint32_t *)Max::get().flames() == 0x05050505;
+      if (ImGui::Checkbox("Place all flames##UnlockAllFlames2", &all) ||
+          everything) {
+        for (int i = 0; i < 4; ++i)
+          if (everything || all) {
+            *(Max::get().flames() + i) = 5;
+          } else {
+            *(Max::get().flames() + i) = 0;
+          }
+      }
+    }
+    {
+      bool all = (*Max::get().portals() & 0xfe) == 0xfe;
+      if (ImGui::Checkbox("Unlock all portals##UnlockAllPortals2", &all) ||
+          everything) {
+        if (everything || all) {
+          *Max::get().portals() = 0xfe;
+          *(Max::get().portals() + 1) = 0xfe;
+          *Max::get().upgrades() &= ~(1 << 27);
+          *Max::get().upgrades() |= (1 << 28);
+        } else {
+          *Max::get().portals() = 0;
+          *(Max::get().portals() + 1) = 0;
+          *Max::get().upgrades() &= ~(1 << 27);
+          *Max::get().upgrades() &= ~(1 << 28);
+        }
+      }
+    }
+    ImGui::Checkbox("Max out stats##UnlockMaxStats2",
+                    &options["cheat_stats"].value);
+    ImGui::PopID();
+  }
+
   if (ImGui::CollapsingHeader("Equipment##PlayerEquipment")) {
+    ImGui::PushID("PlayerSectionEquipment");
     bool disc = *Max::get().equipment() & (1 << 5);
     bool all = (*Max::get().equipment() & 0x1FFE) == 0x1FFE;
     if (ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment", &all)) {
@@ -522,8 +657,10 @@ void UI::DrawPlayer() {
     if (!disc && *Max::get().equipment() & (1 << 5) &&
         (*Max::get().upgrades() & 0x60000000) == 0)
       *Max::get().upgrades() |= 0x20000000;
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Items##PlayerItems")) {
+    ImGui::PushID("PlayerSectionItems");
     bool all = *Max::get().items() == 0xFF;
     if (ImGui::Checkbox("Unlock all items##UnlockAllItems", &all)) {
       if (all) {
@@ -561,8 +698,18 @@ void UI::DrawPlayer() {
     ImGui::SameLine(0, 4);
     if (ImGui::Checkbox("Kangaroo shards##Shard3", &shards[2]))
       *(Max::get().shards() + 24) = shards[2] * 2;
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc")) {
+    ImGui::PushID("PlayerSectionMisc");
+    bool all = *Max::get().upgrades() == 0x57FFFFFF;
+    if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades", &all)) {
+      if (all) {
+        *Max::get().upgrades() = 0x57FFFFFF;
+      } else {
+        *Max::get().upgrades() = 0;
+      }
+    }
     auto goto_item = Flags(misc_names, Max::get().upgrades(), false, 0, true);
     if (goto_item != -1) {
       static const std::array<TargetTile, 32> item_tiles{{
@@ -606,8 +753,10 @@ void UI::DrawPlayer() {
         WarpToTile(tile.value(), item_tiles[goto_item].x,
                    item_tiles[goto_item].y);
     }
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Eggs##PlayerEggs")) {
+    ImGui::PushID("PlayerSectionEggs");
     bool all = *Max::get().eggs() == 0xFFFFFFFFFFFFFFFF;
     if (ImGui::Checkbox("Unlock all eggs##UnlockAllEggs", &all)) {
       if (all) {
@@ -633,8 +782,10 @@ void UI::DrawPlayer() {
       if (tile.has_value())
         WarpToTile(tile.value());
     }
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Bunnies##PlayerBunnies")) {
+    ImGui::PushID("PlayerSectionBunnies");
     bool all = *Max::get().bunnies() == 0xD2408FDD;
     if (ImGui::Checkbox("Unlock legal bunnies##UnlockLegalBunnies", &all)) {
       if (all)
@@ -693,8 +844,10 @@ void UI::DrawPlayer() {
         WarpToTile(tile.value(), item_tiles[goto_item].x,
                    item_tiles[goto_item].y);
     }
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Squirrels##PlayerSquirrels")) {
+    ImGui::PushID("PlayerSectionSquirrels");
     ImGui::TextWrapped("Only the first 13 squirrels exist on a vanilla map.");
     bool all = (*Max::get().squirrels() & 0x1FFF) == 0x1FFF;
     if (ImGui::Checkbox("Spook all squirrels##SpookAllSquirrels", &all)) {
@@ -716,8 +869,10 @@ void UI::DrawPlayer() {
         }
       }
     }
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Candles##PlayerCandles")) {
+    ImGui::PushID("PlayerSectionCandles");
     ImGui::TextWrapped("Only the first 9 candles exist on a vanilla map.");
     bool all = (*Max::get().candles() & 0x1FF) == 0x1FF;
     if (ImGui::Checkbox("Unlock legal candles##UnlockAllCandles", &all)) {
@@ -737,13 +892,17 @@ void UI::DrawPlayer() {
           WarpToTile(tile.value());
       }
     }
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Chests##PlayerChests")) {
+    ImGui::PushID("PlayerSectionChests");
     ImGui::TextWrapped("Only the first 102 chests exist on a vanilla map.");
     UnnamedFlags("Chest", Max::get().chests(), 64);
     UnnamedFlags("Chest", Max::get().chests() + 1, 64, 64);
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Flames##PlayerFlames")) {
+    ImGui::PushID("PlayerSectionFlames");
     bool all = *(uint32_t *)Max::get().flames() == 0x05050505;
     if (ImGui::Checkbox("Place all flames##UnlockAllFlames", &all)) {
       for (int i = 0; i < 4; ++i)
@@ -795,8 +954,10 @@ void UI::DrawPlayer() {
       if (flameTile.has_value())
         WarpToTile(flameTile.value());
     }
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Animal head portals##PlayerPortals")) {
+    ImGui::PushID("PlayerSectionPortals");
     bool all = (*Max::get().portals() & 0xfe) == 0xfe;
     if (ImGui::Checkbox("Unlock all portals##UnlockAllPortals", &all)) {
       if (all) {
@@ -841,11 +1002,12 @@ void UI::DrawPlayer() {
     ImGui::CheckboxFlags("Eel", Max::get().upgrades(), 1 << 28);
     Flags(portal_names, Max::get().portals() + 1, false, 1);
     ImGui::PopID();
+    ImGui::PopID();
   }
   if (*Max::get().upgrades() & (1 << 28))
     *Max::get().upgrades() &= ~(1 << 27);
   if (ImGui::CollapsingHeader("Consumables##PlayerConsumables")) {
-    bool all = false;
+    ImGui::PushID("PlayerSectionConsumables");
     ImGui::Checkbox("Max out stats##UnlockMaxStats",
                     &options["cheat_stats"].value);
     ImGui::DragScalar("Health##PlayerHealth", ImGuiDataType_S8,
@@ -858,8 +1020,10 @@ void UI::DrawPlayer() {
                       Max::get().keys() + 1, 0.1f);
     ImGui::DragScalar("Firecrackers##PlayerFirecrackers", ImGuiDataType_U8,
                       Max::get().keys() + 2, 0.1f);
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Position##PlayerPositionAndRoom")) {
+    ImGui::PushID("PlayerSectionPosition");
     ImGui::InputInt2("Room##PlayerRoom", &Max::get().player_room()->x);
     ImGui::InputFloat2("Position##PlayerPosition",
                        &Max::get().player_position()->x);
@@ -874,8 +1038,10 @@ void UI::DrawPlayer() {
     ImGui::InputInt("Map##PlayerMap", Max::get().player_map());
     ImGui::InputFloat2("Wheel##PlayerWheelPosition",
                        &Max::get().player_wheel()->x);
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("State##PlayerAndGameState")) {
+    ImGui::PushID("PlayerSectionState");
     ImGui::InputScalar("State##PlayerState", ImGuiDataType_U8,
                        Max::get().player_state());
     ImGui::InputScalar("Flute##PlayerFluteDir", ImGuiDataType_U8,
@@ -887,8 +1053,10 @@ void UI::DrawPlayer() {
     ImGui::InputScalar("Total time##StateTotalTime", ImGuiDataType_U32,
                        Max::get().timer() + 1);
     ImGui::Checkbox("Paused##StatePaused", &Max::get().pause()->paused);
+    ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Warp##PlayerWarp")) {
+    ImGui::PushID("PlayerSectionWarp");
     ImGui::InputInt2("Warp room##PlayerWarpRoom", &Max::get().warp_room()->x);
     ImGui::InputInt2("Warp position##PlayerWarpPosition",
                      &Max::get().warp_position()->x);
@@ -897,8 +1065,7 @@ void UI::DrawPlayer() {
             fmt::format("Warp ({})", ImGui::GetKeyChordName(keys["warp"]))
                 .c_str()))
       doWarp = true;
-    // TODO: Add saveable custom warp positions from current player/warp
-    // position
+    ImGui::PopID();
   }
   ImGui::PopItemWidth();
 }
@@ -962,37 +1129,20 @@ void UI::DrawMap() {
     ImGui::ImageButton((ImTextureID)minimap_srv_gpu_handle.ptr, mapsize, uv0,
                        uv1, 0);
     Tooltip("Right click the map to warp\nanywhere on current layer.");
-    if (ImGui::IsItemHovered()) {
-      cpos.x = ((b.x - d.x) - a.x + c.x + bordersize.x);
-      cpos.y = ((b.y - d.y) - a.y + c.y + bordersize.y);
-      wroom.x = cpos.x / realmapsize.x * 800 / 40;
-      wroom.y = cpos.y / realmapsize.y * 528 / 22;
-      wpos.x = ((int)(cpos.x / realmapsize.x * 800) % 40) * 8;
-      wpos.y = ((int)(cpos.y / realmapsize.y * 528) % 22) * 8;
-      if (ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_warp"])) {
-        *Max::get().player_state() = 18;
-        *Max::get().warp_room() = wroom;
-        *Max::get().warp_position() = wpos;
-        *Max::get().warp_map() = layer;
-        doWarp = true;
-      } else if (ImGui::IsKeyChordReleased((ImGuiKey)keys["mouse_warp"]) &&
-                 *Max::get().player_state() == 18) {
-        *Max::get().player_state() = 0;
-      }
-      {
-        auto ax = wroom.x * roomsize.x;
-        auto ay = wroom.y * roomsize.y;
-        auto bx = ax + roomsize.x;
-        auto by = ay + roomsize.y;
-        ImGui::GetWindowDrawList()->AddRect(
-            ImVec2(a.x + d.x + ax - c.x - bordersize.x,
-                   a.y + d.y + ay - c.y - bordersize.y),
-            ImVec2(a.x + d.x + bx - c.x - bordersize.x,
-                   a.y + d.y + by - c.y - bordersize.y),
-            0xccffffff, 0, 0, 1.0f);
-      }
-    }
     ImGui::PopStyleColor(3);
+
+    for (auto &tile : searchTiles) {
+      auto px =
+          tile.room.x * roomsize.x + (tile.pos.x * 8.f / 320.f * roomsize.x);
+      auto py =
+          tile.room.y * roomsize.y + (tile.pos.y * 8.f / 180.f * roomsize.y);
+      ImGui::GetWindowDrawList()->AddRectFilled(
+          ImVec2(a.x + d.x + px - c.x - bordersize.x - uiScale * mapScale,
+                 a.y + d.y + py - c.y - bordersize.y - uiScale * mapScale),
+          ImVec2(a.x + d.x + px - c.x - bordersize.x + uiScale * mapScale,
+                 a.y + d.y + py - c.y - bordersize.y + uiScale * mapScale),
+          (tile.layer ? 0xccffff00 : 0xcc0000ff));
+    }
 
     if (options["map_areas"].value) {
       for (auto &[l, box] : areas) {
@@ -1047,6 +1197,16 @@ void UI::DrawMap() {
           3.f, 0xff00eeee);
     }
 
+    if (options["map_uv_bunny"].value &&
+        (*Max::get().bunnies() & (1 << 9)) == 0) {
+      auto px = ((Max::get().uv_bunny()->x + 16.f) / 320.f * roomsize.x);
+      auto py = ((Max::get().uv_bunny()->y + 48.f) / 180.f * roomsize.y);
+      ImGui::GetWindowDrawList()->AddCircleFilled(
+          ImVec2(a.x + d.x + px - c.x - bordersize.x,
+                 a.y + d.y + py - c.y - bordersize.y),
+          4.f * uiScale * mapScale, rand() | 0xff000000);
+    }
+
     {
       auto px = Max::get().player_room()->x * roomsize.x +
                 ((Max::get().player_position()->x + 4.f) / 320.f * roomsize.x);
@@ -1055,7 +1215,11 @@ void UI::DrawMap() {
       ImGui::GetWindowDrawList()->AddCircleFilled(
           ImVec2(a.x + d.x + px - c.x - bordersize.x,
                  a.y + d.y + py - c.y - bordersize.y),
-          3.f * uiScale * mapScale, 0xee0000ee);
+          2.5f * uiScale * mapScale, 0xee0000ee);
+      ImGui::GetWindowDrawList()->AddCircle(
+          ImVec2(a.x + d.x + px - c.x - bordersize.x,
+                 a.y + d.y + py - c.y - bordersize.y),
+          3.f * uiScale * mapScale, 0xffffffff, 0, 2.f);
     }
 
     if (options["map_wheel"].value) {
@@ -1075,27 +1239,35 @@ void UI::DrawMap() {
           4.f * uiScale * mapScale, 0xee00ffee, 0, 1.5f * uiScale * mapScale);
     }
 
-    if (options["map_uv_bunny"].value &&
-        (*Max::get().bunnies() & (1 << 9)) == 0) {
-      auto px = ((Max::get().uv_bunny()->x + 16.f) / 320.f * roomsize.x);
-      auto py = ((Max::get().uv_bunny()->y + 48.f) / 180.f * roomsize.y);
-      ImGui::GetWindowDrawList()->AddCircleFilled(
-          ImVec2(a.x + d.x + px - c.x - bordersize.x,
-                 a.y + d.y + py - c.y - bordersize.y),
-          4.f * uiScale * mapScale, rand() | 0xff000000);
-    }
-
-    for (auto &tile : searchTiles) {
-      auto px =
-          tile.room.x * roomsize.x + (tile.pos.x * 8.f / 320.f * roomsize.x);
-      auto py =
-          tile.room.y * roomsize.y + (tile.pos.y * 8.f / 180.f * roomsize.y);
-      ImGui::GetWindowDrawList()->AddRectFilled(
-          ImVec2(a.x + d.x + px - c.x - bordersize.x - uiScale * mapScale,
-                 a.y + d.y + py - c.y - bordersize.y - uiScale * mapScale),
-          ImVec2(a.x + d.x + px - c.x - bordersize.x + uiScale * mapScale,
-                 a.y + d.y + py - c.y - bordersize.y + uiScale * mapScale),
-          0xffffff33);
+    if (ImGui::IsItemHovered()) {
+      cpos.x = ((b.x - d.x) - a.x + c.x + bordersize.x);
+      cpos.y = ((b.y - d.y) - a.y + c.y + bordersize.y);
+      wroom.x = cpos.x / realmapsize.x * 800 / 40;
+      wroom.y = cpos.y / realmapsize.y * 528 / 22;
+      wpos.x = ((int)(cpos.x / realmapsize.x * 800) % 40) * 8;
+      wpos.y = ((int)(cpos.y / realmapsize.y * 528) % 22) * 8;
+      if (ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_warp"])) {
+        *Max::get().player_state() = 18;
+        *Max::get().warp_room() = wroom;
+        *Max::get().warp_position() = wpos;
+        *Max::get().warp_map() = layer;
+        doWarp = true;
+      } else if (ImGui::IsKeyChordReleased((ImGuiKey)keys["mouse_warp"]) &&
+                 *Max::get().player_state() == 18) {
+        *Max::get().player_state() = 0;
+      }
+      {
+        auto ax = wroom.x * roomsize.x;
+        auto ay = wroom.y * roomsize.y;
+        auto bx = ax + roomsize.x;
+        auto by = ay + roomsize.y;
+        ImGui::GetWindowDrawList()->AddRect(
+            ImVec2(a.x + d.x + ax - c.x - bordersize.x,
+                   a.y + d.y + ay - c.y - bordersize.y),
+            ImVec2(a.x + d.x + bx - c.x - bordersize.x,
+                   a.y + d.y + by - c.y - bordersize.y),
+            0xccffffff, 0, 0, 1.0f);
+      }
     }
   }
 }
