@@ -567,11 +567,11 @@ void UI::DrawPlayer() {
       }
     }
     {
-      bool all = *Max::get().upgrades() == 0x57FFFFFF;
+      bool all = (*Max::get().upgrades() & 0x57FFFE07) == 0x57FFFE07;
       if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades2", &all) ||
           everything) {
         if (everything || all) {
-          *Max::get().upgrades() = 0x57FFFFFF;
+          *Max::get().upgrades() |= 0x57FFFE07;
         } else {
           *Max::get().upgrades() = 0;
         }
@@ -746,10 +746,10 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc")) {
     ImGui::PushID("PlayerSectionMisc");
     DebugPtr(Max::get().upgrades());
-    bool all = *Max::get().upgrades() == 0x57FFFFFF;
+    bool all = (*Max::get().upgrades() & 0x57FFFE07) == 0x57FFFE07;
     if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades", &all)) {
       if (all) {
-        *Max::get().upgrades() = 0x57FFFFFF;
+        *Max::get().upgrades() |= 0x57FFFE07;
       } else {
         *Max::get().upgrades() = 0;
       }
@@ -1389,6 +1389,7 @@ void UI::KeyCapture() {
       key_chord |= mods;
       keys[key_to_change] = (ImGuiKeyChord)key_chord;
       key_to_change = "";
+      SaveINI();
     }
   }
   ImGui::End();
@@ -1477,7 +1478,6 @@ void UI::DrawUIKeys() {
     ImGui::TableNextColumn();
     if (ImGui::Button("Set")) {
       key_to_change = name;
-      SaveINI();
     }
     ImGui::SameLine(0, 4);
     if (ImGui::Button("Unset")) {
