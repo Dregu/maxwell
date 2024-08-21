@@ -2568,6 +2568,15 @@ void UI::HUD() {
                   (tile.layer ? 0xccffff00 : 0xcc0000ff), 0, 0, 3.f);
   }
 
+  if (selectedTile.tile && selectedTile.room.x == Max::get().player_room()->x &&
+      selectedTile.room.y == Max::get().player_room()->y) {
+    ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
+        ->AddRect(TileToScreen(ImVec2(selectedTile.pos.x, selectedTile.pos.y)),
+                  TileToScreen(
+                      ImVec2(selectedTile.pos.x + 1, selectedTile.pos.y + 1)),
+                  (selectedTile.layer ? 0xcc00a5ff : 0xcc00ff00), 0, 0, 3.f);
+  }
+
   if (ImGui::IsMousePosValid()) {
     auto npos = Normalize(Mouse());
     int x = npos.x;
@@ -2609,17 +2618,19 @@ void UI::HUD() {
         selectedTile.pos = S32Vec2{rx, ry};
         selectedTile.room = *Max::get().player_room();
         selectedTile.map = *Max::get().player_map();
+        selectedTile.layer = 0;
         editorTile.id = fg->id;
         editorTile.param = fg->param;
         editorTile.flags = fg->flags;
       }
 
-      if (fg && ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_select_bg"]) &&
+      if (bg && ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_select_bg"]) &&
           !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
-        selectedTile.tile = fg;
+        selectedTile.tile = bg;
         selectedTile.pos = S32Vec2{rx, ry};
         selectedTile.room = *Max::get().player_room();
         selectedTile.map = *Max::get().player_map();
+        selectedTile.layer = 1;
         editorTile.id = bg->id;
         editorTile.param = bg->param;
         editorTile.flags = bg->flags;
