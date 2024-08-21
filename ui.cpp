@@ -202,6 +202,20 @@ std::array portal_names{
     "Eel", "Frog", "Fish", "Bear", "Dog", "Bird", "Squirrel", "Hippo",
 };
 
+std::array tile_flag_names{
+    "Horizontal mirror",
+    "Vertical mirror",
+    "Rotate 90°",
+    "Rotate 180°",
+};
+
+std::array global_tile_flag_names{
+    "Collides left", "Collides right", "Collides up", "Collides down",
+    "Not placeable", "Additive",       "Obscures",    "Contiguous",
+    "Blocks light",  "Self-contiguos", "Hidden",      "Dirt",
+    "Has normals",   "UV light",
+};
+
 const std::map<std::string, PLAYER_INPUT> notes{
     {"A4", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::LB)},
     {"A#4",
@@ -1841,10 +1855,12 @@ void UI::DrawTileRow(Tile &tile) {
 }
 
 void UI::DrawSelectedTile(SelectedTile &tile) {
+  ImGui::BeginDisabled();
   ImGui::InputInt2("Room", &tile.room.x, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt2("Position", &tile.pos.x, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt("Layer", &tile.layer, 0, 0, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt("Map", &tile.map, 0, 0, ImGuiInputTextFlags_ReadOnly);
+  ImGui::EndDisabled();
   DrawTile(*tile.tile);
 }
 
@@ -1975,12 +1991,36 @@ void UI::DrawLevel() {
   if (ImGui::CollapsingHeader("Tile editor   ")) {
     ImGui::SeparatorText("Tile to place");
     ImGui::PushID("EditorTile");
-    DrawTileRow(editorTile);
+    DrawTile(editorTile);
+    Flags(tile_flag_names, &editorTile.flags);
     ImGui::PopID();
     if (selectedTile.tile) {
       ImGui::SeparatorText("Selected tile");
       ImGui::PushID("SelectedTile");
-      DrawSelectedTileRow(selectedTile);
+      DrawSelectedTile(selectedTile);
+      ImGui::SeparatorText("Tile rotation flags");
+      ImGui::PushID("SelectedTileFlags");
+      Flags(tile_flag_names, &selectedTile.tile->flags);
+      ImGui::PopID();
+      ImGui::SeparatorText("Global tile type flags");
+      auto flags = (*Max::get().tile_uvs())[selectedTile.tile->id].flags;
+      ImGui::PushID("GlobalStaticTileFlags");
+      Flags(global_tile_flag_names, &flags, true);
+      if (flags != (*Max::get().tile_uvs())[selectedTile.tile->id].flags)
+        write_mem_prot(&(*Max::get().tile_uvs())[selectedTile.tile->id].flags,
+                       flags, true);
+      ImGui::PopID();
+      if (Max::get().player_room()->x == selectedTile.room.x &&
+          Max::get().player_room()->y == selectedTile.room.y) {
+        ImGui::SeparatorText("Dynamic tile flags");
+        ImGui::PushID("DynamicTileFlags");
+        ImGui::BeginDisabled();
+        auto flags = Max::get().get_room_tile_flags(selectedTile.pos.x,
+                                                    selectedTile.pos.y, 0xffff);
+        Flags(global_tile_flag_names, &flags, true);
+        ImGui::EndDisabled();
+        ImGui::PopID();
+      }
       ImGui::PopID();
     }
   }
@@ -2558,8 +2598,13 @@ void UI::HUD() {
         *Max::get().player_state() = 0;
       }
 
-      if (fg && ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_select_fg"]) &&
-          !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+      if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Middle))
+        selectedTile.tile = 0;
+      else if (fg && ImGui::IsKeyChordDown((ImGuiKey)keys["mouse_select_fg"]) &&
+               !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) &&
+               (ImGui::IsMouseDragging(ImGuiMouseButton_Middle) ||
+                ImGui::GetMouseClickedCount(ImGuiMouseButton_Middle) == 1 ||
+                keys["mouse_select_fg"] != ImGuiKey_MouseMiddle)) {
         selectedTile.tile = fg;
         selectedTile.pos = S32Vec2{rx, ry};
         selectedTile.room = *Max::get().player_room();
@@ -2629,9 +2674,10 @@ void UI::HUD() {
                       Max::get().player_room()->x, Max::get().player_room()->y,
                       x, y, rx, ry, wx, wy, mx, my);
       if (fg && bg) {
-        coord += fmt::format("\n Flags: 0x{:X}|0x{:X},0x{:X}", fg->flags,
+        coord += fmt::format("\n Flags: 0x{:X}|0x{:X},0x{:X}",
+                             (*Max::get().tile_uvs())[fg->id].flags,
                              Max::get().get_room_tile_flags(rx, ry, 0xffff),
-                             bg->flags);
+                             (*Max::get().tile_uvs())[bg->id].flags);
         coord += fmt::format("\n Param: {},{}", fg->param, bg->param);
         coord += fmt::format("\n    ID: {},{}", fg->id, bg->id);
       }
