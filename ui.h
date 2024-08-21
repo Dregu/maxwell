@@ -103,6 +103,7 @@ private:
       {"mouse_select_bg", ImGuiMod_Shift | ImGuiKey_MouseMiddle},
       {"mouse_destroy", ImGuiKey_MouseX1},
       {"mouse_fix", ImGuiMod_Shift | ImGuiKey_MouseX1},
+      {"mouse_modifier", ImGuiMod_Shift},
   };
   std::map<std::string, ImGuiKeyChord> keys;
   // TODO: Save to ini

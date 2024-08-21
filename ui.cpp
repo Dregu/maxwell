@@ -2623,13 +2623,18 @@ void UI::HUD() {
       int wy = 180 * Max::get().player_room()->y + y;
       int mx = 40 * Max::get().player_room()->x + rx;
       int my = 22 * Max::get().player_room()->y + ry;
-      std::string coord = fmt::format(
-          "Screen: {},{}\n  Tile: {},{}\n World: {},{}\n   Map: {},{}", x, y,
-          rx, ry, wx, wy, mx, my);
-      coord += fmt::format("\n Flags: 0x{:X}",
-                           Max::get().get_room_tile_flags(rx, ry, 0xffff));
-      if (fg && bg)
+      std::string coord =
+          fmt::format("  Room: {},{}\nScreen: {},{}\n  Tile: {},{}\n World: "
+                      "{},{}\n   Map: {},{}",
+                      Max::get().player_room()->x, Max::get().player_room()->y,
+                      x, y, rx, ry, wx, wy, mx, my);
+      if (fg && bg) {
+        coord += fmt::format("\n Flags: 0x{:X}|0x{:X},0x{:X}", fg->flags,
+                             Max::get().get_room_tile_flags(rx, ry, 0xffff),
+                             bg->flags);
+        coord += fmt::format("\n Param: {},{}", fg->param, bg->param);
         coord += fmt::format("\n    ID: {},{}", fg->id, bg->id);
+      }
       ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
       ImGui::SetTooltip(coord.c_str());
     }
