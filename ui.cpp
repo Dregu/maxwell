@@ -581,11 +581,11 @@ void UI::DrawPlayer() {
       }
     }
     {
-      bool all = (*Max::get().upgrades() & 0x57FFFE07) == 0x57FFFE07;
+      bool all = (*Max::get().upgrades() & 0x37FFFE07) == 0x37FFFE07;
       if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades2", &all) ||
           everything) {
         if (everything || all) {
-          *Max::get().upgrades() |= 0x57FFFE07;
+          *Max::get().upgrades() |= 0x37FFFE07;
         } else {
           *Max::get().upgrades() = 0;
         }
@@ -760,10 +760,10 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc")) {
     ImGui::PushID("PlayerSectionMisc");
     DebugPtr(Max::get().upgrades());
-    bool all = (*Max::get().upgrades() & 0x57FFFE07) == 0x57FFFE07;
+    bool all = (*Max::get().upgrades() & 0x17FFFE07) == 0x17FFFE07;
     if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades", &all)) {
       if (all) {
-        *Max::get().upgrades() |= 0x57FFFE07;
+        *Max::get().upgrades() |= 0x37FFFE07;
       } else {
         *Max::get().upgrades() = 0;
       }
