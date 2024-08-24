@@ -8,7 +8,6 @@
 #include <deque>
 #include <functional>
 #include <optional>
-#include <span>
 #include <string>
 
 #include "image.h"
@@ -281,6 +280,9 @@ struct Max {
   static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
   static AssetInfo *decrypt_asset(uint32_t id, uint8_t *key);
   static void *load_asset(uint32_t id, uint8_t b);
+  static void load_map_from_asset(AssetInfo *asset, Map *map);
+  static void load_map_from_data(void *data, Map *map);
+  void load_map(int m);
   std::array<uv_data, 1024> *tile_uvs();
   void decrypt_stuff();
 
@@ -291,6 +293,8 @@ struct Max {
   uint16_t get_room_tile_flags(int x, int y, uint16_t mask);
 
   void dump_lighting();
+  void dump_map(uint8_t m = 0);
+  void dump_asset(uint32_t id);
 
   bool skip{false};
   std::optional<bool> paused{std::nullopt};

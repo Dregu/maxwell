@@ -720,6 +720,26 @@ bool Max::import_map(std::string file, int m) {
   return true;
 }
 
+void Max::load_map_from_asset(AssetInfo *asset, Map *map) {
+  if (asset && map)
+    Max::load_map_from_data(asset->data, map);
+}
+
+void Max::load_map_from_data(void *data, Map *map) {
+  using LoadFunc = void(void *data, Map *map);
+  static LoadFunc *load = (LoadFunc *)get_address("load_map_from_data");
+  load(data, map);
+}
+
+void Max::load_map(int m) {
+  static const std::array map_to_asset{300, 157, 193, 52, 222};
+  auto map = Max::get().map(m);
+  auto asset = Max::get().get_asset(map_to_asset[m]);
+  if (!map)
+    return;
+  Max::load_map_from_asset(asset, map);
+}
+
 void Max::save_game() {
   using SaveGameFunc = void();
   static SaveGameFunc *save = (SaveGameFunc *)get_address("save_game");
@@ -942,4 +962,62 @@ void Max::dump_lighting() {
   out << "00 0B F0 00 20 00 00 00 00 00 00 00"_gh;
   out.write(reinterpret_cast<char *>(lighting(0)), 32 * sizeof(LightingData));
   out.close();
+}
+
+void Max::dump_map(uint8_t m) {
+  static const std::array map_to_asset{300, 157, 193, 52, 222};
+  auto map = Max::get().map(m);
+  auto asset = Max::get().get_asset(map_to_asset[m]);
+  CreateDirectory(L"MAXWELL\\Dump", NULL);
+  CreateDirectory(L"MAXWELL\\Dump\\Maps", NULL);
+  std::string file = fmt::format("MAXWELL\\Dump\\Maps\\{}.map", m);
+  std::ofstream out(file, std::ios::binary);
+  MapHeader header{0xF00DCAFE,
+                   map->roomCount,
+                   map->world_wrap_x_start,
+                   map->world_wrap_x_end,
+                   8,
+                   0xF0F0CAFE};
+  out.write(reinterpret_cast<char *>(&header), sizeof(MapHeader));
+  out.write(reinterpret_cast<char *>(&map->rooms),
+            map->roomCount * sizeof(Room));
+  out.close();
+}
+
+void Max::dump_asset(uint32_t id) {
+  auto asset = Max::get().get_asset(id);
+  CreateDirectory(L"MAXWELL\\Dump", NULL);
+  CreateDirectory(L"MAXWELL\\Dump\\Assets", NULL);
+  auto ptr = (uint8_t *)asset->data;
+  if (ptr == 0)
+    return;
+  std::string ext = ".bin";
+  if (asset->type == AssetType::Text) {
+    ext = ".txt";
+  } else if (ptr[0] == 'O' && ptr[1] == 'g' && ptr[2] == 'g' && ptr[3] == 'S') {
+    ext = ".ogg";
+  } else if (ptr[0] == 0x89 && ptr[1] == 'P' && ptr[2] == 'N' &&
+             ptr[3] == 'G') {
+    ext = ".png";
+  } else if (ptr[0] == 0xFE && ptr[1] == 0xCA && ptr[2] == 0x0D &&
+             ptr[3] == 0xF0) {
+    ext = ".map";
+  } else if (ptr[0] == 'D' && ptr[1] == 'X' && ptr[2] == 'B' && ptr[3] == 'C') {
+    ext = ".shader";
+  } else if (ptr[0] == 0 && ptr[1] == 0x0B && ptr[2] == 0xB0 && ptr[3] == 0) {
+    ext = ".uvs";
+  } else if (ptr[0] == 'P' && ptr[1] == 'K' && ptr[2] == 3 && ptr[3] == 4) {
+    ext = ".xps";
+  } else if (ptr[0] == 0x00 && ptr[1] == 0x0B && ptr[2] == 0xF0 &&
+             ptr[3] == 0x00) {
+    ext = ".ambient";
+  } else if (ptr[0] == 0x1D && ptr[1] == 0xAC) { // ptr[2] = version 1,2,3
+    ext = ".sprite";
+  } else if (ptr[0] == 'B' && ptr[1] == 'M' && ptr[2] == 'F') {
+    ext = ".font";
+  }
+  auto filename = fmt::format("MAXWELL\\Dump\\Assets\\{}{}", id, ext);
+  std::ofstream file(filename, std::ios::binary);
+  file.write((char *)asset->data, asset->size);
+  file.close();
 }

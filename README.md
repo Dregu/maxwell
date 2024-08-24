@@ -82,8 +82,9 @@ This is not a virus, but you probably shouldn't believe a random file on the int
   - WIP, untested, these things might still change on a whim
   - Loads correctly named and formatted loose files recursively from `MAXWELL/Mods`
   - No error checking
-  - All original maps, assets and textures can be dumped with the [level editor](https://github.com/Redcrafter/Animal-Well-editor)
-    - Edited light params (asset 179) can be dumped with MAXWELL
+  - All original maps, assets and textures can be dumped with MAXWELL or the [level editor](https://github.com/Redcrafter/Animal-Well-editor)
+    - Edited current state of maps can also be dumped with MAXWELL
+    - Edited light params (asset 179) can also be dumped with MAXWELL
   - Supports 3 types of modded files (all files in a mod must be placed in one of these subdirectories)
     - Map mods in `[Mod Name]/Maps/X.map` where `X` is a map index in `0..4`
     - Full asset mods in `[Mod Name]/Assets/Y.whatever` where `Y` is an asset number as dumped by the editor
@@ -100,4 +101,5 @@ This is not a virus, but you probably shouldn't believe a random file on the int
   - These are the only asset file types currently tested, but others might also work
   - **MAXWELL.exe has to be the one launching the game to hook the asset loading functions early**
     - This can be done with the `--launch_game` command line switch or putting it in the right folder and just hitting enter when it asks
+    - Or you can use the xinput shim (see [Usage](#usage))
     - Mods won't load correctly if you just launch the game from Steam and have MAXWELL searching for processes

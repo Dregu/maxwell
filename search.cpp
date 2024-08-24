@@ -777,6 +777,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         "render_water"sv,
         PatternCommandBuffer{}.from_exe_base(0x103f4a), // TODO
     },
+    {
+        "load_map_from_data"sv,
+        PatternCommandBuffer{}.from_exe_base(0x2ec0), // TODO
+    },
     /*{
         "load_asset"sv, PatternCommandBuffer{}.from_exe_base(0x74450), // TODO
     },

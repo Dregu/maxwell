@@ -77,6 +77,7 @@ private:
       {"tool_map", ImGuiKey_F2},
       {"tool_tools", ImGuiKey_F3},
       {"tool_level", ImGuiKey_F4},
+      {"tool_mods", ImGuiKey_F5},
       {"toggle_ui", ImGuiKey_F10},
       {"toggle_noclip", ImGuiMod_Ctrl | ImGuiKey_F},
       {"toggle_godmode", ImGuiMod_Ctrl | ImGuiKey_G},
@@ -255,7 +256,9 @@ private:
   SelectedRoom selectedRoom;
   Tile editorTile{0, 0, 0};
   std::string mapDir = "MAXWELL/Maps";
+  std::string modDir = "MAXWELL/Mods";
   std::vector<std::filesystem::path> maps;
+  std::vector<std::filesystem::path> mods;
   uint8_t forcedPalette{26};
   std::vector<SelectedTile> searchTiles;
   std::unordered_map<Room *, RoomData> defaultRoom;
@@ -276,11 +279,16 @@ public:
   void CreateMap();
 
   void DrawPlayer();
-  void DrawMap();
+  void DrawMinimap();
   void DrawTools();
   void DrawOptions();
+  void DrawAssets();
+  void DrawMods();
+  void DrawAsset(uint32_t id);
+  void DumpAsset(uint32_t id);
   void UpdateOptions();
   void DrawLevel();
+  void DrawMap(uint8_t id);
   void DrawTile(Tile &tile);
   void DrawTileRow(Tile &tile);
   void DrawSelectedTile(SelectedTile &tile);
@@ -303,6 +311,7 @@ public:
   void HUD();
   void LoadMuralPage(int page);
   void RefreshMaps();
+  void RefreshMods();
 
   bool GetOption(const std::string &name) { return options[name].value; }
   bool CheatsEnabled();

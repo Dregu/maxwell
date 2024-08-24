@@ -8,6 +8,7 @@
 #include <d3d12.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <inttypes.h>
 #include <iostream>
 #include <map>
 #include <misc/cpp/imgui_stdlib.h>
@@ -214,6 +215,10 @@ std::array global_tile_flag_names{
     "Not placeable", "Additive",       "Obscures",    "Contiguous",
     "Blocks light",  "Self-contiguos", "Hidden",      "Dirt",
     "Has normals",   "UV light",
+};
+
+std::array asset_type_names{
+    "Text", "Binary", "PNG", "Ogg", "4", "Sprite", "6", "Shader", "Font",
 };
 
 const std::map<std::string, PLAYER_INPUT> notes{
@@ -520,7 +525,7 @@ void UI::WarpToTile(SelectedTile tile, int offsetx, int offsety) {
 
 template <typename T> void UI::DebugPtr(T *ptr) {
   if (options["ui_debug"].value)
-    ImGui::InputScalar("Address", ImGuiDataType_U64, &ptr, 0, 0, "%X",
+    ImGui::InputScalar("Address", ImGuiDataType_U64, &ptr, 0, 0, "%llX",
                        ImGuiInputTextFlags_ReadOnly);
 }
 
@@ -539,8 +544,10 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Unlock everything##PlayerEverything")) {
     ImGui::PushID("PlayerSectionEverything");
     auto everything = ImGui::Button(
-        "UNLOCK EVERYTHING",
-        ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() * 2));
+        "Unlock everything##UnlockEverythingButton",
+        ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()));
+    Tooltip("Unlocks a reasonable selection of all\n"
+            "the things currently available below.");
     if (everything) {
       if (*Max::get().player_hp() < 12)
         *Max::get().player_hp() = 12;
@@ -978,9 +985,8 @@ void UI::DrawPlayer() {
     }
     ImGui::Separator();
     std::optional<SelectedTile> flameTile;
-    ImGui::SliderScalar("Blue Flame / Seahorse##BlueFlameSlider",
-                        ImGuiDataType_U8, Max::get().flames(), &u8_zero,
-                        &u8_five);
+    ImGui::SliderScalar("Blue / Seahorse##BlueFlameSlider", ImGuiDataType_U8,
+                        Max::get().flames(), &u8_zero, &u8_five);
     ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
     if (ImGui::Button("Go##GoBlueFlame",
                       ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
@@ -988,9 +994,8 @@ void UI::DrawPlayer() {
       if (flameTile.has_value())
         WarpToTile(flameTile.value());
     }
-    ImGui::SliderScalar("Purple Flame / Dog##PurpleFlameSlider",
-                        ImGuiDataType_U8, Max::get().flames() + 1, &u8_zero,
-                        &u8_five);
+    ImGui::SliderScalar("Purple / Dog##PurpleFlameSlider", ImGuiDataType_U8,
+                        Max::get().flames() + 1, &u8_zero, &u8_five);
     ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
     if (ImGui::Button("Go##GoPurpleFlame",
                       ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
@@ -998,7 +1003,7 @@ void UI::DrawPlayer() {
       if (flameTile.has_value())
         WarpToTile(flameTile.value());
     }
-    ImGui::SliderScalar("Violet Flame / Chameleon##VioletFlameSlider",
+    ImGui::SliderScalar("Violet / Chameleon##VioletFlameSlider",
                         ImGuiDataType_U8, Max::get().flames() + 2, &u8_zero,
                         &u8_five);
     ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
@@ -1008,9 +1013,8 @@ void UI::DrawPlayer() {
       if (flameTile.has_value())
         WarpToTile(flameTile.value());
     }
-    ImGui::SliderScalar("Green Flame / Ostrich##GreenFlameSlider",
-                        ImGuiDataType_U8, Max::get().flames() + 3, &u8_zero,
-                        &u8_five);
+    ImGui::SliderScalar("Green / Ostrich##GreenFlameSlider", ImGuiDataType_U8,
+                        Max::get().flames() + 3, &u8_zero, &u8_five);
     ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
     if (ImGui::Button("Go##GoGreenFlame",
                       ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
@@ -1137,7 +1141,7 @@ void UI::DrawPlayer() {
   ImGui::PopItemWidth();
 }
 
-void UI::DrawMap() {
+void UI::DrawMinimap() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
 
@@ -1836,6 +1840,17 @@ void UI::RefreshMaps() {
   }
 }
 
+void UI::RefreshMods() {
+  mods.clear();
+  CreateDirectory(L"MAXWELL\\Mods", NULL);
+  if (std::filesystem::exists(modDir) &&
+      std::filesystem::is_directory(modDir)) {
+    for (const auto &file : std::filesystem::directory_iterator(modDir)) {
+      mods.push_back(file.path());
+    }
+  }
+}
+
 void UI::DrawTile(Tile &tile) {
   ImGui::InputScalar("ID", ImGuiDataType_U16, &tile.id, &u16_one);
   ImGui::InputScalar("Param", ImGuiDataType_U8, &tile.param, &u8_one);
@@ -1903,9 +1918,120 @@ void ColorEdit4(const char *label, uint8_t *col,
   col[3] = col4[3] * 255.f;
 }
 
+void UI::DrawMap(uint8_t id) {
+  auto map = Max::get().map(id);
+  ImGui::PushID(id);
+  ImGui::Text("%d", id);
+  ImGui::SameLine(25.f * uiScale);
+  ImGui::Text("%3d rooms", map->roomCount);
+  ImGui::SameLine(100.f * uiScale);
+  if (options["ui_debug"].value) {
+    ImGui::PushItemWidth(80.f * uiScale);
+    ImGui::InputScalar("##MapAddr", ImGuiDataType_U64, &map, 0, 0, "%llX",
+                       ImGuiInputTextFlags_ReadOnly);
+    ImGui::SameLine(0, 4);
+    ImGui::PopItemWidth();
+  }
+  if (ImGui::Button("Dump edited##DumpEditedMap"))
+    Max::get().dump_map(id);
+  auto text = fmt::format("Current state of maps will be dumped\n"
+                          "to: MAXWELL/Dump/Maps/%d.map",
+                          id);
+  Tooltip(text.c_str());
+  ImGui::PopID();
+}
+
 void UI::DrawLevel() {
   ImGuiIO &io = ImGui::GetIO();
   ImGuiContext &g = *GImGui;
+
+  static std::unordered_map<uint8_t, std::string> active_files;
+  if (ImGui::CollapsingHeader("Maps")) {
+    Max::get().decrypt_stuff();
+    ImGui::SeparatorText("Dump maps");
+    if (ImGui::Button("Open Dump folder##OpenDumpMaps",
+                      ImVec2(ImGui::GetContentRegionAvail().x,
+                             ImGui::GetFrameHeight()))) {
+      CreateDirectory(L"MAXWELL\\Dump", NULL);
+      CreateDirectory(L"MAXWELL\\Dump\\Maps", NULL);
+      ShellExecute(NULL, L"open", L"MAXWELL\\Dump\\Maps", NULL, NULL,
+                   SW_SHOWNORMAL);
+    }
+    if (ImGui::Button("Dump all edited maps",
+                      ImVec2(ImGui::GetContentRegionAvail().x,
+                             ImGui::GetFrameHeight()))) {
+      for (uint8_t id = 0; id < 5; ++id)
+        Max::get().dump_map(id);
+    }
+    Tooltip("Current state of all maps will\n"
+            "be dumped to: MAXWELL/Dump/Maps");
+    ImGui::PushID("DrawMaps");
+    for (uint8_t id = 0; id < 5; ++id)
+      DrawMap(id);
+    ImGui::PopID();
+    static bool mapsInit{false};
+    if (!mapsInit) {
+      RefreshMaps();
+      mapsInit = true;
+    }
+    ImGui::SeparatorText("Load maps");
+    if (ImGui::Button("Open Maps folder##OpenLoadMaps",
+                      ImVec2(ImGui::GetContentRegionAvail().x,
+                             ImGui::GetFrameHeight()))) {
+      RefreshMaps();
+      CreateDirectory(L"MAXWELL\\Maps", NULL);
+      ShellExecute(NULL, L"open", L"MAXWELL\\Maps", NULL, NULL, SW_SHOWNORMAL);
+    }
+    if (ImGui::Button("Reload original maps",
+                      ImVec2(ImGui::GetContentRegionAvail().x,
+                             ImGui::GetFrameHeight()))) {
+      for (uint8_t id = 0; id < 5; ++id)
+        Max::get().load_map(id);
+      active_files.clear();
+    }
+    if (ImGui::Button("Reload modded maps",
+                      ImVec2(ImGui::GetContentRegionAvail().x,
+                             ImGui::GetFrameHeight()))) {
+      Max::get().load_map_mods();
+      active_files.clear();
+    }
+    if (ImGui::Button("Reload loaded maps",
+                      ImVec2(ImGui::GetContentRegionAvail().x,
+                             ImGui::GetFrameHeight()))) {
+      for (auto &[id, file] : active_files)
+        Max::get().import_map(file, id);
+    }
+    static int layer{0};
+    ImGui::PushItemWidth(100.f * uiScale);
+    ImGui::InputInt("Load to map##ImportMapLayer", &layer);
+    ImGui::PopItemWidth();
+    layer = (layer + 5) % 5;
+    /*static std::string file{""};
+    ImGui::InputText("File name##ImportMapFile", &file);
+    if (ImGui::Button("Import##ImportMap"))
+      Max::get().import_map(file, layer);*/
+
+    for (auto m : maps) {
+      ImGui::PushID(m.string().c_str());
+      std::string buf =
+          fmt::format("Load '{}' to {}", m.stem().string(), layer);
+      if (ImGui::Button(buf.c_str(), ImVec2(ImGui::GetContentRegionAvail().x,
+                                            ImGui::GetFrameHeight()))) {
+        Max::get().import_map(m.string(), layer);
+        active_files[layer] = m.string();
+      }
+      ImGui::PopID();
+    }
+    if (maps.empty())
+      ImGui::TextWrapped("Put .map files in MAXWELL/Maps to import!");
+    if (ImGui::Button(
+            "Refresh maps##RefreshMaps",
+            ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight())))
+      RefreshMaps();
+  }
+
+  if (ImGui::CollapsingHeader("Assets"))
+    DrawAssets();
 
   if (ImGui::CollapsingHeader("Room")) {
     ImGui::PushItemWidth(140.f * uiScale);
@@ -2115,39 +2241,132 @@ void UI::DrawLevel() {
     ImGui::PopID();
   }
   ImGui::PopID();
+}
 
-  if (ImGui::CollapsingHeader("Import map")) {
-    static bool mapsInit{false};
-    if (!mapsInit) {
-      RefreshMaps();
-      mapsInit = true;
-    }
-    if (ImGui::Button("Open Maps folder##OpenMaps")) {
-      RefreshMaps();
-      ShellExecute(NULL, L"open", L"MAXWELL\\Maps", NULL, NULL, SW_SHOWNORMAL);
-    }
+std::string GetBinaryAssetType(uint32_t id) {
+  auto asset = Max::get().get_asset(id);
+  std::string ext = "Binary";
+  auto ptr = (uint8_t *)asset->data;
+  if (ptr == 0)
+    return ext;
+  if (ptr[0] == 'O' && ptr[1] == 'g' && ptr[2] == 'g' && ptr[3] == 'S') {
+    ext = "Ogg";
+  } else if (ptr[0] == 0x89 && ptr[1] == 'P' && ptr[2] == 'N' &&
+             ptr[3] == 'G') {
+    ext = "PNG";
+  } else if (ptr[0] == 0xFE && ptr[1] == 0xCA && ptr[2] == 0x0D &&
+             ptr[3] == 0xF0) {
+    ext = "Map";
+  } else if (ptr[0] == 'D' && ptr[1] == 'X' && ptr[2] == 'B' && ptr[3] == 'C') {
+    ext = "Shader";
+  } else if (ptr[0] == 0 && ptr[1] == 0x0B && ptr[2] == 0xB0 && ptr[3] == 0) {
+    ext = "UVs";
+  } else if (ptr[0] == 'P' && ptr[1] == 'K' && ptr[2] == 3 && ptr[3] == 4) {
+    ext = "XPS";
+  } else if (ptr[0] == 0x00 && ptr[1] == 0x0B && ptr[2] == 0xF0 &&
+             ptr[3] == 0x00) {
+    ext = "Lighting";
+  } else if (ptr[0] == 0x1D && ptr[1] == 0xAC) { // ptr[2] = version 1,2,3
+    ext = "Sprite";
+  } else if (ptr[0] == 'B' && ptr[1] == 'M' && ptr[2] == 'F') {
+    ext = "Font";
+  }
+  return ext;
+}
+
+void UI::DrawAsset(uint32_t id) {
+  ImGui::PushID(id);
+  auto asset = Max::get().get_asset(id);
+  ImGui::Text("%d", id);
+  ImGui::SameLine(35.f * uiScale);
+  std::string asset_type = asset_type_names[(uint8_t)asset->type & 0x3f];
+  if (asset_type == "Binary")
+    asset_type = GetBinaryAssetType(id);
+  ImGui::Text("%s", asset_type);
+  ImGui::SameLine(90.f * uiScale);
+  ImGui::Text("%dKiB", asset->size / 1024);
+  ImGui::SameLine(150.f * uiScale);
+  auto addr = (size_t)asset;
+  auto ptr = (size_t)asset->data;
+  if (options["ui_debug"].value) {
+    ImGui::PushItemWidth(80.f * uiScale);
+    ImGui::InputScalar("##AssetAddr", ImGuiDataType_U64, &addr, 0, 0, "%llX",
+                       ImGuiInputTextFlags_ReadOnly);
     ImGui::SameLine(0, 4);
-    if (ImGui::Button("Refresh##RefreshMaps"))
-      RefreshMaps();
-    static int layer{0};
-    ImGui::InputInt("Map##ImportMapLayer", &layer);
-    layer = (layer + 5) % 5;
-    /*static std::string file{""};
-    ImGui::InputText("File name##ImportMapFile", &file);
-    if (ImGui::Button("Import##ImportMap"))
-      Max::get().import_map(file, layer);*/
+    ImGui::InputScalar("##AssetPtr", ImGuiDataType_U64, &ptr, 0, 0, "%llX",
+                       ImGuiInputTextFlags_ReadOnly);
+    ImGui::PopItemWidth();
+    ImGui::SameLine(0, 4);
+  }
+  if (ImGui::Button("Dump##DumpAsset"))
+    Max::get().dump_asset(id);
+  auto text = fmt::format("Original/modded asset will be dumped\n"
+                          "to: MAXWELL/Dump/Assets/%d.ambient",
+                          id);
+  Tooltip(text.c_str());
+  ImGui::PopID();
+}
 
-    for (auto m : maps) {
-      ImGui::PushID(m.string().c_str());
-      std::string buf =
-          fmt::format("Import '{}' to map {}", m.filename().string(), layer);
-      if (ImGui::Button(buf.c_str()))
-        Max::get().import_map(m.string(), layer);
-      ImGui::PopID();
-    }
-    if (maps.empty())
-      ImGui::TextWrapped(
-          "Put files exported by map editor in MAXWELL/Maps to import!");
+void UI::DrawAssets() {
+  ImGui::PushID("DrawAssets");
+  if (ImGui::Button(
+          "Open Assets folder##OpenDumpAssets",
+          ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
+    CreateDirectory(L"MAXWELL\\Dump", NULL);
+    CreateDirectory(L"MAXWELL\\Dump\\Assets", NULL);
+    ShellExecute(NULL, L"open", L"MAXWELL\\Dump\\Assets", NULL, NULL,
+                 SW_SHOWNORMAL);
+  }
+  auto dump =
+      ImGui::Button("Dump all assets", ImVec2(ImGui::GetContentRegionAvail().x,
+                                              ImGui::GetFrameHeight()));
+  Tooltip("Assets will be dumped\nto: MAXWELL/Dump/Assets");
+  for (uint32_t id = 0; id < 676; ++id) {
+    DrawAsset(id);
+    if (dump)
+      Max::get().dump_asset(id);
+  }
+  ImGui::PopID();
+}
+
+size_t CountFiles(std::filesystem::path path) {
+  using std::filesystem::directory_iterator;
+  using fp = bool (*)(const std::filesystem::path &);
+  return std::count_if(directory_iterator(path), directory_iterator{},
+                       (fp)std::filesystem::is_regular_file);
+}
+
+void UI::DrawMods() {
+  static bool modsInit{false};
+  if (!modsInit) {
+    RefreshMods();
+    modsInit = true;
+  }
+  if (ImGui::Button(
+          "Open Mods folder##OpenMods",
+          ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
+    CreateDirectory(L"MAXWELL\\Mods", NULL);
+    ShellExecute(NULL, L"open", L"MAXWELL\\Mods", NULL, NULL, SW_SHOWNORMAL);
+  }
+  if (ImGui::Button("Reload mods", ImVec2(ImGui::GetContentRegionAvail().x,
+                                          ImGui::GetFrameHeight()))) {
+    Max::get().load_map_mods();
+  }
+  ImGui::SeparatorText("Active mods");
+  for (auto m : mods) {
+    ImGui::Text("+ %s", m.stem().string());
+    int map_count =
+        std::filesystem::exists(m / "Maps") ? CountFiles(m / "Maps") : 0;
+    int asset_count =
+        std::filesystem::exists(m / "Assets") ? CountFiles(m / "Assets") : 0;
+    int tile_count =
+        std::filesystem::exists(m / "Tiles") ? CountFiles(m / "Tiles") : 0;
+    if (map_count > 0)
+      ImGui::Text("  - %d maps", map_count);
+    if (asset_count > 0)
+      ImGui::Text("  - %d assets", asset_count);
+    if (tile_count > 0)
+      ImGui::Text("  - %d tiles", tile_count);
   }
 }
 
@@ -2162,9 +2381,10 @@ UI::UI(float scale) {
 
   NewWindow("Player", keys["tool_player"], 0, [this]() { this->DrawPlayer(); });
   NewWindow("Minimap", keys["tool_map"], ImGuiWindowFlags_AlwaysAutoResize,
-            [this]() { this->DrawMap(); });
+            [this]() { this->DrawMinimap(); });
   NewWindow("Tools", keys["tool_tools"], 0, [this]() { this->DrawTools(); });
   NewWindow("Level", keys["tool_level"], 0, [this]() { this->DrawLevel(); });
+  NewWindow("Mods", keys["tool_mods"], 0, [this]() { this->DrawMods(); });
   NewWindow("Settings", ImGuiKey_None, 0, [this]() { this->DrawOptions(); });
   NewWindow("Debug", ImGuiKey_None, 0, [this]() {
     ImGuiIO &io = ImGui::GetIO();
@@ -2173,25 +2393,22 @@ UI::UI(float scale) {
       if (!addr)
         ImGui::PushStyleColor(ImGuiCol_Text, 0xff0000ff);
       ImGui::InputScalar(name.data(), ImGuiDataType_U64, &addr, NULL, NULL,
-                         "%p", ImGuiInputTextFlags_ReadOnly);
+                         "%llX", ImGuiInputTextFlags_ReadOnly);
       if (!addr)
         ImGui::PopStyleColor();
     }
 
     size_t v = (size_t)Max::get().slot();
-    ImGui::InputScalar("save slot", ImGuiDataType_U64, &v, NULL, NULL, "%p",
+    ImGui::InputScalar("save slot", ImGuiDataType_U64, &v, NULL, NULL, "%llX",
                        ImGuiInputTextFlags_ReadOnly);
 
     v = (size_t)Max::get().pause();
-    ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%p",
+    ImGui::InputScalar("pause", ImGuiDataType_U64, &v, NULL, NULL, "%llX",
                        ImGuiInputTextFlags_ReadOnly);
 
     v = (size_t)Max::get().map(0);
-    ImGui::InputScalar("world", ImGuiDataType_U64, &v, NULL, NULL, "%p",
+    ImGui::InputScalar("world", ImGuiDataType_U64, &v, NULL, NULL, "%llX",
                        ImGuiInputTextFlags_ReadOnly);
-
-    if (ImGui::Button("Reload map mods"))
-      Max::get().load_map_mods();
 
     {
       uint8_t *m = GetMural();
@@ -2784,6 +3001,7 @@ void UI::Draw() {
     uiScale = 1.0f;
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
   }
+  ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0, 0.5f));
 
   if (key_to_change != "")
     KeyCapture();
@@ -2794,6 +3012,7 @@ void UI::Draw() {
   HUD();
   Cheats();
 
+  ImGui::PopStyleVar();
   ImGui::PopFont();
   if (ui_scaling)
     ImGui::PopStyleVar(10);
