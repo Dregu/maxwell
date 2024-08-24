@@ -1852,9 +1852,11 @@ void UI::RefreshMods() {
 }
 
 void UI::DrawTile(Tile &tile) {
+  ImGui::PushItemWidth(80.f * uiScale);
   ImGui::InputScalar("ID", ImGuiDataType_U16, &tile.id, &u16_one);
   ImGui::InputScalar("Param", ImGuiDataType_U8, &tile.param, &u8_one);
   ImGui::InputScalar("Flags", ImGuiDataType_U8, &tile.flags, &u8_one);
+  ImGui::PopItemWidth();
 }
 
 void UI::DrawTileRow(Tile &tile) {
@@ -1870,6 +1872,7 @@ void UI::DrawTileRow(Tile &tile) {
 }
 
 void UI::DrawSelectedTile(SelectedTile &tile) {
+  ImGui::PushItemWidth(80.f * uiScale);
   ImGui::BeginDisabled();
   ImGui::InputInt2("Room", &tile.room.x, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt2("Position", &tile.pos.x, ImGuiInputTextFlags_ReadOnly);
@@ -1877,6 +1880,7 @@ void UI::DrawSelectedTile(SelectedTile &tile) {
   ImGui::InputInt("Map", &tile.map, 0, 0, ImGuiInputTextFlags_ReadOnly);
   ImGui::EndDisabled();
   DrawTile(*tile.tile);
+  ImGui::PopItemWidth();
 }
 
 void UI::DrawSelectedTileRow(SelectedTile &tile) {
@@ -2354,7 +2358,7 @@ void UI::DrawMods() {
   }
   ImGui::SeparatorText("Active mods");
   for (auto m : mods) {
-    ImGui::Text("+ %s", m.stem().string());
+    ImGui::Text("%s", m.stem().string());
     int map_count =
         std::filesystem::exists(m / "Maps") ? CountFiles(m / "Maps") : 0;
     int asset_count =
