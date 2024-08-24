@@ -600,7 +600,7 @@ void UI::DrawPlayer() {
         everything = false;
     }
     {
-      bool all = (*Max::get().upgrades() & 0x57FFFE07) == 0x57FFFE07;
+      bool all = (*Max::get().upgrades() & 0x17FFFE07) == 0x17FFFE07;
       bool change_all =
           ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades2", &all);
       if (change_all || change_everything) {
@@ -832,7 +832,7 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc")) {
     ImGui::PushID("PlayerSectionMisc");
     DebugPtr(Max::get().upgrades());
-    bool all = (*Max::get().upgrades() & 0x57FFFE07) == 0x57FFFE07;
+    bool all = (*Max::get().upgrades() & 0x17FFFE07) == 0x17FFFE07;
     if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades", &all)) {
       if (all) {
         *Max::get().upgrades() |= 0x57FFFE07;
