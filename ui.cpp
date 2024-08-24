@@ -547,12 +547,12 @@ void UI::DrawPlayer() {
           "top left corner.");
   if (ImGui::CollapsingHeader("Unlock everything##PlayerEverything")) {
     ImGui::PushID("PlayerSectionEverything");
-    auto everything = ImGui::Button(
-        "Unlock everything##UnlockEverythingButton",
-        ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()));
+    static bool everything{false};
+    bool change_everything = ImGui::Checkbox(
+        "Unlock everything##UnlockEverythingButton", &everything);
     Tooltip("Unlocks a reasonable selection of all\n"
             "the things currently available below.");
-    if (everything) {
+    if (everything && change_everything) {
       if (*Max::get().player_hp() < 12)
         *Max::get().player_hp() = 12;
       *(Max::get().player_hp() + 1) = 4;
@@ -563,22 +563,28 @@ void UI::DrawPlayer() {
     {
       bool disc = *Max::get().equipment() & (1 << 5);
       bool all = (*Max::get().equipment() & 0x1FFE) == 0x1FFE;
-      if (ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment2", &all) ||
-          everything) {
-        if (everything || all)
+      bool change_all =
+          ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all))
           *Max::get().equipment() = 0x1FFE;
         else
           *Max::get().equipment() = 0;
       }
       if (!disc && *Max::get().equipment() & (1 << 5) &&
-          (*Max::get().upgrades() & 0x60000000) == 0)
-        *Max::get().upgrades() |= 0x20000000;
+          (*Max::get().upgrades() & 0x60000000) == 0) {
+        *Max::get().upgrades() |= 0x40000000;
+        *Max::get().upgrades() &= ~0x40000000;
+      }
+      if (change_all && !all)
+        everything = false;
     }
     {
       bool all = *Max::get().items() == 0xFF;
-      if (ImGui::Checkbox("Unlock all items##UnlockAllItems2", &all) ||
-          everything) {
-        if (everything || all) {
+      bool change_all =
+          ImGui::Checkbox("Unlock all items##UnlockAllItems2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all)) {
           *Max::get().items() = 0xFF;
           *Max::get().shards() = 2;
           *(Max::get().shards() + 12) = 2;
@@ -590,23 +596,35 @@ void UI::DrawPlayer() {
           *(Max::get().shards() + 24) = 0;
         }
       }
+      if (change_all && !all)
+        everything = false;
     }
     {
-      bool all = (*Max::get().upgrades() & 0x37FFFE07) == 0x37FFFE07;
-      if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades2", &all) ||
-          everything) {
-        if (everything || all) {
-          *Max::get().upgrades() |= 0x37FFFE07;
+      bool all = (*Max::get().upgrades() & 0x57FFFE07) == 0x57FFFE07;
+      bool change_all =
+          ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all)) {
+          *Max::get().upgrades() |= 0x57FFFE07;
         } else {
-          *Max::get().upgrades() = 0;
+          *Max::get().upgrades() &= ~0x17FFFE07;
+        }
+        if (*Max::get().equipment() & (1 << 5) &&
+            ((*Max::get().upgrades() & 0x60000000) == 0 ||
+             (*Max::get().upgrades() & 0x60000000) == 0x60000000)) {
+          *Max::get().upgrades() |= 0x40000000;
+          *Max::get().upgrades() &= ~0x40000000;
         }
       }
+      if (change_all && !all)
+        everything = false;
     }
     {
       bool all = *Max::get().eggs() == 0xFFFFFFFFFFFFFFFF;
-      if (ImGui::Checkbox("Unlock all eggs##UnlockAllEggs2", &all) ||
-          everything) {
-        if (everything || all) {
+      bool change_all =
+          ImGui::Checkbox("Unlock all eggs##UnlockAllEggs2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all)) {
           *Max::get().eggs() = 0xFFFFFFFFFFFFFFFF;
           *Max::get().upgrades() |= (1 << 20);
         } else {
@@ -614,56 +632,71 @@ void UI::DrawPlayer() {
           *Max::get().upgrades() &= ~(1 << 20);
         }
       }
+      if (change_all && !all)
+        everything = false;
     }
     {
       bool all = *Max::get().bunnies() == 0xD2408FDD;
-      if (ImGui::Checkbox("Unlock legal bunnies##UnlockLegalBunnies2", &all) ||
-          everything) {
-        if (everything || all)
+      bool change_all =
+          ImGui::Checkbox("Unlock legal bunnies##UnlockLegalBunnies2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all))
           *Max::get().bunnies() = 0xD2408FDD;
         else
           *Max::get().bunnies() = 0;
       }
+      if (change_all && !all)
+        everything = false;
     }
     {
       bool all = (*Max::get().squirrels() & 0x1FFF) == 0x1FFF;
-      if (ImGui::Checkbox("Spook all squirrels##SpookAllSquirrels2", &all) ||
-          everything) {
-        if (everything || all) {
+      bool change_all =
+          ImGui::Checkbox("Spook all squirrels##SpookAllSquirrels2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all)) {
           *Max::get().squirrels() = 0x1FFF;
         } else {
           *Max::get().squirrels() = 0;
         }
       }
+      if (change_all && !all)
+        everything = false;
     }
     {
       bool all = (*Max::get().candles() & 0x1FF) == 0x1FF;
-      if (ImGui::Checkbox("Unlock legal candles##UnlockAllCandles2", &all) ||
-          everything) {
-        if (everything || all) {
+      bool change_all =
+          ImGui::Checkbox("Unlock legal candles##UnlockAllCandles2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all)) {
           *Max::get().candles() = 0x1FF;
         } else {
           *Max::get().candles() = 0;
         }
       }
+      if (change_all && !all)
+        everything = false;
     }
     {
       bool all = *(uint32_t *)Max::get().flames() == 0x05050505;
-      if (ImGui::Checkbox("Place all flames##UnlockAllFlames2", &all) ||
-          everything) {
+      bool change_all =
+          ImGui::Checkbox("Place all flames##UnlockAllFlames2", &all);
+      if (change_all || change_everything) {
         for (int i = 0; i < 4; ++i)
-          if (everything || all) {
+          if ((change_everything && everything) || (change_all && all)) {
             *(Max::get().flames() + i) = 5;
           } else {
             *(Max::get().flames() + i) = 0;
           }
       }
+      if (change_all && !all)
+        everything = false;
     }
     {
       bool all = *Max::get().manticore() == 2 && *(Max::get().manticore() + 1);
-      if (ImGui::Checkbox("Tame both manticores##TameAllManticores2", &all) ||
-          everything) {
-        if (everything || all) {
+      bool change_all =
+          ImGui::Checkbox("Tame both manticores##TameAllManticores2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all)) {
           *Max::get().manticore() = 2;
           *(Max::get().manticore() + 1) = 2;
         } else {
@@ -671,12 +704,15 @@ void UI::DrawPlayer() {
           *(Max::get().manticore() + 1) = 0;
         }
       }
+      if (change_all && !all)
+        everything = false;
     }
     {
       bool all = (*Max::get().portals() & 0xfe) == 0xfe;
-      if (ImGui::Checkbox("Unlock all portals##UnlockAllPortals2", &all) ||
-          everything) {
-        if (everything || all) {
+      bool change_all =
+          ImGui::Checkbox("Unlock all portals##UnlockAllPortals2", &all);
+      if (change_all || change_everything) {
+        if ((change_everything && everything) || (change_all && all)) {
           *Max::get().portals() = 0xfe;
           *(Max::get().portals() + 1) = 0xfe;
           *Max::get().upgrades() &= ~(1 << 27);
@@ -688,9 +724,20 @@ void UI::DrawPlayer() {
           *Max::get().upgrades() &= ~(1 << 28);
         }
       }
+      if (change_all && !all)
+        everything = false;
     }
-    ImGui::Checkbox("Max out stats##UnlockMaxStats2",
-                    &options["cheat_stats"].value);
+    {
+      bool change_all = ImGui::Checkbox("Infinite consumables##UnlockMaxStats2",
+                                        &options["cheat_stats"].value);
+      if (change_everything) {
+        options["cheat_stats"].value = everything;
+        if (everything)
+          *Max::get().progress() |= 0x1d;
+      }
+      if (change_all && !options["cheat_stats"].value)
+        everything = false;
+    }
     ImGui::PopID();
   }
 
@@ -732,8 +779,9 @@ void UI::DrawPlayer() {
       }
     }
     if (!disc && *Max::get().equipment() & (1 << 5) &&
-        (*Max::get().upgrades() & 0x60000000) == 0)
+        (*Max::get().upgrades() & 0x60000000) == 0) {
       *Max::get().upgrades() |= 0x20000000;
+    }
     ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Items##PlayerItems")) {
@@ -784,12 +832,18 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc")) {
     ImGui::PushID("PlayerSectionMisc");
     DebugPtr(Max::get().upgrades());
-    bool all = (*Max::get().upgrades() & 0x17FFFE07) == 0x17FFFE07;
+    bool all = (*Max::get().upgrades() & 0x57FFFE07) == 0x57FFFE07;
     if (ImGui::Checkbox("Unlock all upgrades##UnlockAllUpgrades", &all)) {
       if (all) {
-        *Max::get().upgrades() |= 0x37FFFE07;
+        *Max::get().upgrades() |= 0x57FFFE07;
       } else {
-        *Max::get().upgrades() = 0;
+        *Max::get().upgrades() &= ~0x17FFFE07;
+      }
+      if (*Max::get().equipment() & (1 << 5) &&
+          ((*Max::get().upgrades() & 0x60000000) == 0 ||
+           (*Max::get().upgrades() & 0x60000000) == 0x60000000)) {
+        *Max::get().upgrades() |= 0x40000000;
+        *Max::get().upgrades() &= ~0x40000000;
       }
     }
     auto goto_item = Flags(misc_names, Max::get().upgrades(), false, 0, true);
@@ -1120,8 +1174,9 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Consumables##PlayerConsumables")) {
     DebugPtr(Max::get().equipment());
     ImGui::PushID("PlayerSectionConsumables");
-    ImGui::Checkbox("Max out stats##UnlockMaxStats",
+    ImGui::Checkbox("Infinite consumables##UnlockMaxStats",
                     &options["cheat_stats"].value);
+    ImGui::Separator();
     ImGui::DragScalar("Health##PlayerHealth", ImGuiDataType_S8,
                       Max::get().player_hp(), 0.1f);
     ImGui::DragScalar("More health##PlayerMoreHealth", ImGuiDataType_S8,

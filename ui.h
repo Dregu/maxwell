@@ -163,8 +163,8 @@ private:
       {"cheat_water",
        {false, "Hide water", "Makes water see-through but still functional."}},
       {"cheat_stats",
-       {false, "Max out consumables", "Keeps your consumables stacked.",
-        "toggle_stats"}},
+       {false, "Infinite consumables",
+        "Keeps your consumables stacked, including health.", "toggle_stats"}},
 
       {"input_block",
        {true, "Block game input on UI input",
