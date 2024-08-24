@@ -262,6 +262,8 @@ struct Max {
   uint16_t *squirrels();
   uint8_t *portals();
   uint8_t *shards();
+  uint16_t *progress();
+  uint8_t *manticore();
   Pause *pause();
   uint32_t *timer();
   void save_game();

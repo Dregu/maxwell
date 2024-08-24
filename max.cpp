@@ -626,6 +626,10 @@ uint8_t *Max::portals() { return (uint8_t *)(slot() + 0x418 + 0x223); }
 
 uint8_t *Max::shards() { return (uint8_t *)(slot() + 0x418 + 0x1F4 + 0xa); }
 
+uint16_t *Max::progress() { return (uint16_t *)(slot() + 0x418 + 0x21c); }
+
+uint8_t *Max::manticore() { return (uint8_t *)(slot() + 0x418 + 0x1F0); }
+
 Pause *Max::pause() {
   return (Pause *)((*(size_t *)get_address("slots") + 0x93608));
 };

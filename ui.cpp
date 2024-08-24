@@ -26,7 +26,7 @@
 
 const char s8_zero = 0, s8_one = 1, s8_fifty = 50, s8_min = -128, s8_max = 127;
 const ImU8 u8_zero = 0, u8_one = 1, u8_fifty = 50, u8_min = 0, u8_max = 255,
-           u8_five = 5;
+           u8_five = 5, u8_two = 2;
 const short s16_zero = 0, s16_one = 1, s16_fifty = 50, s16_min = -32768,
             s16_max = 32767;
 const ImU16 u16_zero = 0, u16_one = 1, u16_fifty = 50, u16_min = 0,
@@ -219,6 +219,10 @@ std::array global_tile_flag_names{
 
 std::array asset_type_names{
     "Text", "Binary", "PNG", "Ogg", "4", "Sprite", "6", "Shader", "Font",
+};
+
+std::array progress_names{
+    "Game Started", "Unknown", "Ready to hatch", "Show HP", "Drop House Key",
 };
 
 const std::map<std::string, PLAYER_INPUT> notes{
@@ -656,6 +660,19 @@ void UI::DrawPlayer() {
       }
     }
     {
+      bool all = *Max::get().manticore() == 2 && *(Max::get().manticore() + 1);
+      if (ImGui::Checkbox("Tame both manticores##TameAllManticores2", &all) ||
+          everything) {
+        if (everything || all) {
+          *Max::get().manticore() = 2;
+          *(Max::get().manticore() + 1) = 2;
+        } else {
+          *Max::get().manticore() = 0;
+          *(Max::get().manticore() + 1) = 0;
+        }
+      }
+    }
+    {
       bool all = (*Max::get().portals() & 0xfe) == 0xfe;
       if (ImGui::Checkbox("Unlock all portals##UnlockAllPortals2", &all) ||
           everything) {
@@ -818,6 +835,12 @@ void UI::DrawPlayer() {
         WarpToTile(tile.value(), item_tiles[goto_item].x,
                    item_tiles[goto_item].y);
     }
+    ImGui::PopID();
+  }
+  if (ImGui::CollapsingHeader("Progress##PlayerProgress")) {
+    ImGui::PushID("PlayerSectionProgress");
+    DebugPtr(Max::get().progress());
+    Flags(progress_names, Max::get().progress());
     ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Eggs##PlayerEggs")) {
@@ -1022,6 +1045,25 @@ void UI::DrawPlayer() {
       if (flameTile.has_value())
         WarpToTile(flameTile.value());
     }
+    ImGui::PopID();
+  }
+  if (ImGui::CollapsingHeader("Manticores##PlayerManticores")) {
+    ImGui::PushID("PlayerSectionManticores");
+    DebugPtr(Max::get().manticore());
+    bool all = *Max::get().manticore() == 2 && *(Max::get().manticore() + 1);
+    if (ImGui::Checkbox("Tame both manticores##TameAllManticores", &all)) {
+      if (all) {
+        *Max::get().manticore() = 2;
+        *(Max::get().manticore() + 1) = 2;
+      } else {
+        *Max::get().manticore() = 0;
+        *(Max::get().manticore() + 1) = 0;
+      }
+    }
+    ImGui::SliderScalar("Blue##BlueManticoreSlider", ImGuiDataType_U8,
+                        Max::get().manticore(), &u8_zero, &u8_two);
+    ImGui::SliderScalar("Red##RedManticoreSlider", ImGuiDataType_U8,
+                        Max::get().manticore() + 1, &u8_zero, &u8_two);
     ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Animal head portals##PlayerPortals")) {
@@ -2644,7 +2686,7 @@ void UI::Cheats() {
     *(Max::get().player_hp() + 1) = 4;
     *Max::get().keys() = 9;
     *(Max::get().keys() + 1) = 9;
-    *(Max::get().keys() + 2) = 255;
+    *(Max::get().keys() + 2) = 6;
   }
 }
 
