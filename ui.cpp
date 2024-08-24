@@ -1852,8 +1852,15 @@ void UI::RefreshMods() {
 }
 
 void UI::DrawTile(Tile &tile) {
+  ImGui::PushItemWidth(36.f * uiScale);
+  ImGui::InputScalar("##TileID", ImGuiDataType_U16, &tile.id, 0, 0);
+  ImGui::PopItemWidth();
+  ImGui::SameLine(40.f * uiScale, 4);
   ImGui::PushItemWidth(80.f * uiScale);
-  ImGui::InputScalar("ID", ImGuiDataType_U16, &tile.id, &u16_one);
+  ImGui::InputScalar("ID##TileIDHex", ImGuiDataType_U16, &tile.id, &u16_one, 0,
+                     "%04X", ImGuiInputTextFlags_CharsHexadecimal);
+  ImGui::PopItemWidth();
+  ImGui::PushItemWidth(120.f * uiScale);
   ImGui::InputScalar("Param", ImGuiDataType_U8, &tile.param, &u8_one);
   ImGui::InputScalar("Flags", ImGuiDataType_U8, &tile.flags, &u8_one);
   ImGui::PopItemWidth();
@@ -1872,14 +1879,14 @@ void UI::DrawTileRow(Tile &tile) {
 }
 
 void UI::DrawSelectedTile(SelectedTile &tile) {
-  ImGui::PushItemWidth(80.f * uiScale);
+  ImGui::PushItemWidth(120.f * uiScale);
+  DrawTile(*tile.tile);
   ImGui::BeginDisabled();
   ImGui::InputInt2("Room", &tile.room.x, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt2("Position", &tile.pos.x, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt("Layer", &tile.layer, 0, 0, ImGuiInputTextFlags_ReadOnly);
   ImGui::InputInt("Map", &tile.map, 0, 0, ImGuiInputTextFlags_ReadOnly);
   ImGui::EndDisabled();
-  DrawTile(*tile.tile);
   ImGui::PopItemWidth();
 }
 
