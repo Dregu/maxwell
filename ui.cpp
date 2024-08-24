@@ -560,6 +560,7 @@ void UI::DrawPlayer() {
       *(Max::get().keys() + 1) = 9;
       *(Max::get().keys() + 2) = 255;
     }
+    ImGui::Separator();
     {
       bool disc = *Max::get().equipment() & (1 << 5);
       bool all = (*Max::get().equipment() & 0x1FFE) == 0x1FFE;
@@ -665,7 +666,7 @@ void UI::DrawPlayer() {
     {
       bool all = (*Max::get().candles() & 0x1FF) == 0x1FF;
       bool change_all =
-          ImGui::Checkbox("Unlock legal candles##UnlockAllCandles2", &all);
+          ImGui::Checkbox("Light legal candles##UnlockAllCandles2", &all);
       if (change_all || change_everything) {
         if ((change_everything && everything) || (change_all && all)) {
           *Max::get().candles() = 0x1FF;
@@ -846,6 +847,7 @@ void UI::DrawPlayer() {
         *Max::get().upgrades() &= ~0x40000000;
       }
     }
+    ImGui::Separator();
     auto goto_item = Flags(misc_names, Max::get().upgrades(), false, 0, true);
     if (goto_item != -1) {
       static const std::array<TargetTile, 32> item_tiles{{
@@ -993,7 +995,6 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Squirrels##PlayerSquirrels")) {
     ImGui::PushID("PlayerSectionSquirrels");
     DebugPtr(Max::get().squirrels());
-    ImGui::TextWrapped("Only the first 13 squirrels exist on a vanilla map.");
     bool all = (*Max::get().squirrels() & 0x1FFF) == 0x1FFF;
     if (ImGui::Checkbox("Spook all squirrels##SpookAllSquirrels", &all)) {
       if (all) {
@@ -1002,6 +1003,7 @@ void UI::DrawPlayer() {
         *Max::get().squirrels() = 0;
       }
     }
+    ImGui::TextWrapped("Only the first 13 squirrels exist on a vanilla map.");
     ImGui::Separator();
     {
       auto goto_squirrel =
@@ -1019,15 +1021,15 @@ void UI::DrawPlayer() {
   if (ImGui::CollapsingHeader("Candles##PlayerCandles")) {
     ImGui::PushID("PlayerSectionCandles");
     DebugPtr(Max::get().candles());
-    ImGui::TextWrapped("Only the first 9 candles exist on a vanilla map.");
     bool all = (*Max::get().candles() & 0x1FF) == 0x1FF;
-    if (ImGui::Checkbox("Unlock legal candles##UnlockAllCandles", &all)) {
+    if (ImGui::Checkbox("Light legal candles##UnlockAllCandles", &all)) {
       if (all) {
         *Max::get().candles() = 0x1FF;
       } else {
         *Max::get().candles() = 0;
       }
     }
+    ImGui::TextWrapped("Only the first 9 candles exist on a vanilla map.");
     ImGui::Separator();
     {
       auto goto_candle =
@@ -1080,7 +1082,7 @@ void UI::DrawPlayer() {
       if (flameTile.has_value())
         WarpToTile(flameTile.value());
     }
-    ImGui::SliderScalar("Violet / Chameleon##VioletFlameSlider",
+    ImGui::SliderScalar("Violet / Chameleon    ##VioletFlameSlider",
                         ImGuiDataType_U8, Max::get().flames() + 2, &u8_zero,
                         &u8_five);
     ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
@@ -1114,6 +1116,7 @@ void UI::DrawPlayer() {
         *(Max::get().manticore() + 1) = 0;
       }
     }
+    ImGui::Separator();
     ImGui::SliderScalar("Blue##BlueManticoreSlider", ImGuiDataType_U8,
                         Max::get().manticore(), &u8_zero, &u8_two);
     ImGui::SliderScalar("Red##RedManticoreSlider", ImGuiDataType_U8,
