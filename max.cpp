@@ -543,6 +543,10 @@ State Max::state() {
 
 Minimap Max::minimap() { return *(size_t *)get_address("slots") + 0x2490b8; }
 
+SaveData *Max::save() {
+  return (SaveData *)(*(size_t *)get_address("slots") + 0x400);
+}
+
 uint8_t *Max::slot_number() {
   return (uint8_t *)(*(size_t *)get_address("slots") + 0x40c);
 }

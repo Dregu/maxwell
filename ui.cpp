@@ -225,6 +225,19 @@ std::array progress_names{
     "Game Started", "Unknown", "Ready to hatch", "Show HP", "Drop House Key",
 };
 
+std::array unlockable_names{
+    "Stopwatch",          "Pedometer",
+    "Pink phone",         "Souvenir Cup",
+    "Origami Fig.",       "Rabbits Fig.",
+    "Owl Fig.",           "Cat Fig.",
+    "Fish Fig.",          "Donkey Fig.",
+    "Decorative Rabbit",  "Mama Cha",
+    "Giraffe Fig.",       "Incense Burner",
+    "Peacock Fig.",       "Otter Fig.",
+    "Duck Fig.",          "",
+    "Pedometer wingding", "",
+};
+
 const std::map<std::string, PLAYER_INPUT> notes{
     {"A4", (PLAYER_INPUT)(PLAYER_INPUT::RIGHT | PLAYER_INPUT::LB)},
     {"A#4",
@@ -1339,7 +1352,54 @@ void UI::DrawPlayer() {
       }
     }
   } else if (*Max::get().equipment() == 0) {
-    *Max::get().item() == 0;
+    *Max::get().item() = 0;
+  }
+  if (ImGui::CollapsingHeader("Unlockables")) {
+    ImGui::PushID("GlobalUnlockables");
+    auto *save = Max::get().save();
+    DebugPtr(&save->unlockables);
+    bool all = (save->unlockables & 0x5ffff) == 0x5ffff;
+    if (ImGui::Checkbox("Unlock all unlockables##UnlockAllUnlockables", &all)) {
+      if (all) {
+        save->unlockables = 0x5ffff;
+      } else {
+        save->unlockables = 0;
+      }
+    }
+    ImGui::Separator();
+    auto goto_item =
+        Flags(unlockable_names, &save->unlockables, false, 0, true);
+    if (goto_item != -1) {
+      static const std::array<TargetTile, 32> item_tiles{{
+          {583, 12, 5, 2},     // stopwatch
+          {799, 0, 2, 0},      // pedometer
+          {795},               // pink phone
+          {231},               // souvenir cup
+          {619, 0, 2, 3},      // origami
+          {818, 0, 0, 0, 1},   // rabbits
+          {237, 0, 12, 16, 0}, // owl
+          {237, 0, 19, 14, 0}, // cat
+          {237, 0, 12, 16, 2}, // fish
+          {237, 0, 19, 14, 2}, // donkey
+          {237, 0, 5, 14, 2},  // decorabbit
+          {811, 0, 0, 1},      // mama cha
+          {169},               // giraffe (flute)
+          {237, 0, 5, 14, 0},  // incense burner
+          {799, 0, 2, 0},      // peacock (pedometer)
+          {799, 0, 2, 0},      // otter (pedometer)
+          {169},               // duck (flute)
+          {u16_max},           // unused
+          {799, 0, 2, 0},      // pedometer wingding
+          {u16_max},           // unused
+      }};
+      auto tileId = item_tiles[goto_item].tile;
+      auto tile = GetNthTile(tileId, item_tiles[goto_item].n,
+                             item_tiles[goto_item].map);
+      if (tile.has_value())
+        WarpToTile(tile.value(), item_tiles[goto_item].x,
+                   item_tiles[goto_item].y);
+    }
+    ImGui::PopID();
   }
   ImGui::PopItemWidth();
 }

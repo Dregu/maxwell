@@ -238,6 +238,19 @@ struct Kangaroo {
   uint8_t state;
 };
 
+struct SaveData {
+  uint32_t version;
+  uint32_t achievements;
+  uint32_t seed;
+  uint8_t slot;
+  uint8_t hash;
+  bool edited;
+  uint8_t unknown;
+  uint32_t unlockables;
+  // Slot slot[3];
+  // Options options;
+};
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
@@ -246,6 +259,7 @@ struct Max {
   Minimap minimap();
   uint8_t *slot_number();
   Slot slot();
+  SaveData *save();
   Player player();
   S32Vec2 *player_room();
   FVec2 *player_position();
