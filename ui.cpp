@@ -1342,6 +1342,21 @@ void UI::DrawPlayer() {
             fmt::format("Warp ({})", ImGui::GetKeyChordName(keys["warp"]))
                 .c_str()))
       doWarp = true;
+    ImGui::SeparatorText("Room warps");
+    ImGui::PushID("RoomWarps");
+    for (int m = 0; m < 5; ++m) {
+      ImGui::PushID(m);
+      for (int i = 0; i < 32; ++i) {
+        auto tile = GetNthTile(653, i, m);
+        if (!tile.has_value())
+          break;
+        ImGui::PushID(i);
+        DrawSelectedTileRow(tile.value(), false);
+        ImGui::PopID();
+      }
+      ImGui::PopID();
+    }
+    ImGui::PopID();
     ImGui::PopID();
   }
   if (*Max::get().equipment() != 0 && *Max::get().item() == 0) {
@@ -2153,9 +2168,11 @@ void UI::DrawSelectedTile(SelectedTile &tile) {
   ImGui::PopItemWidth();
 }
 
-void UI::DrawSelectedTileRow(SelectedTile &tile) {
-  DrawTileRow(*tile.tile);
-  ImGui::SameLine(0, 4);
+void UI::DrawSelectedTileRow(SelectedTile &tile, bool editable) {
+  if (editable) {
+    DrawTileRow(*tile.tile);
+    ImGui::SameLine(0, 4);
+  }
   ImGui::Text("M:%d R:%02d,%02d T:%02d,%02d L:%s", tile.map, tile.room.x,
               tile.room.y, tile.pos.x, tile.pos.y, (tile.layer ? "BG" : "FG"));
   ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);

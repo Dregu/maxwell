@@ -292,7 +292,7 @@ public:
   void DrawTile(Tile &tile);
   void DrawTileRow(Tile &tile);
   void DrawSelectedTile(SelectedTile &tile);
-  void DrawSelectedTileRow(SelectedTile &tile);
+  void DrawSelectedTileRow(SelectedTile &tile, bool editable = true);
   void DrawCustomKey(std::string name, GAME_INPUT i);
   void DrawUIKeys();
   void KeyCapture();
