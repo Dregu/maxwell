@@ -570,8 +570,11 @@ void UI::DrawPlayer() {
         if ((change_everything && everything) || (change_all && all)) {
           *Max::get().equipment() = 0x1FFE;
           *(Max::get().keys() + 2) = 6;
+          if (*Max::get().item() == 0)
+            *Max::get().item() = 1;
         } else {
           *Max::get().equipment() = 0;
+          *Max::get().item() = 0;
         }
       }
       if (!disc && *Max::get().equipment() & (1 << 5) &&
@@ -754,33 +757,32 @@ void UI::DrawPlayer() {
         *(Max::get().keys() + 2) = 6;
       } else {
         *Max::get().equipment() = 0;
+        *Max::get().item() = 0;
       }
     }
     ImGui::Separator();
-    {
-      auto goto_item =
-          Flags(equipment_names, Max::get().equipment(), false, 0, true);
-      if (goto_item != -1) {
-        static const std::array<TargetTile, 16> item_tiles{{{u16_max},
-                                                            {383},
-                                                            {169},
-                                                            {109},
-                                                            {634},
-                                                            {381, 0, 3, 6},
-                                                            {162},
-                                                            {334},
-                                                            {417},
-                                                            {466},
-                                                            {637},
-                                                            {643},
-                                                            {323}}};
-        auto tileId = item_tiles[goto_item].tile;
-        auto tile = GetNthTile(tileId, item_tiles[goto_item].n,
-                               item_tiles[goto_item].map);
-        if (tile.has_value())
-          WarpToTile(tile.value(), item_tiles[goto_item].x,
-                     item_tiles[goto_item].y);
-      }
+    auto goto_item =
+        Flags(equipment_names, Max::get().equipment(), false, 0, true);
+    if (goto_item != -1) {
+      static const std::array<TargetTile, 16> item_tiles{{{u16_max},
+                                                          {383},
+                                                          {169},
+                                                          {109},
+                                                          {634},
+                                                          {381, 0, 3, 6},
+                                                          {162},
+                                                          {334},
+                                                          {417},
+                                                          {466},
+                                                          {637},
+                                                          {643},
+                                                          {323}}};
+      auto tileId = item_tiles[goto_item].tile;
+      auto tile = GetNthTile(tileId, item_tiles[goto_item].n,
+                             item_tiles[goto_item].map);
+      if (tile.has_value())
+        WarpToTile(tile.value(), item_tiles[goto_item].x,
+                   item_tiles[goto_item].y);
     }
     if (!disc && *Max::get().equipment() & (1 << 5) &&
         (*Max::get().upgrades() & 0x60000000) == 0) {
@@ -831,6 +833,35 @@ void UI::DrawPlayer() {
     ImGui::SameLine(0, 4);
     if (ImGui::Checkbox("Kangaroo shards##Shard3", &shards[2]))
       *(Max::get().shards() + 24) = shards[2] * 2;
+    {
+      S32Vec2 warp_room{0, 0};
+      S32Vec2 warp_pos{160, 100};
+      ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+      if (ImGui::Button("Go##GoNextEncounter",
+                        ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
+        for (int i = 0; i < 3; ++i) {
+          auto &enc = Max::get().kangaroo()->encounter[i];
+          if (enc.state == 1) {
+            warp_room = {enc.room_x, enc.room_y};
+            warp_pos = {(int)enc.sack_x, (int)enc.sack_y};
+            break;
+          }
+        }
+        if (warp_room.x == 0) {
+          auto tile = GetNthTile(830, Max::get().kangaroo()->next_encounter);
+          if (tile.has_value()) {
+            warp_room = tile.value().room;
+            warp_pos = {8, 104};
+          }
+        }
+        if (warp_room.x != 0) {
+          *Max::get().warp_map() = 0;
+          *Max::get().warp_room() = warp_room;
+          *Max::get().warp_position() = warp_pos;
+          doWarp = true;
+        }
+      }
+    }
     ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Miscellaneous##PlayerMisc")) {
@@ -1012,42 +1043,33 @@ void UI::DrawPlayer() {
         Max::get().kangaroo()->encounter[2].state = 0;
       }
     }
-    std::string text = "Go to next shard";
-    if (all)
-      text = "Go to circular recess";
-    S32Vec2 warp_room{0, 0};
-    S32Vec2 warp_pos{160, 100};
-    if (ImGui::Button(text.c_str())) {
-      for (int i = 0; i < 3; ++i) {
-        auto &enc = Max::get().kangaroo()->encounter[i];
-        if (enc.state == 1) {
-          warp_room = {enc.room_x, enc.room_y};
-          warp_pos = {(int)enc.sack_x, (int)enc.sack_y};
-          break;
+    {
+      S32Vec2 warp_room{0, 0};
+      S32Vec2 warp_pos{160, 100};
+      ImGui::SameLine(ImGui::GetContentRegionMax().x - 24.f * uiScale, 0);
+      if (ImGui::Button("Go##GoNextEncounter",
+                        ImVec2(24.f * uiScale, ImGui::GetFrameHeight()))) {
+        for (int i = 0; i < 3; ++i) {
+          auto &enc = Max::get().kangaroo()->encounter[i];
+          if (enc.state == 1) {
+            warp_room = {enc.room_x, enc.room_y};
+            warp_pos = {(int)enc.sack_x, (int)enc.sack_y};
+            break;
+          }
         }
-      }
-      if (warp_room.x == 0) {
-        auto tile = GetNthTile(830, Max::get().kangaroo()->next_encounter);
-        if (tile.has_value()) {
-          warp_room = tile.value().room;
-          if (tile.value().pos.x >= 0)
+        if (warp_room.x == 0) {
+          auto tile = GetNthTile(830, Max::get().kangaroo()->next_encounter);
+          if (tile.has_value()) {
+            warp_room = tile.value().room;
             warp_pos = {8, 104};
-          else
-            warp_pos = {320 - 8, 104};
+          }
         }
-      }
-      if (warp_room.x == 0) {
-        auto tile = GetNthTile(242);
-        if (tile.has_value()) {
-          warp_room = tile.value().room;
-          warp_pos = tile.value().pos;
+        if (warp_room.x != 0) {
+          *Max::get().warp_map() = 0;
+          *Max::get().warp_room() = warp_room;
+          *Max::get().warp_position() = warp_pos;
+          doWarp = true;
         }
-      }
-      if (warp_room.x != 0) {
-        *Max::get().warp_map() = 0;
-        *Max::get().warp_room() = warp_room;
-        *Max::get().warp_position() = warp_pos;
-        doWarp = true;
       }
     }
     ImGui::Separator();
@@ -1308,6 +1330,16 @@ void UI::DrawPlayer() {
                 .c_str()))
       doWarp = true;
     ImGui::PopID();
+  }
+  if (*Max::get().equipment() != 0 && *Max::get().item() == 0) {
+    for (int i = 0; i < 16; ++i) {
+      if ((*Max::get().equipment() & (1 << i)) > 0) {
+        *Max::get().item() = i;
+        break;
+      }
+    }
+  } else if (*Max::get().equipment() == 0) {
+    *Max::get().item() == 0;
   }
   ImGui::PopItemWidth();
 }
