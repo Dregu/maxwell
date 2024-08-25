@@ -26,7 +26,7 @@
 
 const char s8_zero = 0, s8_one = 1, s8_fifty = 50, s8_min = -128, s8_max = 127;
 const ImU8 u8_zero = 0, u8_one = 1, u8_fifty = 50, u8_min = 0, u8_max = 255,
-           u8_five = 5, u8_two = 2;
+           u8_five = 5, u8_two = 2, u8_three = 3;
 const short s16_zero = 0, s16_one = 1, s16_fifty = 50, s16_min = -32768,
             s16_max = 32767;
 const ImU16 u16_zero = 0, u16_one = 1, u16_fifty = 50, u16_min = 0,
@@ -558,7 +558,7 @@ void UI::DrawPlayer() {
       *(Max::get().player_hp() + 1) = 4;
       *Max::get().keys() = 9;
       *(Max::get().keys() + 1) = 9;
-      *(Max::get().keys() + 2) = 255;
+      *(Max::get().keys() + 2) = 6;
     }
     ImGui::Separator();
     {
@@ -567,15 +567,16 @@ void UI::DrawPlayer() {
       bool change_all =
           ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment2", &all);
       if (change_all || change_everything) {
-        if ((change_everything && everything) || (change_all && all))
+        if ((change_everything && everything) || (change_all && all)) {
           *Max::get().equipment() = 0x1FFE;
-        else
+          *(Max::get().keys() + 2) = 6;
+        } else {
           *Max::get().equipment() = 0;
+        }
       }
       if (!disc && *Max::get().equipment() & (1 << 5) &&
           (*Max::get().upgrades() & 0x60000000) == 0) {
-        *Max::get().upgrades() |= 0x40000000;
-        *Max::get().upgrades() &= ~0x40000000;
+        *Max::get().upgrades() |= 0x20000000;
       }
       if (change_all && !all)
         everything = false;
@@ -748,10 +749,12 @@ void UI::DrawPlayer() {
     bool disc = *Max::get().equipment() & (1 << 5);
     bool all = (*Max::get().equipment() & 0x1FFE) == 0x1FFE;
     if (ImGui::Checkbox("Unlock all equipment##UnlockAllEquipment", &all)) {
-      if (all)
+      if (all) {
         *Max::get().equipment() = 0x1FFE;
-      else
+        *(Max::get().keys() + 2) = 6;
+      } else {
         *Max::get().equipment() = 0;
+      }
     }
     ImGui::Separator();
     {
@@ -990,6 +993,74 @@ void UI::DrawPlayer() {
         WarpToTile(tile.value(), item_tiles[goto_item].x,
                    item_tiles[goto_item].y);
     }
+    ImGui::PopID();
+  }
+  if (ImGui::CollapsingHeader("Kangaroo##PlayerKangaroo")) {
+    ImGui::PushID("PlayerSectionKangaroo");
+    DebugPtr(Max::get().kangaroo());
+    bool all = Max::get().kangaroo()->encounter[0].state >= 2 &&
+               Max::get().kangaroo()->encounter[1].state >= 2 &&
+               Max::get().kangaroo()->encounter[2].state >= 2;
+    if (ImGui::Checkbox("Collect all shards##CollectAllShards", &all)) {
+      if (all) {
+        Max::get().kangaroo()->encounter[0].state = 2;
+        Max::get().kangaroo()->encounter[1].state = 2;
+        Max::get().kangaroo()->encounter[2].state = 2;
+      } else {
+        Max::get().kangaroo()->encounter[0].state = 0;
+        Max::get().kangaroo()->encounter[1].state = 0;
+        Max::get().kangaroo()->encounter[2].state = 0;
+      }
+    }
+    std::string text = "Go to next shard";
+    if (all)
+      text = "Go to circular recess";
+    S32Vec2 warp_room{0, 0};
+    S32Vec2 warp_pos{160, 100};
+    if (ImGui::Button(text.c_str())) {
+      for (int i = 0; i < 3; ++i) {
+        auto &enc = Max::get().kangaroo()->encounter[i];
+        if (enc.state == 1) {
+          warp_room = {enc.room_x, enc.room_y};
+          warp_pos = {(int)enc.sack_x, (int)enc.sack_y};
+          break;
+        }
+      }
+      if (warp_room.x == 0) {
+        auto tile = GetNthTile(830, Max::get().kangaroo()->next_encounter);
+        if (tile.has_value()) {
+          warp_room = tile.value().room;
+          if (tile.value().pos.x >= 0)
+            warp_pos = {8, 104};
+          else
+            warp_pos = {320 - 8, 104};
+        }
+      }
+      if (warp_room.x == 0) {
+        auto tile = GetNthTile(242);
+        if (tile.has_value()) {
+          warp_room = tile.value().room;
+          warp_pos = tile.value().pos;
+        }
+      }
+      if (warp_room.x != 0) {
+        *Max::get().warp_map() = 0;
+        *Max::get().warp_room() = warp_room;
+        *Max::get().warp_position() = warp_pos;
+        doWarp = true;
+      }
+    }
+    ImGui::Separator();
+    ImGui::SliderScalar("First##FirstKShard", ImGuiDataType_U8,
+                        &Max::get().kangaroo()->encounter[0].state, &u8_zero,
+                        &u8_three);
+    ImGui::SliderScalar("Second##FirstKShard", ImGuiDataType_U8,
+                        &Max::get().kangaroo()->encounter[1].state, &u8_zero,
+                        &u8_three);
+    ImGui::SliderScalar("Third##FirstKShard", ImGuiDataType_U8,
+                        &Max::get().kangaroo()->encounter[2].state, &u8_zero,
+                        &u8_three);
+
     ImGui::PopID();
   }
   if (ImGui::CollapsingHeader("Squirrels##PlayerSquirrels")) {

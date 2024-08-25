@@ -223,6 +223,21 @@ struct LightingData {
   float bg_tex_light_multi; // amount lights affect background texture
 };
 
+struct KangarooEncounter {
+  float sack_x;
+  float sack_y;
+  uint8_t room_x;
+  uint8_t room_y;
+  uint8_t state;
+  uint8_t id;
+};
+
+struct Kangaroo {
+  std::array<KangarooEncounter, 3> encounter;
+  uint8_t next_encounter;
+  uint8_t state;
+};
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
@@ -260,6 +275,7 @@ struct Max {
   uint16_t *candles();
   uint32_t *bunnies();
   uint16_t *squirrels();
+  Kangaroo *kangaroo();
   uint8_t *portals();
   uint8_t *shards();
   uint16_t *progress();
