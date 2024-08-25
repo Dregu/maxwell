@@ -558,6 +558,7 @@ void UI::DrawPlayer() {
   Tooltip("This sets your current room as spawn and runs the save function "
           "anywhere.\nIn rooms without a phone you will spawn near the "
           "top left corner.");
+  ImGui::SeparatorText("Inventory");
   if (ImGui::CollapsingHeader("Unlock everything##PlayerEverything")) {
     ImGui::PushID("PlayerSectionEverything");
     static bool everything{false};
@@ -1298,77 +1299,6 @@ void UI::DrawPlayer() {
                       Max::get().keys() + 2, 0.1f);
     ImGui::PopID();
   }
-  if (ImGui::CollapsingHeader("Position##PlayerPositionAndRoom")) {
-    ImGui::PushID("PlayerSectionPosition");
-    DebugPtr(Max::get().player_position());
-    ImGui::InputInt2("Room##PlayerRoom", &Max::get().player_room()->x);
-    ImGui::InputFloat2("Position##PlayerPosition",
-                       &Max::get().player_position()->x);
-    ImGui::InputFloat2("Velocity##PlayerVelocity",
-                       &Max::get().player_velocity()->x);
-    ImGui::InputInt2("Spawn room##PlayerSpawnRoom",
-                     &Max::get().spawn_room()->x);
-    ImGui::InputInt2("Respawn room##PlayerRespawnRoom",
-                     &Max::get().respawn_room()->x);
-    ImGui::InputInt2("Respawn tile##PlayerRespawnTile",
-                     &Max::get().respawn_position()->x);
-    ImGui::InputInt("Map##PlayerMap", Max::get().player_map());
-    ImGui::InputFloat2("Wheel##PlayerWheelPosition",
-                       &Max::get().player_wheel()->x);
-    ImGui::PopID();
-  }
-  if (ImGui::CollapsingHeader("State##PlayerAndGameState")) {
-    ImGui::PushID("PlayerSectionState");
-    ImGui::InputScalar("State##PlayerState", ImGuiDataType_U8,
-                       Max::get().player_state());
-    ImGui::InputScalar("Flute##PlayerFluteDir", ImGuiDataType_U8,
-                       Max::get().player_flute());
-    ImGui::InputScalar("Item##PlayerCurrentItem", ImGuiDataType_U8,
-                       Max::get().item());
-    ImGui::InputScalar("In-game time##StateIngameTime", ImGuiDataType_U32,
-                       Max::get().timer());
-    ImGui::InputScalar("Total time##StateTotalTime", ImGuiDataType_U32,
-                       Max::get().timer() + 1);
-    ImGui::Checkbox("Paused##StatePaused", &Max::get().pause()->paused);
-    ImGui::PopID();
-  }
-  if (ImGui::CollapsingHeader("Warp##PlayerWarp")) {
-    ImGui::PushID("PlayerSectionWarp");
-    ImGui::InputInt2("Warp room##PlayerWarpRoom", &Max::get().warp_room()->x);
-    ImGui::InputInt2("Warp position##PlayerWarpPosition",
-                     &Max::get().warp_position()->x);
-    ImGui::InputInt("Warp map##PlayerWarpMap", Max::get().warp_map());
-    if (ImGui::Button(
-            fmt::format("Warp ({})", ImGui::GetKeyChordName(keys["warp"]))
-                .c_str()))
-      doWarp = true;
-    ImGui::SeparatorText("Room warps");
-    ImGui::PushID("RoomWarps");
-    for (int m = 0; m < 5; ++m) {
-      ImGui::PushID(m);
-      for (int i = 0; i < 32; ++i) {
-        auto tile = GetNthTile(653, i, m);
-        if (!tile.has_value())
-          break;
-        ImGui::PushID(i);
-        DrawSelectedTileRow(tile.value(), false);
-        ImGui::PopID();
-      }
-      ImGui::PopID();
-    }
-    ImGui::PopID();
-    ImGui::PopID();
-  }
-  if (*Max::get().equipment() != 0 && *Max::get().item() == 0) {
-    for (int i = 0; i < 16; ++i) {
-      if ((*Max::get().equipment() & (1 << i)) > 0) {
-        *Max::get().item() = i;
-        break;
-      }
-    }
-  } else if (*Max::get().equipment() == 0) {
-    *Max::get().item() = 0;
-  }
   if (ImGui::CollapsingHeader("Unlockables")) {
     ImGui::PushID("GlobalUnlockables");
     auto *save = Max::get().save();
@@ -1415,6 +1345,80 @@ void UI::DrawPlayer() {
                    item_tiles[goto_item].y);
     }
     ImGui::PopID();
+  }
+  ImGui::SeparatorText("State");
+  if (ImGui::CollapsingHeader("Position##PlayerPositionAndRoom")) {
+    ImGui::PushID("PlayerSectionPosition");
+    DebugPtr(Max::get().player_position());
+    ImGui::InputInt2("Room##PlayerRoom", &Max::get().player_room()->x);
+    ImGui::InputFloat2("Position##PlayerPosition",
+                       &Max::get().player_position()->x);
+    ImGui::InputFloat2("Velocity##PlayerVelocity",
+                       &Max::get().player_velocity()->x);
+    ImGui::InputInt2("Spawn room##PlayerSpawnRoom",
+                     &Max::get().spawn_room()->x);
+    ImGui::InputInt2("Respawn room##PlayerRespawnRoom",
+                     &Max::get().respawn_room()->x);
+    ImGui::InputInt2("Respawn tile##PlayerRespawnTile",
+                     &Max::get().respawn_position()->x);
+    ImGui::InputInt("Map##PlayerMap", Max::get().player_map());
+    ImGui::InputFloat2("Wheel##PlayerWheelPosition",
+                       &Max::get().player_wheel()->x);
+    ImGui::PopID();
+  }
+  if (ImGui::CollapsingHeader("State##PlayerAndGameState")) {
+    ImGui::PushID("PlayerSectionState");
+    ImGui::InputScalar("State##PlayerState", ImGuiDataType_U8,
+                       Max::get().player_state());
+    ImGui::InputScalar("Flute##PlayerFluteDir", ImGuiDataType_U8,
+                       Max::get().player_flute());
+    ImGui::InputScalar("Item##PlayerCurrentItem", ImGuiDataType_U8,
+                       Max::get().item());
+    ImGui::InputScalar("In-game time##StateIngameTime", ImGuiDataType_U32,
+                       Max::get().timer());
+    ImGui::InputScalar("Total time##StateTotalTime", ImGuiDataType_U32,
+                       Max::get().timer() + 1);
+    ImGui::InputScalar("Steps##StateSteps", ImGuiDataType_U32,
+                       Max::get().steps());
+    ImGui::Checkbox("Paused##StatePaused", &Max::get().pause()->paused);
+    ImGui::PopID();
+  }
+  if (ImGui::CollapsingHeader("Warp##PlayerWarp")) {
+    ImGui::PushID("PlayerSectionWarp");
+    ImGui::InputInt2("Warp room##PlayerWarpRoom", &Max::get().warp_room()->x);
+    ImGui::InputInt2("Warp position##PlayerWarpPosition",
+                     &Max::get().warp_position()->x);
+    ImGui::InputInt("Warp map##PlayerWarpMap", Max::get().warp_map());
+    if (ImGui::Button(
+            fmt::format("Warp ({})", ImGui::GetKeyChordName(keys["warp"]))
+                .c_str()))
+      doWarp = true;
+    ImGui::SeparatorText("Room warps");
+    ImGui::PushID("RoomWarps");
+    for (int m = 0; m < 5; ++m) {
+      ImGui::PushID(m);
+      for (int i = 0; i < 32; ++i) {
+        auto tile = GetNthTile(653, i, m);
+        if (!tile.has_value())
+          break;
+        ImGui::PushID(i);
+        DrawSelectedTileRow(tile.value(), false);
+        ImGui::PopID();
+      }
+      ImGui::PopID();
+    }
+    ImGui::PopID();
+    ImGui::PopID();
+  }
+  if (*Max::get().equipment() != 0 && *Max::get().item() == 0) {
+    for (int i = 0; i < 16; ++i) {
+      if ((*Max::get().equipment() & (1 << i)) > 0) {
+        *Max::get().item() = i;
+        break;
+      }
+    }
+  } else if (*Max::get().equipment() == 0) {
+    *Max::get().item() = 0;
   }
   ImGui::PopItemWidth();
 }

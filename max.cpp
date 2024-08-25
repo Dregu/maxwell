@@ -642,6 +642,8 @@ Pause *Max::pause() {
 
 uint32_t *Max::timer() { return (uint32_t *)(slot() + 0x400 + 0x1d4); }
 
+uint32_t *Max::steps() { return (uint32_t *)(slot() + 0x418 + 0x108); }
+
 uint8_t *Max::mural_selection() { return (uint8_t *)(slot() + 0x400 + 0x402); }
 
 std::bitset<0xce40 * 8> *Max::map_bits(int n) {

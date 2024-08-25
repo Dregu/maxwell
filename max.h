@@ -296,6 +296,7 @@ struct Max {
   uint8_t *manticore();
   Pause *pause();
   uint32_t *timer();
+  uint32_t *steps();
   void save_game();
   uint8_t *mural_selection();
   std::array<uint8_t, 200> *mural();
