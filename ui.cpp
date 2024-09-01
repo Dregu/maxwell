@@ -1596,13 +1596,13 @@ void UI::DrawMinimap() {
           4.f * uiScale * mapScale, 0xee00ffee, 0, 1.5f * uiScale * mapScale);
     }
 
-    {
+    if (options["map_kangaroo"].value) {
       auto tile = GetNthTile(830, Max::get().kangaroo()->next_encounter);
       if (tile.has_value()) {
         auto px = tile.value().room.x * roomsize.x +
                   tile.value().pos.x / 40.f * roomsize.x - 4.0f;
         auto py = tile.value().room.y * roomsize.y +
-                  tile.value().pos.y / 22.f * roomsize.y - 4.0f;
+                  tile.value().pos.y / 22.f * roomsize.y - 8.0f;
         ImGui::GetWindowDrawList()->AddText(
             ImVec2(a.x + d.x + px - c.x - bordersize.x,
                    a.y + d.y + py - c.y - bordersize.y),
