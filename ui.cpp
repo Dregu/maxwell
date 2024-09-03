@@ -862,7 +862,7 @@ void UI::DrawPlayer() {
           }
         }
         if (warp_room.x == 0) {
-          auto tile = GetNthTile(830, Max::get().kangaroo()->next_encounter);
+          auto tile = GetNthTile(86, Max::get().kangaroo()->next_encounter);
           if (tile.has_value()) {
             warp_room = tile.value().room;
             warp_pos = {8, 104};
@@ -1058,7 +1058,7 @@ void UI::DrawPlayer() {
       }
     }
     {
-      auto tile = GetNthTile(830, Max::get().kangaroo()->next_encounter);
+      auto tile = GetNthTile(86, Max::get().kangaroo()->next_encounter);
       if (tile.has_value()) {
         ImGui::LabelText("Next room##NextKangarooEncounter", "%d,%d",
                          tile.value().room.x, tile.value().room.y);
@@ -1597,12 +1597,12 @@ void UI::DrawMinimap() {
     }
 
     if (options["map_kangaroo"].value) {
-      auto tile = GetNthTile(830, Max::get().kangaroo()->next_encounter);
+      auto tile = GetNthTile(86, Max::get().kangaroo()->next_encounter);
       if (tile.has_value()) {
         auto px = tile.value().room.x * roomsize.x +
                   tile.value().pos.x / 40.f * roomsize.x - 4.0f;
         auto py = tile.value().room.y * roomsize.y +
-                  tile.value().pos.y / 22.f * roomsize.y - 8.0f;
+                  tile.value().pos.y / 22.f * roomsize.y - 4.0f;
         ImGui::GetWindowDrawList()->AddText(
             ImVec2(a.x + d.x + px - c.x - bordersize.x,
                    a.y + d.y + py - c.y - bordersize.y),
