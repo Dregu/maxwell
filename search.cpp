@@ -492,8 +492,8 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         "keyboard"sv,
         PatternCommandBuffer{}
             .set_optional(true)
-            .find_after_inst(
-                "0f 11 .. .. .. .. .. 0f 11 .. .. .. .. .. .. 89 .."_gh)
+            .find_inst("48 89 f1 ff 15 .. .. .. .. 0f 10"_gh)
+            .offset(3)
             .at_exe(),
     },
     {
@@ -677,19 +677,35 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     },
     {
         "draw_push_color"sv,
-        PatternCommandBuffer{}.from_exe_base(0x177d0), // TODO
+        PatternCommandBuffer{} //.from_exe_base(0x177d0),
+            .set_optional(true)
+            .find_inst("4c 63 80 8c dc 89 00 49 8d 50 01"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
         "draw_pop_color"sv,
-        PatternCommandBuffer{}.from_exe_base(0x17830), // TODO
+        PatternCommandBuffer{} //.from_exe_base(0x17830),
+            .set_optional(true)
+            .find_inst("83 80 8c dc 89 00 ff c3"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
         "draw_push_shader"sv,
-        PatternCommandBuffer{}.from_exe_base(0x17840), // TODO
+        PatternCommandBuffer{} //.from_exe_base(0x17840),
+            .set_optional(true)
+            .find_inst("42 89 8c 80 4c dc 89 00 c3"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
         "draw_pop_shader"sv,
-        PatternCommandBuffer{}.from_exe_base(0x178a0), // TODO
+        PatternCommandBuffer{} //.from_exe_base(0x178a0),
+            .set_optional(true)
+            .find_inst("83 80 68 dc 89 00 ff c3"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
         "render_player"sv,
@@ -701,7 +717,10 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
     },
     {
         "render_clouds"sv,
-        PatternCommandBuffer{}.from_exe_base(0x103264),
+        PatternCommandBuffer{} //.from_exe_base(0x103264),
+            .set_optional(true)
+            .find_inst("74 24 49 8b 8d d8 06 00 00"_gh)
+            .at_exe(),
     },
     {
         "get_room_params"sv,
@@ -754,32 +773,65 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe(),
     },
     {
-        "key_down"sv, PatternCommandBuffer{}.from_exe_base(0x11c50), // TODO
+        "key_down"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x11c50),
+            .set_optional(true)
+            .find_inst("8a 84 08 00 01 00 00 c0 e8 07 c3"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
-        "key_pressed"sv, PatternCommandBuffer{}.from_exe_base(0x11c70), // TODO
+        "key_pressed"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x11c70),
+            .set_optional(true)
+            .find_inst("80 bc 08 00 01 00 00 00"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
-        "draw_button"sv, PatternCommandBuffer{}.from_exe_base(0x6e950), // TODO
+        "draw_button"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x6e950),
+            .set_optional(true)
+            .find_inst("48 83 ec 58 44 89 c5 41 89 d5"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
         "draw_action_button"sv,
-        PatternCommandBuffer{}.from_exe_base(0x6df70), // TODO
+        PatternCommandBuffer{} //.from_exe_base(0x6df70),
+            .set_optional(true)
+            .find_inst("48 83 ec 58 44 89 c5 89 d6"_gh)
+            .at_exe()
+            .function_start(),
     },
     {
-        "skip_credits"sv, PatternCommandBuffer{}.from_exe_base(0x476d9), // TODO
+        "skip_credits"sv,
+        PatternCommandBuffer{} //.from_exe_base(0x476d9),
+            .set_optional(true)
+            .find_inst("73 4c c7 85 c0 34 03 00 00 00 00 00"_gh)
+            .at_exe(),
     },
     {
         "room_tile_flags"sv,
-        PatternCommandBuffer{}.from_exe_base(0x1A190), // TODO
+        PatternCommandBuffer{} //.from_exe_base(0x1A190),
+            .set_optional(true)
+            .find_inst("44 89 c0 83 fa 15 41 b8 15 00 00 00"_gh)
+            .at_exe(),
     },
     {
         "render_water"sv,
-        PatternCommandBuffer{}.from_exe_base(0x103f4a), // TODO
+        PatternCommandBuffer{} //.from_exe_base(0x103f4a),
+            .set_optional(true)
+            .find_inst("76 35 48 89 f1"_gh)
+            .at_exe(),
     },
     {
         "load_map_from_data"sv,
-        PatternCommandBuffer{}.from_exe_base(0x2ec0), // TODO
+        PatternCommandBuffer{} //.from_exe_base(0x2ec0),
+            .set_optional(true)
+            .find_inst("48 83 ec 20 49 89 d7 48 85 c9"_gh)
+            .at_exe()
+            .function_start(),
     },
     /*{
         "load_asset"sv, PatternCommandBuffer{}.from_exe_base(0x74450), // TODO

@@ -2,7 +2,7 @@
 
 MAXWELL is an ingame ImGui overlay for the game ANIMAL WELL, featuring an inventory editor, warping map, cheats etc.
 
-It has been tested on the 2024-06-14 version 1.0.0.19 on Windows 10. This is the only version officially supported by the latest autobuild, but it might work for older or newer versions too. There might also be compatibility releases for older versions available in the release section, but those probably won't have the latest features.
+It has been tested on the 2024-10-31 version 1.0.0.20 on Windows 10. This is the only version officially supported by the latest autobuild, but it might work for older or newer versions too. There might also be compatibility releases for older versions available in the release section, but those probably won't have the latest features.
 
 **Please go away if you haven't finished the game, this will spoil everything for you.**
 

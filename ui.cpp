@@ -222,7 +222,11 @@ std::array asset_type_names{
 };
 
 std::array progress_names{
-    "Game Started", "Unknown", "Ready to hatch", "Show HP", "Drop House Key",
+    "Game started",
+    "Unknown",
+    "Ready to hatch",
+    "Show health bar",
+    "Rolled credits (Drop House Key)",
 };
 
 std::array unlockable_names{
