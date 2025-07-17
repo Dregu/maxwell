@@ -24,8 +24,13 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/ToruNiina/toml11.git
   GIT_TAG        85faca9cbe8d76324ff38c1801be44c63e12d5be
 )
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG        f0569113c93ad095470c54bf34a17b36646bbbb5 # master 06.05.2025
+)
 
-FetchContent_MakeAvailable(detours fmt imgui toml11)
+FetchContent_MakeAvailable(detours fmt imgui toml11 stb)
 
 # imgui
 add_library(imgui STATIC
@@ -93,13 +98,11 @@ add_library(dll SHARED
     dll/ghidra_byte_string.h
     dll/tokenize.h
     dll/font.h
-    dll/stb_image.h
-    dll/stb_image_write.h
     shared/version.cpp shared/version.h
     shared/logger.h
     res/MAXWELL.rc)
 
-target_include_directories(dll PUBLIC shared/)
+target_include_directories(dll PUBLIC shared/ ${stb_SOURCE_DIR})
 target_link_libraries(dll PRIVATE detours imgui fmt toml11::toml11)
 set_target_properties(dll PROPERTIES OUTPUT_NAME MAXWELL)
 
