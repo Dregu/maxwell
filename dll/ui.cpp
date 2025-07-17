@@ -2957,28 +2957,29 @@ void UI::HUD() {
   ImGuiContext &g = *GImGui;
   io.MouseDrawCursor = options["ui_visible"].value;
 
+  auto& drawlist = *ImGui::GetBackgroundDrawList(ImGui::GetMainViewport());
   {
-    std::string version =
-        fmt::format("MAXWELL {}", get_version()) + " | GAME " + game_version();
-    ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-        ->AddText(ImVec2(io.DisplaySize.x / 2.f -
-                             ImGui::CalcTextSize(version.c_str()).x / 2.f +
-                             Base().x,
-                         io.DisplaySize.y -
-                             ImGui::GetTextLineHeightWithSpacing() + Base().y),
-                  0x99999999, version.c_str());
-    if (ImGui::GetFrameCount() < 600 && !options["ui_visible"].value)
-      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-          ->AddText(ImVec2(io.DisplaySize.x / 2.f -
-                               ImGui::CalcTextSize(
-                                   "MAXWELL is hidden, press F10 to show")
-                                       .x /
-                                   2.f +
-                               Base().x,
-                           io.DisplaySize.y -
-                               ImGui::GetTextLineHeightWithSpacing() * 2 +
-                               Base().y),
-                    0x99999999, "MAXWELL is hidden, press F10 to show");
+    auto basePos = io.DisplaySize.y + Base().y;
+    auto lineHeight = ImGui::GetTextLineHeightWithSpacing();
+
+    std::string version = fmt::format("MAXWELL {}", get_version()) + " | GAME " + game_version();
+    drawlist.AddText(
+      ImVec2(io.DisplaySize.x / 2.f - ImGui::CalcTextSize(version.c_str()).x / 2.f + Base().x, basePos - lineHeight),
+      0x99999999, version.c_str());
+    if(ImGui::GetFrameCount() < 600 && !options["ui_visible"].value) {
+      auto text = "MAXWELL is hidden, press F10 to show";
+      drawlist.AddText(
+        ImVec2(io.DisplaySize.x / 2.f - ImGui::CalcTextSize(text).x / 2.f + Base().x, basePos - lineHeight * 2),
+        0x99999999, text);
+    }
+
+    auto& mods = Max::get().mods;
+    if(std::any_of(mods.begin(), mods.end(), [](auto& kv) { return kv.second.overlap; })) {
+      auto text = "MOD CONFLICT DETECTED. Check mod menu";
+      drawlist.AddText(
+        ImVec2(io.DisplaySize.x / 2.f - ImGui::CalcTextSize(text).x / 2.f + Base().x, basePos - lineHeight * 3),
+        IM_COL32(255, 0, 0, 255), text);
+    }
   }
 
   if (!options["ui_visible"].value && options["ui_ignore"].value)
@@ -3005,8 +3006,7 @@ void UI::HUD() {
           options["cheat_damage"].value && CheatsEnabled() ? " NODAMAGE" : "",
           options["cheat_noclip"].value && CheatsEnabled() ? " NOCLIP" : "",
           options["cheat_godmode"].value && CheatsEnabled() ? " GODMODE" : "",
-          options["cheat_darkness"].value && CheatsEnabled() ? " NODARKNESS"
-                                                             : "",
+          options["cheat_darkness"].value && CheatsEnabled() ? " NODARKNESS" : "",
           options["cheat_lights"].value && CheatsEnabled() ? " NOLAMPS" : "",
           options["cheat_palette"].value && CheatsEnabled() ? " LIGHTING" : "",
           options["cheat_water"].value && CheatsEnabled() ? " NOWATER" : "",
@@ -3014,10 +3014,8 @@ void UI::HUD() {
           options["cheat_hud"].value && CheatsEnabled() ? " NOHUD" : "",
           options["cheat_player"].value && CheatsEnabled() ? " NOBEAN" : "",
           options["cheat_credits"].value && CheatsEnabled() ? " NOCREDITS" : "",
-          options["cheat_groundhog"].value && CheatsEnabled() ? " GROUNDHOG"
-                                                              : "",
+          options["cheat_groundhog"].value && CheatsEnabled() ? " GROUNDHOG" : "",
           options["cheat_igt"].value && CheatsEnabled() ? " IGT" : "",
-
           options["input_block"].value ? " BLOCK" : "",
           options["input_custom"].value ? " CUSTOM" : "",
           options["input_mouse"].value ? " MOUSE" : "");
@@ -3035,13 +3033,10 @@ void UI::HUD() {
 
   if (options["ui_grid"].value) {
     for (int x = 1; x < 40; ++x) {
-      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-          ->AddLine(TileToScreen(ImVec2(x, 0)), TileToScreen(ImVec2(x, 23)),
-                    0x66ffffff, 1.0f);
+      drawlist.AddLine(TileToScreen(ImVec2(x, 0)), TileToScreen(ImVec2(x, 23)), 0x66ffffff, 1.0f);
     }
     for (int y = 1; y < 23; ++y) {
-      ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-          ->AddLine(TileToScreen(ImVec2(0, y)), TileToScreen(ImVec2(40, y)),
+      drawlist.AddLine(TileToScreen(ImVec2(0, y)), TileToScreen(ImVec2(40, y)),
                     0x66ffffff, 1.0f);
     }
   }
@@ -3051,16 +3046,14 @@ void UI::HUD() {
         tile.room.x != Max::get().player_room()->x ||
         tile.room.y != Max::get().player_room()->y)
       continue;
-    ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-        ->AddRect(TileToScreen(ImVec2(tile.pos.x, tile.pos.y)),
+    drawlist.AddRect(TileToScreen(ImVec2(tile.pos.x, tile.pos.y)),
                   TileToScreen(ImVec2(tile.pos.x + 1, tile.pos.y + 1)),
                   (tile.layer ? 0xccffff00 : 0xcc0000ff), 0, 0, 3.f);
   }
 
   if (selectedTile.tile && selectedTile.room.x == Max::get().player_room()->x &&
       selectedTile.room.y == Max::get().player_room()->y) {
-    ImGui::GetBackgroundDrawList(ImGui::GetMainViewport())
-        ->AddRect(TileToScreen(ImVec2(selectedTile.pos.x, selectedTile.pos.y)),
+    drawlist.AddRect(TileToScreen(ImVec2(selectedTile.pos.x, selectedTile.pos.y)),
                   TileToScreen(
                       ImVec2(selectedTile.pos.x + 1, selectedTile.pos.y + 1)),
                   (selectedTile.layer ? 0xcc00a5ff : 0xcc00ff00), 0, 0, 3.f);

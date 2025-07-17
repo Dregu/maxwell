@@ -860,7 +860,7 @@ void Max::update_mod_list() {
 
     auto name = mod.path().filename().string();
     if(!mods.contains(name)) {
-      mods[name] = { false, mod.path(), false };
+      mods[name] = { true, mod.path(), false };
     }
   }
 
