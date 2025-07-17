@@ -2365,7 +2365,7 @@ void UI::DrawLevel() {
       ImGui::DragScalar("Water level##RoomWaterLevel", ImGuiDataType_U8,
                         &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
       ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &settings.forcedPalette, &u8_one);
-      std::clamp(settings.forcedPalette, 0, 31);
+      settings.forcedPalette = std::clamp(settings.forcedPalette, 0, 31);
       ImGui::SameLine(0, 4);
       ImGui::Checkbox("Forced lighting", &options["cheat_palette"].value);
       if (ImGui::Button("Reset room params##ResetRoomParams") &&
@@ -2451,10 +2451,8 @@ void UI::DrawLevel() {
   if (ImGui::CollapsingHeader("Tile search   ")) {
     static bool searchAll{false};
     static std::string searchStr;
-    ImGui::PushItemWidth(
-        std::max(ImGui::GetContentRegionAvail().x, 340.f * uiScale));
-    ImGui::InputTextWithHint("##TileSearchIds", "Enter tile IDs (e.g 420 0x45)",
-                             &searchStr);
+    ImGui::PushItemWidth(std::max(ImGui::GetContentRegionAvail().x, 340.f * uiScale));
+    ImGui::InputTextWithHint("##TileSearchIds", "Enter tile IDs (e.g 420 0x45)", &searchStr);
     ImGui::PopItemWidth();
     const bool focused = ImGui::IsItemFocused();
     bool doSearch = false;
