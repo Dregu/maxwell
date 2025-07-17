@@ -789,7 +789,7 @@ static int readInt(const std::string& str) {
 }
 
 static std::vector<uint8_t> readFile(const std::string& path) {
-    if(!std::filesystem::exists(path))
+    if(!fs::exists(path))
         throw std::runtime_error("File not found");
 
     std::ifstream testFile(path, std::ios::binary);
@@ -814,9 +814,9 @@ void Max::load_tile_mods() {
 
   bool changed = false;
   for(auto& [_, mod] : mods) {
-    if(!mod.enabled || !fs::exists(mod.path / "tiles")) continue;
+    if(!mod.enabled || !fs::exists(mod.path / "Tiles")) continue;
 
-    for (auto &file : fs::directory_iterator(mod.path / "tiles")) {
+    for (auto &file : fs::directory_iterator(mod.path / "Tiles")) {
       auto ext = file.path().extension().string();
       toLower(ext);
       if(!file.is_regular_file() || ext != ".png") continue;
@@ -854,8 +854,8 @@ void Max::restore_original() {
 }
 
 void Max::update_mod_list() {
-  fs::create_directories("MAXWELL/mods");
-  for(auto& mod : fs::directory_iterator("MAXWELL/mods")) {
+  fs::create_directories("MAXWELL/Mods");
+  for(auto& mod : fs::directory_iterator("MAXWELL/Mods")) {
     if(!mod.is_directory()) continue;
 
     auto name = mod.path().filename().string();
@@ -864,7 +864,7 @@ void Max::update_mod_list() {
     }
   }
 
-  std::erase_if(mods, [](auto& kv) { return !std::filesystem::exists(kv.second.path); });
+  std::erase_if(mods, [](auto& kv) { return !fs::exists(kv.second.path); });
 }
 
 // on preload only load things into the asset array since the game has not yet populated the other data
@@ -953,7 +953,7 @@ uint16_t Max::get_room_tile_flags(int x, int y, uint16_t mask) {
 }
 
 void Max::dump_lighting() {
-  std::filesystem::create_directories("MAXWELL/Dump/Assets");
+  fs::create_directories("MAXWELL/Dump/Assets");
   std::string file = "MAXWELL\\Dump\\Assets\\179.ambient";
   std::ofstream out(file, std::ios::binary);
   out << "00 0B F0 00 20 00 00 00 00 00 00 00"_gh;
@@ -965,7 +965,7 @@ void Max::dump_map(uint8_t m) {
   static const std::array map_to_asset{300, 157, 193, 52, 222};
   auto map = Max::get().map(m);
   auto asset = Max::get().get_asset(map_to_asset[m]);
-  std::filesystem::create_directories("MAXWELL/Dump/Maps");
+  fs::create_directories("MAXWELL/Dump/Maps");
   std::string file = fmt::format("MAXWELL\\Dump\\Maps\\{}.map", m);
   std::ofstream out(file, std::ios::binary);
   MapHeader header{0xF00DCAFE,
@@ -982,7 +982,7 @@ void Max::dump_map(uint8_t m) {
 
 void Max::dump_asset(uint32_t id) {
   auto asset = Max::get().get_asset(id);
-  std::filesystem::create_directories("MAXWELL/Dump/Assets");
+  fs::create_directories("MAXWELL/Dump/Assets");
   auto ptr = (uint8_t *)asset->data;
   if (ptr == 0)
     return;

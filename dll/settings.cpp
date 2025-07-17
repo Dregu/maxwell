@@ -188,7 +188,7 @@ void Settings::LoadINI() {
 
     if(mods.is_table()) {
         for(auto& [key, val] : mods.as_table()) {
-            max.mods[key] = {val.as_boolean(), "MAXWELL/mods/" + key};
+            max.mods[key] = {val.as_boolean(), "MAXWELL/Mods/" + key};
         }
     }
 

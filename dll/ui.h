@@ -84,8 +84,6 @@ private:
   SelectedTile selectedTile;
   SelectedRoom selectedRoom;
   Tile editorTile{0, 0, 0};
-  std::string mapDir = "MAXWELL/Maps";
-  std::string modDir = "MAXWELL/Mods";
   std::vector<std::filesystem::path> maps;
   std::vector<SelectedTile> searchTiles;
   std::unordered_map<Room *, RoomData> defaultRoom;

@@ -2131,8 +2131,8 @@ void UI::Play() {
 
 void UI::RefreshMaps() {
   maps.clear();
-  if (std::filesystem::is_directory(mapDir)) {
-    for (const auto &file : std::filesystem::directory_iterator(mapDir)) {
+  if (std::filesystem::is_directory("MAXWELL/Maps")) {
+    for (const auto &file : std::filesystem::directory_iterator("MAXWELL/Maps")) {
       maps.push_back(file.path());
     }
   }
