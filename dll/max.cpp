@@ -953,8 +953,7 @@ uint16_t Max::get_room_tile_flags(int x, int y, uint16_t mask) {
 }
 
 void Max::dump_lighting() {
-  CreateDirectory(L"MAXWELL\\Dump", NULL);
-  CreateDirectory(L"MAXWELL\\Dump\\Assets", NULL);
+  std::filesystem::create_directories("MAXWELL/Dump/Assets");
   std::string file = "MAXWELL\\Dump\\Assets\\179.ambient";
   std::ofstream out(file, std::ios::binary);
   out << "00 0B F0 00 20 00 00 00 00 00 00 00"_gh;
@@ -966,8 +965,7 @@ void Max::dump_map(uint8_t m) {
   static const std::array map_to_asset{300, 157, 193, 52, 222};
   auto map = Max::get().map(m);
   auto asset = Max::get().get_asset(map_to_asset[m]);
-  CreateDirectory(L"MAXWELL\\Dump", NULL);
-  CreateDirectory(L"MAXWELL\\Dump\\Maps", NULL);
+  std::filesystem::create_directories("MAXWELL/Dump/Maps");
   std::string file = fmt::format("MAXWELL\\Dump\\Maps\\{}.map", m);
   std::ofstream out(file, std::ios::binary);
   MapHeader header{0xF00DCAFE,
@@ -984,8 +982,7 @@ void Max::dump_map(uint8_t m) {
 
 void Max::dump_asset(uint32_t id) {
   auto asset = Max::get().get_asset(id);
-  CreateDirectory(L"MAXWELL\\Dump", NULL);
-  CreateDirectory(L"MAXWELL\\Dump\\Assets", NULL);
+  std::filesystem::create_directories("MAXWELL/Dump/Assets");
   auto ptr = (uint8_t *)asset->data;
   if (ptr == 0)
     return;

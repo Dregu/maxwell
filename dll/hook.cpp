@@ -260,7 +260,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
                                           // everything
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    CreateDirectory(L"MAXWELL", NULL);
+    std::filesystem::create_directories("MAXWELL");
     io.IniFilename = "MAXWELL\\MAXWELL_imgui.ini";
     g->ConfigNavWindowingKeyNext = 0;
     g->ConfigNavWindowingKeyPrev = 0;

@@ -89,7 +89,7 @@ const std::map<std::string, ImGuiKeyChord> Settings::default_keys {
 };
 
 void Settings::SaveINI() const {
-  // CreateDirectory(L"MAXWELL\\Mods", NULL);
+    std::filesystem::create_directories("MAXWELL");
     std::string file = "MAXWELL\\MAXWELL.ini";
     std::ofstream writeData(file);
     writeData << "# MAXWELL options" << std::endl;

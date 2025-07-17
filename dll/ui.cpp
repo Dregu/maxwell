@@ -2131,9 +2131,7 @@ void UI::Play() {
 
 void UI::RefreshMaps() {
   maps.clear();
-  CreateDirectory(L"MAXWELL\\Maps", NULL);
-  if (std::filesystem::exists(mapDir) &&
-      std::filesystem::is_directory(mapDir)) {
+  if (std::filesystem::is_directory(mapDir)) {
     for (const auto &file : std::filesystem::directory_iterator(mapDir)) {
       maps.push_back(file.path());
     }
@@ -2250,13 +2248,9 @@ void UI::DrawLevel() {
   static std::unordered_map<uint8_t, std::string> active_files;
   if (ImGui::CollapsingHeader("Maps")) {
     ImGui::SeparatorText("Dump maps");
-    if (ImGui::Button("Open Dump folder##OpenDumpMaps",
-                      ImVec2(ImGui::GetContentRegionAvail().x,
-                             ImGui::GetFrameHeight()))) {
-      CreateDirectory(L"MAXWELL\\Dump", NULL);
-      CreateDirectory(L"MAXWELL\\Dump\\Maps", NULL);
-      ShellExecute(NULL, L"open", L"MAXWELL\\Dump\\Maps", NULL, NULL,
-                   SW_SHOWNORMAL);
+    if (ImGui::Button("Open Dump folder##OpenDumpMaps", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
+      std::filesystem::create_directories("MAXWELL/Dump/Maps");
+      ShellExecute(NULL, L"open", L"MAXWELL\\Dump\\Maps", NULL, NULL, SW_SHOWNORMAL);
     }
     if (ImGui::Button("Dump all edited maps",
                       ImVec2(ImGui::GetContentRegionAvail().x,
@@ -2280,7 +2274,7 @@ void UI::DrawLevel() {
                       ImVec2(ImGui::GetContentRegionAvail().x,
                              ImGui::GetFrameHeight()))) {
       RefreshMaps();
-      CreateDirectory(L"MAXWELL\\Maps", NULL);
+      std::filesystem::create_directories("MAXWELL/Maps");
       ShellExecute(NULL, L"open", L"MAXWELL\\Maps", NULL, NULL, SW_SHOWNORMAL);
     }
     if (ImGui::Button("Reload original maps",
@@ -2605,8 +2599,7 @@ void UI::DrawAssets() {
   if (ImGui::Button(
           "Open Assets folder##OpenDumpAssets",
           ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
-    CreateDirectory(L"MAXWELL\\Dump", NULL);
-    CreateDirectory(L"MAXWELL\\Dump\\Assets", NULL);
+    std::filesystem::create_directories("MAXWELL/Dump/Assets");
     ShellExecute(NULL, L"open", L"MAXWELL\\Dump\\Assets", NULL, NULL,
                  SW_SHOWNORMAL);
   }
@@ -2631,7 +2624,7 @@ size_t CountFiles(std::filesystem::path path) {
 
 void UI::DrawMods() {
   if (ImGui::Button("Open Mods folder##OpenMods", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
-    CreateDirectory(L"MAXWELL\\Mods", NULL);
+    std::filesystem::create_directories("MAXWELL/Mods");
     ShellExecute(NULL, L"open", L"MAXWELL\\Mods", NULL, NULL, SW_SHOWNORMAL);
   }
   if (ImGui::Button("Reload mods", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
@@ -3693,14 +3686,8 @@ void UI::SaveScreenShot(std::string name) {
     return;
   }
 
-  if (CreateDirectory(L"MAXWELL", NULL) ||
-      ERROR_ALREADY_EXISTS == GetLastError()) {
-    if (CreateDirectory(L"MAXWELL\\Screenshots", NULL) ||
-        ERROR_ALREADY_EXISTS == GetLastError()) {
-      name = "MAXWELL\\Screenshots\\" + name + ".png";
-      Image::save_png_from_data(name, pData, desc.Width, desc.Height);
-    }
-  }
+  std::filesystem::create_directories("MAXWELL/Screenshots");
+  Image::save_png_from_data("MAXWELL/Screenshots/" + name + ".png", pData, desc.Width, desc.Height);
 
   // Unmap and release resources
   pReadbackBuffer->Unmap(0, nullptr);
