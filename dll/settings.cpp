@@ -90,8 +90,7 @@ const std::map<std::string, ImGuiKeyChord> Settings::default_keys {
 
 void Settings::SaveINI() const {
     std::filesystem::create_directories("MAXWELL");
-    std::string file = "MAXWELL\\MAXWELL.ini";
-    std::ofstream writeData(file);
+    std::ofstream writeData("MAXWELL/MAXWELL.ini");
     writeData << "# MAXWELL options" << std::endl;
 
     writeData << "\n[options] # 0 or 1 unless stated otherwise\n";
@@ -134,69 +133,59 @@ void Settings::SaveINI() const {
 }
 
 void Settings::LoadINI() {
-    std::string file = "MAXWELL\\MAXWELL.ini";
-    if(!std::filesystem::exists(file)) {
-        keys = default_keys;
-        options = default_options;
+    keys = default_keys;
+    options = default_options;
+    if(!std::filesystem::exists("MAXWELL/MAXWELL.ini")) {
         return;
     }
-
-    toml::value data;
-    toml::value opts;
-    toml::value custom_keys;
-    toml::value ui_keys;
-    toml::value mods;
 
     try {
-        data = toml::parse(file);
-        opts = toml::find(data, "options");
-        custom_keys = toml::find(data, "custom_keys");
-        ui_keys = toml::find(data, "ui_keys");
-        mods = toml::find(data, "mods");
+        auto data = toml::parse("MAXWELL/MAXWELL.ini");
+        auto opts = toml::find(data, "options");
+        auto custom_keys = toml::find(data, "custom_keys");
+        auto ui_keys = toml::find(data, "ui_keys");
+        auto mods = toml::find(data, "mods");
+
+        options = default_options;
+        for(auto& [name, opt] : options) {
+            opt.value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
+        }
+        windowScale = toml::find_or<int>(opts, "scale_window", 4);
+        mapScale = toml::find_or<float>(opts, "scale_map", 1.f);
+
+        auto& max = Max::get();
+
+        max.keymap[GAME_INPUT::UP] = toml::find_or<uint8_t>(custom_keys, "up", 0);
+        max.keymap[GAME_INPUT::DOWN] = toml::find_or<uint8_t>(custom_keys, "down", 0);
+        max.keymap[GAME_INPUT::LEFT] = toml::find_or<uint8_t>(custom_keys, "left", 0);
+        max.keymap[GAME_INPUT::RIGHT] = toml::find_or<uint8_t>(custom_keys, "right", 0);
+        max.keymap[GAME_INPUT::JUMP] = toml::find_or<uint8_t>(custom_keys, "jump", 0);
+        max.keymap[GAME_INPUT::ACTION] = toml::find_or<uint8_t>(custom_keys, "action", 0);
+        max.keymap[GAME_INPUT::ITEM] = toml::find_or<uint8_t>(custom_keys, "item", 0);
+        max.keymap[GAME_INPUT::INVENTORY] = toml::find_or<uint8_t>(custom_keys, "inventory", 0);
+        max.keymap[GAME_INPUT::MAP] = toml::find_or<uint8_t>(custom_keys, "map", 0);
+        max.keymap[GAME_INPUT::LB] = toml::find_or<uint8_t>(custom_keys, "lb", 0);
+        max.keymap[GAME_INPUT::RB] = toml::find_or<uint8_t>(custom_keys, "rb", 0);
+        max.keymap[GAME_INPUT::PAUSE] = toml::find_or<uint8_t>(custom_keys, "pause", 0);
+        max.keymap[GAME_INPUT::HUD] = toml::find_or<uint8_t>(custom_keys, "hud", 0);
+        max.keymap[GAME_INPUT::CRING] = toml::find_or<uint8_t>(custom_keys, "cring", 0);
+
+        for(const auto& [name, key] : default_keys) {
+            keys[name] = (ImGuiKeyChord)toml::find_or<int>(ui_keys, name, (int)key);
+        }
+
+        if(mods.is_table()) {
+            for(auto& [key, val] : mods.as_table()) {
+                max.mods[key] = {val.as_boolean(), "MAXWELL/Mods/" + key};
+            }
+        }
+
+        /*if (options["ui_viewports"].value) {
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        } else {
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+        }*/
     } catch(std::exception& e) {
-        // SaveINI();
         return;
     }
-
-    options = default_options;
-    for(auto& [name, opt] : options) {
-        opt.value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
-    }
-    windowScale = toml::find_or<int>(opts, "scale_window", 4);
-    mapScale = toml::find_or<float>(opts, "scale_map", 1.f);
-
-    auto& max = Max::get();
-
-    max.keymap[GAME_INPUT::UP] = toml::find_or<uint8_t>(custom_keys, "up", 0);
-    max.keymap[GAME_INPUT::DOWN] = toml::find_or<uint8_t>(custom_keys, "down", 0);
-    max.keymap[GAME_INPUT::LEFT] = toml::find_or<uint8_t>(custom_keys, "left", 0);
-    max.keymap[GAME_INPUT::RIGHT] = toml::find_or<uint8_t>(custom_keys, "right", 0);
-    max.keymap[GAME_INPUT::JUMP] = toml::find_or<uint8_t>(custom_keys, "jump", 0);
-    max.keymap[GAME_INPUT::ACTION] = toml::find_or<uint8_t>(custom_keys, "action", 0);
-    max.keymap[GAME_INPUT::ITEM] = toml::find_or<uint8_t>(custom_keys, "item", 0);
-    max.keymap[GAME_INPUT::INVENTORY] = toml::find_or<uint8_t>(custom_keys, "inventory", 0);
-    max.keymap[GAME_INPUT::MAP] = toml::find_or<uint8_t>(custom_keys, "map", 0);
-    max.keymap[GAME_INPUT::LB] = toml::find_or<uint8_t>(custom_keys, "lb", 0);
-    max.keymap[GAME_INPUT::RB] = toml::find_or<uint8_t>(custom_keys, "rb", 0);
-    max.keymap[GAME_INPUT::PAUSE] = toml::find_or<uint8_t>(custom_keys, "pause", 0);
-    max.keymap[GAME_INPUT::HUD] = toml::find_or<uint8_t>(custom_keys, "hud", 0);
-    max.keymap[GAME_INPUT::CRING] = toml::find_or<uint8_t>(custom_keys, "cring", 0);
-
-    for(const auto& [name, key] : default_keys) {
-        keys[name] = (ImGuiKeyChord)toml::find_or<int>(ui_keys, name, (int)key);
-    }
-
-    if(mods.is_table()) {
-        for(auto& [key, val] : mods.as_table()) {
-            max.mods[key] = {val.as_boolean(), "MAXWELL/Mods/" + key};
-        }
-    }
-
-  // UpdateOptions();
-
-  /*if (options["ui_viewports"].value) {
-      ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    } else {
-      ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
-    }*/
 }
