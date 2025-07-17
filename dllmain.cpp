@@ -15,6 +15,8 @@
 #include "max.h"
 #include "search.h"
 #include "version.h"
+#include "settings.h"
+#include "memory.h"
 
 using namespace std::chrono_literals;
 
@@ -106,9 +108,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
   switch (ul_reason_for_call) {
   case DLL_PROCESS_ATTACH: {
     DisableThreadLibraryCalls(hModule);
+    settings.LoadINI();
+
+    // disable steam restart before the game has a chance to get to it
+    if(get_address("steam_restart")) {
+        write_mem_recoverable("steam_restart", get_address("steam_restart"), get_nop(19), true);
+    }
+
     Max::get();
-    CreateThread(nullptr, 0, &AttachThread, static_cast<LPVOID>(hModule), 0,
-                 nullptr);
+    CreateThread(nullptr, 0, &AttachThread, static_cast<LPVOID>(hModule), 0, nullptr);
     break;
   }
   case DLL_PROCESS_DETACH: {

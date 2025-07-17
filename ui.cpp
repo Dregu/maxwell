@@ -13,7 +13,6 @@
 #include <map>
 #include <misc/cpp/imgui_stdlib.h>
 #include <shellapi.h>
-#include <toml.hpp>
 
 #include "ghidra_byte_string.h"
 #include "logger.h"
@@ -21,8 +20,18 @@
 #include "search.h"
 #include "ui.h"
 #include "version.h"
+#include "settings.h"
 
 #pragma comment(lib, "version.lib")
+
+static auto& options = settings.options;
+static auto& keys = settings.keys;
+static auto& windowScale = settings.windowScale;
+static auto& mapScale = settings.mapScale;
+
+static bool CheatsEnabled() {
+    return options["cheat_active"].value && (options["ui_visible"].value || !options["ui_ignore_cheats"].value);
+}
 
 const char s8_zero = 0, s8_one = 1, s8_fifty = 50, s8_min = -128, s8_max = 127;
 const ImU8 u8_zero = 0, u8_one = 1, u8_fifty = 50, u8_min = 0, u8_max = 255,
@@ -478,7 +487,6 @@ ImVec2 Normalize(ImVec2 pos) {
 
 void SearchTiles(std::vector<SelectedTile> &searchTiles, uint16_t searchId,
                  int mapId = -1) {
-  Max::get().decrypt_stuff();
   int mapMin, mapMax;
   if (mapId == -1) {
     mapId = *Max::get().player_map();
@@ -1660,16 +1668,6 @@ void UI::ScaleWindow() {
                2);
 }
 
-void UI::UpdateOptions() {
-  if (options["cheat_palette"].value && CheatsEnabled()) {
-    Max::get().force_palette = forcedPalette;
-  } else {
-    Max::get().force_palette = std::nullopt;
-  }
-  Max::get().use_keymap = options["input_custom"].value;
-  Max::get().use_igt = options["cheat_igt"].value && CheatsEnabled();
-}
-
 uint8_t AnyKey() {
   for (int i = 8; i < 255; ++i)
     if (ImGui::GetIO().KeysDown[i])
@@ -1711,7 +1709,7 @@ void UI::KeyCapture() {
       key_chord |= mods;
       keys[key_to_change] = (ImGuiKeyChord)key_chord;
       key_to_change = "";
-      SaveINI();
+      settings.SaveINI();
     }
   }
   ImGui::End();
@@ -1755,7 +1753,7 @@ void UI::DrawCustomKey(std::string name, GAME_INPUT i) {
   ImGui::TableNextColumn();
   ImGui::Text("%s", name.c_str());
   ImGui::TableNextColumn();
-  ImGui::Text("%s", GetKeyName(key));
+  ImGui::Text("%s", GetKeyName(key).c_str());
   ImGui::TableNextColumn();
   ImGui::InputScalar(
       "##GameKeyCode", ImGuiDataType_U8, &key, NULL, NULL, "0x%x",
@@ -1765,13 +1763,13 @@ void UI::DrawCustomKey(std::string name, GAME_INPUT i) {
     if (key) {
       Max::get().keymap[i] = key;
       ImGui::ClearActiveID();
-      SaveINI();
+      settings.SaveINI();
     }
   }
   ImGui::TableNextColumn();
   if (ImGui::Button("Unset")) {
     Max::get().keymap[i] = 0;
-    SaveINI();
+    settings.SaveINI();
   }
   ImGui::PopID();
 }
@@ -1804,12 +1802,12 @@ void UI::DrawUIKeys() {
     ImGui::SameLine(0, 4);
     if (ImGui::Button("Unset")) {
       key = 0;
-      SaveINI();
+      settings.SaveINI();
     }
     ImGui::SameLine(0, 4);
     if (ImGui::Button("Reset")) {
-      key = default_keys[name];
-      SaveINI();
+      key = settings.default_keys.at(name);
+      settings.SaveINI();
     }
     ImGui::PopID();
   }
@@ -1843,7 +1841,7 @@ void UI::DrawOptions() {
   }
   if (noclip && !options["cheat_noclip"].value)
     *Max::get().player_state() = 0;
-  UpdateOptions();
+
   ImGui::SliderFloat("Minimap scale", &mapScale, 1.f, 5.f, "%.1fx");
   if (ImGui::SliderInt("Window scale", &windowScale, 1, 10, "%dx")) {
     ScaleWindow();
@@ -1852,9 +1850,7 @@ void UI::DrawOptions() {
 
   if (SubMenu("Game keyboard bindings")) {
     ImGui::PushID("CustomKeys");
-    if (ImGui::Checkbox("Use custom keyboard bindings",
-                        &options["input_custom"].value))
-      Max::get().use_keymap = options["input_custom"].value;
+    ImGui::Checkbox("Use custom keyboard bindings", &options["input_custom"].value);
     ImGui::BeginTable("##GameKeysTable", 4);
     ImGui::TableSetupColumn("Action");
     ImGui::TableSetupColumn("Key");
@@ -1889,9 +1885,9 @@ void UI::DrawOptions() {
   }
 
   if (Button("Save settings"))
-    SaveINI();
+    settings.SaveINI();
   if (Button("Load settings"))
-    LoadINI();
+    settings.LoadINI();
   ImGui::PopItemWidth();
 }
 
@@ -2144,17 +2140,6 @@ void UI::RefreshMaps() {
   }
 }
 
-void UI::RefreshMods() {
-  mods.clear();
-  CreateDirectory(L"MAXWELL\\Mods", NULL);
-  if (std::filesystem::exists(modDir) &&
-      std::filesystem::is_directory(modDir)) {
-    for (const auto &file : std::filesystem::directory_iterator(modDir)) {
-      mods.push_back(file.path());
-    }
-  }
-}
-
 void UI::DrawTile(Tile &tile) {
   ImGui::PushItemWidth(36.f * uiScale);
   ImGui::InputScalar("##TileID", ImGuiDataType_U16, &tile.id, 0, 0);
@@ -2264,7 +2249,6 @@ void UI::DrawLevel() {
 
   static std::unordered_map<uint8_t, std::string> active_files;
   if (ImGui::CollapsingHeader("Maps")) {
-    Max::get().decrypt_stuff();
     ImGui::SeparatorText("Dump maps");
     if (ImGui::Button("Open Dump folder##OpenDumpMaps",
                       ImVec2(ImGui::GetContentRegionAvail().x,
@@ -2302,14 +2286,13 @@ void UI::DrawLevel() {
     if (ImGui::Button("Reload original maps",
                       ImVec2(ImGui::GetContentRegionAvail().x,
                              ImGui::GetFrameHeight()))) {
-      for (uint8_t id = 0; id < 5; ++id)
-        Max::get().load_map(id);
+      Max::get().restore_original();
       active_files.clear();
     }
     if (ImGui::Button("Reload modded maps",
                       ImVec2(ImGui::GetContentRegionAvail().x,
                              ImGui::GetFrameHeight()))) {
-      Max::get().load_map_mods();
+      Max::get().reload_mods();
       active_files.clear();
     }
     if (ImGui::Button("Reload loaded maps",
@@ -2381,13 +2364,10 @@ void UI::DrawLevel() {
                           &selectedRoom.room->params.idk1, 3);
       ImGui::DragScalar("Water level##RoomWaterLevel", ImGuiDataType_U8,
                         &selectedRoom.room->waterLevel, 0.1f, &u8_min, &u8_max);
-      ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &forcedPalette,
-                         &u8_one);
-      if (forcedPalette > 31)
-        forcedPalette = 31;
+      ImGui::InputScalar("##ForcedPalette", ImGuiDataType_U8, &settings.forcedPalette, &u8_one);
+      std::clamp(settings.forcedPalette, 0, 31);
       ImGui::SameLine(0, 4);
       ImGui::Checkbox("Forced lighting", &options["cheat_palette"].value);
-      UpdateOptions();
       if (ImGui::Button("Reset room params##ResetRoomParams") &&
           defaultRoom.contains(selectedRoom.room)) {
         selectedRoom.room->bgId = defaultRoom[selectedRoom.room].bgId;
@@ -2396,9 +2376,7 @@ void UI::DrawLevel() {
         selectedRoom.room->params = defaultRoom[selectedRoom.room].params;
       }
 
-      auto palette = options["cheat_palette"].value
-                         ? forcedPalette
-                         : selectedRoom.room->params.palette;
+      auto palette = options["cheat_palette"].value ? settings.forcedPalette : selectedRoom.room->params.palette;
       ImGui::SeparatorText(fmt::format("Light params ({})", palette).c_str());
 
       auto amb = Max::get().lighting(palette);
@@ -2577,7 +2555,7 @@ std::string GetBinaryAssetType(uint32_t id) {
   } else if (ptr[0] == 'D' && ptr[1] == 'X' && ptr[2] == 'B' && ptr[3] == 'C') {
     ext = "Shader";
   } else if (ptr[0] == 0 && ptr[1] == 0x0B && ptr[2] == 0xB0 && ptr[3] == 0) {
-    ext = "UVs";
+    ext = "Tiles";
   } else if (ptr[0] == 'P' && ptr[1] == 'K' && ptr[2] == 3 && ptr[3] == 4) {
     ext = "XPS";
   } else if (ptr[0] == 0x00 && ptr[1] == 0x0B && ptr[2] == 0xF0 &&
@@ -2599,7 +2577,7 @@ void UI::DrawAsset(uint32_t id) {
   std::string asset_type = asset_type_names[(uint8_t)asset->type & 0x3f];
   if (asset_type == "Binary")
     asset_type = GetBinaryAssetType(id);
-  ImGui::Text("%s", asset_type);
+  ImGui::Text("%s", asset_type.c_str());
   ImGui::SameLine(90.f * uiScale);
   ImGui::Text("%dKiB", asset->size / 1024);
   ImGui::SameLine(150.f * uiScale);
@@ -2654,43 +2632,34 @@ size_t CountFiles(std::filesystem::path path) {
 }
 
 void UI::DrawMods() {
-  static bool modsInit{false};
-  if (!modsInit) {
-    RefreshMods();
-    modsInit = true;
-  }
-  if (ImGui::Button(
-          "Open Mods folder##OpenMods",
-          ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
+  if (ImGui::Button("Open Mods folder##OpenMods", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
     CreateDirectory(L"MAXWELL\\Mods", NULL);
     ShellExecute(NULL, L"open", L"MAXWELL\\Mods", NULL, NULL, SW_SHOWNORMAL);
   }
-  if (ImGui::Button("Reload mods", ImVec2(ImGui::GetContentRegionAvail().x,
-                                          ImGui::GetFrameHeight()))) {
-    Max::get().load_map_mods();
+  if (ImGui::Button("Reload mods", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()))) {
+    Max::get().reload_mods();
   }
   ImGui::SeparatorText("Active mods");
-  for (auto m : mods) {
-    ImGui::Text("%s", m.stem().string());
-    int map_count =
-        std::filesystem::exists(m / "Maps") ? CountFiles(m / "Maps") : 0;
-    int asset_count =
-        std::filesystem::exists(m / "Assets") ? CountFiles(m / "Assets") : 0;
-    int tile_count =
-        std::filesystem::exists(m / "Tiles") ? CountFiles(m / "Tiles") : 0;
-    if (map_count > 0)
-      ImGui::Text("  - %d maps", map_count);
-    if (asset_count > 0)
-      ImGui::Text("  - %d assets", asset_count);
-    if (tile_count > 0)
-      ImGui::Text("  - %d tiles", tile_count);
+  for (auto& [name, mod] : Max::get().mods) {
+    if(mod.overlap) {
+    ImGui::PushStyleColor(ImGuiCol_Text, {0xff, 0, 0, 0xff});
+    }
+    if(ImGui::Checkbox(name.c_str(), &mod.enabled)) {
+    settings.SaveINI();
+    }
+    if(mod.overlap) {
+    Tooltip("Warning: Mod has overlapping assets with another mod");
+    ImGui::PopStyleColor();
+    }
+
+    // if (m.map_count > 0) ImGui::Text("  - %d maps", m.map_count);
+    // if(m.asset_count > 0) ImGui::Text("  - %d assets", m.asset_count);
+    // if(m.tile_count > 0) ImGui::Text("  - %d tiles", m.tile_count);
   }
 }
 
 UI::UI(float scale) {
   Max::get();
-  keys = default_keys;
-  LoadINI();
 
   dpiScale = scale;
   if (options["ui_scaling"].value)
@@ -2715,7 +2684,7 @@ UI::UI(float scale) {
         ImGui::PopStyleColor();
     }
 
-    size_t v = (size_t)Max::get().slot();
+    size_t v = (size_t)Max::get().slot_number();
     ImGui::InputScalar("save slot", ImGuiDataType_U64, &v, NULL, NULL, "%llX",
                        ImGuiInputTextFlags_ReadOnly);
 
@@ -2760,7 +2729,7 @@ bool UI::Keys() {
   auto ret = true;
   if (ImGui::IsKeyChordPressed(keys["toggle_ui"])) {
     options["ui_visible"].value ^= true;
-    SaveINI();
+    settings.SaveINI();
   }
   if (!options["ui_visible"].value && options["ui_ignore"].value)
     return false;
@@ -2802,9 +2771,10 @@ bool UI::Keys() {
     Max::get().set_pause = paused;
   } else if (ImGui::IsKeyChordPressed(keys["skip"], ImGuiInputFlags_Repeat))
     Max::get().skip = true;
-  else
-    ret = false;
-  UpdateOptions();
+  else if(ImGui::IsKeyChordPressed(keys["reload_mods"])) {
+    Max::get().reload_mods();
+  }
+  ret = false;
   return ret;
 }
 
@@ -2826,14 +2796,8 @@ ImVec2 TileToScreen(ImVec2 tile) {
                 tile.y * size.y / 22.5f + base.y);
 }
 
-bool UI::CheatsEnabled() {
-  return options["cheat_active"].value &&
-         (options["ui_visible"].value || !options["ui_ignore_cheats"].value);
-}
-
 void UI::Cheats() {
   if (doWarp && get_address("warp") && CheatsEnabled()) {
-    Max::get().decrypt_stuff();
     write_mem_recoverable("warp", get_address("warp"), "EB"_gh, true);
   } else {
     recover_mem("warp");
@@ -3545,126 +3509,6 @@ void UI::CreateMap() {
   // Return results
   minimap_texture = pTexture;
   minimap_init = true;
-}
-
-void UI::SaveINI() {
-  CreateDirectory(L"MAXWELL\\Mods", NULL);
-  std::string file = "MAXWELL\\MAXWELL.ini";
-  std::ofstream writeData(file);
-  writeData << "# MAXWELL options" << std::endl;
-
-  writeData << "\n[options] # 0 or 1 unless stated otherwise\n";
-  for (const auto &[name, opt] : options) {
-    writeData << name << " = " << std::dec << opt.value << std::endl;
-  }
-  writeData << "scale_window = " << std::fixed << std::setprecision(2)
-            << windowScale << " # int, 1 - 10" << std::endl;
-  writeData << "scale_map = " << std::fixed << std::setprecision(2) << mapScale
-            << " # float, 1 - 5" << std::endl;
-
-  writeData << "\n[ui_keys] # hex ImGuiKeyChord\n";
-  for (const auto &[name, key] : keys) {
-    writeData << name << " = 0x" << std::hex << key << std::endl;
-  }
-
-  writeData << "\n[custom_keys] # hex keycode, e.g. 0x20 for space";
-  writeData << "\nup = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::UP];
-  writeData << "\ndown = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::DOWN];
-  writeData << "\nleft = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::LEFT];
-  writeData << "\nright = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::RIGHT];
-  writeData << "\njump = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::JUMP];
-  writeData << "\naction = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::ACTION];
-  writeData << "\nitem = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::ITEM];
-  writeData << "\ninventory = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::INVENTORY];
-  writeData << "\nmap = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::MAP];
-  writeData << "\nlb = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::LB];
-  writeData << "\nrb = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::RB];
-  writeData << "\npause = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::PAUSE];
-  writeData << "\nhud = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::HUD];
-  writeData << "\ncring = 0x" << std::hex
-            << (int)Max::get().keymap[GAME_INPUT::CRING];
-
-  writeData << "\n\n";
-  writeData.close();
-}
-
-void UI::LoadINI() {
-  std::string file = "MAXWELL\\MAXWELL.ini";
-  toml::value data;
-  toml::value opts;
-  toml::value custom_keys;
-  toml::value ui_keys;
-  try {
-    data = toml::parse(file);
-    opts = toml::find(data, "options");
-    custom_keys = toml::find(data, "custom_keys");
-    ui_keys = toml::find(data, "ui_keys");
-  } catch (std::exception &) {
-    SaveINI();
-    return;
-  }
-
-  for (const auto &[name, opt] : options) {
-    options[name].value = (bool)toml::find_or<int>(opts, name, (int)opt.value);
-  }
-  windowScale = toml::find_or<int>(opts, "scale_window", 4);
-  mapScale = toml::find_or<float>(opts, "scale_map", 1.f);
-
-  Max::get().keymap[GAME_INPUT::UP] =
-      toml::find_or<uint8_t>(custom_keys, "up", 0);
-  Max::get().keymap[GAME_INPUT::DOWN] =
-      toml::find_or<uint8_t>(custom_keys, "down", 0);
-  Max::get().keymap[GAME_INPUT::LEFT] =
-      toml::find_or<uint8_t>(custom_keys, "left", 0);
-  Max::get().keymap[GAME_INPUT::RIGHT] =
-      toml::find_or<uint8_t>(custom_keys, "right", 0);
-  Max::get().keymap[GAME_INPUT::JUMP] =
-      toml::find_or<uint8_t>(custom_keys, "jump", 0);
-  Max::get().keymap[GAME_INPUT::ACTION] =
-      toml::find_or<uint8_t>(custom_keys, "action", 0);
-  Max::get().keymap[GAME_INPUT::ITEM] =
-      toml::find_or<uint8_t>(custom_keys, "item", 0);
-  Max::get().keymap[GAME_INPUT::INVENTORY] =
-      toml::find_or<uint8_t>(custom_keys, "inventory", 0);
-  Max::get().keymap[GAME_INPUT::MAP] =
-      toml::find_or<uint8_t>(custom_keys, "map", 0);
-  Max::get().keymap[GAME_INPUT::LB] =
-      toml::find_or<uint8_t>(custom_keys, "lb", 0);
-  Max::get().keymap[GAME_INPUT::RB] =
-      toml::find_or<uint8_t>(custom_keys, "rb", 0);
-  Max::get().keymap[GAME_INPUT::PAUSE] =
-      toml::find_or<uint8_t>(custom_keys, "pause", 0);
-  Max::get().keymap[GAME_INPUT::HUD] =
-      toml::find_or<uint8_t>(custom_keys, "hud", 0);
-  Max::get().keymap[GAME_INPUT::CRING] =
-      toml::find_or<uint8_t>(custom_keys, "cring", 0);
-
-  for (const auto &[name, key] : default_keys) {
-    keys[name] = (ImGuiKeyChord)toml::find_or<int>(ui_keys, name, (int)key);
-  }
-
-  UpdateOptions();
-
-  /*if (options["ui_viewports"].value) {
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-  } else {
-    ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
-  }*/
-
-  SaveINI();
 }
 
 void UI::SaveScreenShot(std::string name) {

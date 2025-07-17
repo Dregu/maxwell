@@ -24,6 +24,7 @@
 #include "memory.h"
 #include "search.h"
 #include "ui.h"
+#include "settings.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d12.lib")
@@ -326,7 +327,7 @@ long __fastcall HookPresent(IDXGISwapChain3 *pSwapChain, UINT SyncInterval,
     pD3DDevice->Release();
 
     // set viewports back to value from options to prevent change mid frame
-    if (g_UI->GetOption("ui_viewports")) {
+    if (settings.options["ui_viewports"].value) {
       ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     } else {
       ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
@@ -603,11 +604,6 @@ Status InstallHooks(LPVOID hModule) {
 
   hIcon = LoadIcon((HINSTANCE)hModule, MAKEINTRESOURCE(42069));
 
-  if (get_address("steam_restart")) {
-    write_mem_recoverable("steam_restart", get_address("steam_restart"),
-                          get_nop(19), true);
-  }
-
   Hook(54, (void **)&OriginalExecuteCommandLists, HookExecuteCommandLists);
   Hook(140, (void **)&OriginalPresent, HookPresent);
   Hook(145, (void **)&OriginalResizeBuffers, HookResizeBuffers);
@@ -627,8 +623,8 @@ Status RemoveHooks() {
                      (__int3264)(LONG_PTR)OriginalWndProc);
   }
 
-  delete g_UI;
   DestroyRenderTarget();
+  delete g_UI;
   ImGui::DestroyContext();
 
   // wait for hooks to finish if in one. maybe not needed, but seemed more

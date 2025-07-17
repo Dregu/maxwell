@@ -58,6 +58,7 @@ add_library(dll SHARED
     hook.cpp hook.h
     ui.cpp ui.h
     max.cpp max.h
+    settings.cpp settings.h
     memory.cpp memory.h
     search.cpp search.h
     virtual_table.cpp virtual_table.h

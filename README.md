@@ -17,12 +17,13 @@ This is not a virus, but you probably shouldn't believe a random file on the int
 ## Usage
 
 - Build with cmake or get the [Autobuild](https://github.com/Dregu/maxwell/releases/tag/autobuild)
-- Put `MAXWELL` folder inside the game folder and run `MAXWELL.exe` from there
-  - You can also run or create a shortcut to `MAXWELL.exe --launch_game ..` to launch the game automatically
+- Just run `MAXWELL.exe`
+  - If MAXWELL can't find the game automatically you can put `MAXWELL.exe` in a `MAXWELL` folder inside the game folder and run it from there
+  - You can also run or create a shortcut using `MAXWELL.exe --launch_game [path]` to launch the game
   - Check `--help` for other command line switches
 - `MAXWELL.dll` also works with other generic DLL injectors
-- Also works with Wine 9 / Proton 9
-- You can also rename `MAXWELL.dll` to `xinput9_1_0.dll` and place it next to `Animal Well.exe` to load it without the injector
+- Works with Wine 9 / Proton 9
+- You can rename `MAXWELL.dll` to `xinput9_1_0.dll` and place it next to `Animal Well.exe` to load it without the injector
   - Use the Steam launch options `PROTON_USE_WINED3D=1 WINEDLLOVERRIDES="xinput9_1_0=n,b" %command%` to load this on Proton
 - Doesn't seem to work with some builds of Goldberg's emulator if it has overlay enabled
   - To fix this, create a `Animal Well/steam_settings/disable_overlay.txt` file
@@ -80,26 +81,22 @@ This is not a virus, but you probably shouldn't believe a random file on the int
 ### Mods
 
   - WIP, untested, these things might still change on a whim
-  - Loads correctly named and formatted loose files recursively from `MAXWELL/Mods`
+  - Loads correctly named and formatted files from `MAXWELL/Mods`
   - No error checking
   - All original maps, assets and textures can be dumped with MAXWELL or the [level editor](https://github.com/Redcrafter/Animal-Well-editor)
     - Edited current state of maps can also be dumped with MAXWELL
     - Edited light params (asset 179) can also be dumped with MAXWELL
-  - Supports 3 types of modded files (all files in a mod must be placed in one of these subdirectories)
-    - Map mods in `[Mod Name]/Maps/X.map` where `X` is a map index in `0..4`
-    - Full asset mods in `[Mod Name]/Assets/Y.whatever` where `Y` is an asset number as dumped by the editor
-    - Texture atlas mods in `[Mod Name]/Tiles/Z.png` where `Z` is a texture number as dumped by the editor, or maybe at least matching an accompanying asset 254 (the texture atlas descriptor)
-  - Behavior with multiple conflicting mods is undefined, but probably at least one of the conflicing files will be loaded
+  - Supports 2 types of modded files
+    - Full asset mods in `MAXWELL/Mods/[Mod Name]/Assets/Y.whatever` where `Y` is an asset number as dumped by the editor
+    - Texture atlas mods in `MAXWELL/Mods/[Mod Name]/Tiles/Z.png` where `Z` is a tile number. The texture will overwrite the atlas at the position given by `254.tiles`. Tile mods can apply on top of `255.png` loaded by other mods.
+  - Conflicting mods will be highlighted in the mods menu, the first encountered assets will be loaded
   - Behavior with unexpected file formats is almost definitely crashing
   - Examples:
-    - `MAXWELL/Mods/Epic mod/Maps/0.map` replaces well map
     - `MAXWELL/Mods/Epic mod/Assets/101.ogg` replaces dog barks with farts
     - `MAXWELL/Mods/Epic mod/Assets/179.ambient` replaces the light params
+    - `MAXWELL/Mods/Epic mod/Assets/300.map` replaces well map
     - `MAXWELL/Mods/Epic mod/Tiles/416.png` replaces only the beanie texture in main texture atlas
     - `MAXWELL/Mods/Epic mod/Tiles/365.png` replaces another thing in main texture atlas
-    - `MAXWELL/Mods/Bad mod/Assets/255.png` replaces whole main texture atlas (don't do this, it's dumb and not compatible with multiple mods)
   - These are the only asset file types currently tested, but others might also work
   - **MAXWELL.exe has to be the one launching the game to hook the asset loading functions early**
-    - This can be done with the `--launch_game` command line switch or putting it in the right folder and just hitting enter when it asks
-    - Or you can use the xinput shim (see [Usage](#usage))
     - Mods won't load correctly if you just launch the game from Steam and have MAXWELL searching for processes

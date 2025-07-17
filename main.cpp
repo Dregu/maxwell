@@ -210,26 +210,24 @@ int main(int argc, char **argv) {
     INFO("MAXWELL DLL version: {}", dllversion);
   }
 
-  auto launch_game_default =
-      GetCmdLineParam<bool>(cmd_line_parser, "launch_game", false);
-  auto launch_game =
-      GetCmdLineParam<std::string_view>(cmd_line_parser, "launch_game", "");
-  if (launch_game.empty() && launch_game_default)
-    launch_game = "../Spel2.exe";
-
   bool do_inject = GetCmdLineParam<bool>(cmd_line_parser, "inject", false);
-  fs::path exe;
 
-  if (!launch_game.empty()) {
-    auto launch_path = fs::canonical(launch_game);
-    if (fs::is_directory(launch_path))
-      exe = launch_path / "Animal Well.exe";
-    else if (fs::is_regular_file(launch_path))
-      exe = launch_path;
+  std::string path;
+
+  auto launch_game_default = GetCmdLineParam<bool>(cmd_line_parser, "launch_game", true);
+  auto launch_game = GetCmdLineParam<std::string_view>(cmd_line_parser, "launch_game", "");
+  if(launch_game.empty() || !launch_game_default) {
+    if(fs::exists("../Animal Well.exe")) {
+      path = "../Animal Well.exe";
+    } else if(fs::exists("C:/Program Files (x86)/Steam/steamapps/common/Animal Well/Animal Well.exe")) {
+      path = "C:/Program Files (x86)/Steam/steamapps/common/Animal Well/Animal Well.exe";
+    }
+  } else {
+    path = launch_game;
   }
 
-  if (fs::exists(exe)) {
-    if (launch(exe, maxwell_path, do_inject)) {
+  if(fs::exists(path)) {
+    if (launch(fs::canonical(path), maxwell_path, do_inject)) {
       FreeConsole();
       return 0;
     }

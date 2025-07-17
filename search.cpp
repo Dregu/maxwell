@@ -182,7 +182,7 @@ size_t find_inst(const char *exe, std::string_view needle, size_t start,
   }
 
   if (is_required) {
-    if (MessageBox(NULL, error_message.c_str(), NULL, MB_OKCANCEL) ==
+    if (MessageBoxA(NULL, error_message.c_str(), NULL, MB_OKCANCEL) ==
         IDCANCEL) {
       std::terminate();
     }
@@ -446,7 +446,7 @@ private:
 
 using AddressRule = std::function<std::optional<size_t>(
     Memory mem, const char *exe, std::string_view address_name)>;
-std::unordered_map<std::string_view, AddressRule> g_address_rules{
+static std::unordered_map<std::string_view, AddressRule> g_address_rules{
     {
         // RE: Used in setupGame and updateGame
         // 48 89 35 54 58 be 02 e8 7f 8b 04 00 48 81 c6 08 1c b0 00
@@ -833,6 +833,22 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
             .at_exe()
             .function_start(),
     },
+    {
+        "room_changed"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_inst("48 81 ec 68 08 00 00 4c"_gh)
+            .at_exe()
+            .function_start(),
+    },
+    {
+        "upload_texture"sv,
+        PatternCommandBuffer{}
+            .set_optional(true)
+            .find_inst("48 81 ec 08 01 00 00 0f 29 b4 24 f0 00 00 00"_gh)
+            .at_exe()
+            .function_start(),
+    }
     /*{
         "load_asset"sv, PatternCommandBuffer{}.from_exe_base(0x74450), // TODO
     },
@@ -841,7 +857,7 @@ std::unordered_map<std::string_view, AddressRule> g_address_rules{
         PatternCommandBuffer{}.from_exe_base(0x52170),
     },*/
 };
-std::unordered_map<std::string_view, size_t> g_cached_addresses;
+static std::unordered_map<std::string_view, size_t> g_cached_addresses;
 
 std::unordered_map<std::string_view, size_t> &get_addresses() {
   return g_cached_addresses;

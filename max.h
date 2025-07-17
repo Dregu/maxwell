@@ -9,6 +9,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <filesystem>
 
 #include "image.h"
 
@@ -137,6 +138,7 @@ struct Room {
 
   Tile tiles[2][22][40];
 };
+static_assert(sizeof(Room) == 0x1b88);
 
 struct RoomData {
   uint8_t bgId;
@@ -149,7 +151,9 @@ struct Map {
   uint8_t world_wrap_x_start;
   uint8_t world_wrap_x_end;
   std::array<Room, 256> rooms;
+  int room_lookup[24][20];
 };
+static_assert(sizeof(Map) == 0x1b8f84);
 
 struct MapHeader {
   uint32_t signature1;
@@ -159,6 +163,7 @@ struct MapHeader {
   uint32_t idk3;
   uint32_t signature2;
 };
+static_assert(sizeof(MapHeader) == 16);
 
 enum class AssetType : uint8_t {
   Text = 0,
@@ -177,13 +182,14 @@ ENUM_CLASS_FLAGS(AssetType);
 
 struct AssetInfo {
   AssetType type;
-  void *data;
+  uint8_t* data;
   uint32_t size;
   uint32_t unk1;
   size_t unk2;
-  void *original_data;
+  uint8_t* original_data;
   size_t unk3;
 };
+static_assert(sizeof(AssetInfo) == 0x30);
 
 struct uv_data {
   U16Vec2 pos;
@@ -251,10 +257,18 @@ struct SaveData {
   // Options options;
 };
 
+struct ModEntry {
+  bool enabled = true;
+  std::filesystem::path path;
+  // does mod have overlapping assets?
+  bool overlap = false;
+};
+
 // TODO: This is a horrible prototype still
 struct Max {
   static Max &get();
   void unhook();
+
   static State state();
   Minimap minimap();
   uint8_t *slot_number();
@@ -305,23 +319,24 @@ struct Max {
   Room *room(int m, int x, int y);
   LightingData *lighting(int id);
   Tile *tile(int m, int rx, int ry, int x, int y, int l);
-  bool import_map(std::string file, int m = 0);
-  void load_custom_asset(uint32_t id, AssetInfo &asset);
-  void load_map_mods();
-  void load_tile_mods(AssetInfo &asset);
+
+  bool import_map(const std::string& file, int m = 0);
+  // restores original assets
+  void restore_original();
+  void update_mod_list();
+  void reload_mods(bool preload = false);
+  void load_tile_mods();
   static AssetInfo *get_asset(uint32_t id);
-  static size_t decrypt_layer(size_t asset, uint8_t *key, int layer);
-  static AssetInfo *decrypt_asset(uint32_t id, uint8_t *key);
-  static void *load_asset(uint32_t id, uint8_t b);
-  static void load_map_from_asset(AssetInfo *asset, Map *map);
-  static void load_map_from_data(void *data, Map *map);
-  void load_map(int m);
+  static AssetInfo *decrypt_asset(uint32_t id, int key);
+
+  // updates current room. same as exiting and entering
+  void update_room();
+
+  void load_maps_from_asset();
   std::array<uv_data, 1024> *tile_uvs();
-  void decrypt_stuff();
 
   void draw_text_big(int x, int y, const wchar_t *text);
-  void draw_text_small(int x, int y, const wchar_t *text,
-                       uint32_t color = 0xffffffff, uint32_t shader = 0x29);
+  void draw_text_small(int x, int y, const wchar_t *text, uint32_t color = 0xffffffff, uint32_t shader = 0x29);
 
   uint16_t get_room_tile_flags(int x, int y, uint16_t mask);
 
@@ -337,9 +352,7 @@ struct Max {
   std::deque<int> inputs;
   std::deque<std::function<void()>> render_queue;
 
-  std::optional<uint8_t> force_palette{std::nullopt};
   std::optional<uint8_t> force_water{std::nullopt};
-  std::unordered_map<int, AssetInfo> assets;
   std::unordered_map<GAME_INPUT, uint8_t> keymap{
       {GAME_INPUT::UP, VK_UP},     {GAME_INPUT::DOWN, VK_DOWN},
       {GAME_INPUT::LEFT, VK_LEFT}, {GAME_INPUT::RIGHT, VK_RIGHT},
@@ -350,7 +363,7 @@ struct Max {
       {GAME_INPUT::HUD, 'H'},      {GAME_INPUT::CRING, 'F'},
   };
 
-  bool use_igt{false};
-  bool use_keymap{false};
   bool atlas_loaded{false};
+
+  std::unordered_map<std::string, ModEntry> mods;
 };
