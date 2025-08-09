@@ -15,18 +15,15 @@
 #include "ghidra_byte_string.h"
 #include "logger.h"
 #include "memory.h"
+#include "settings.h"
 
 namespace fs = std::filesystem;
 
-static std::unordered_map<uint8_t, std::unordered_map<uint16_t, Room *>> rooms;
-
 const std::array<uint8_t, 16> encryption_keys[3] = {
-    {'G', 'o', 'o', 'd', 'L', 'U', 'c', 'K', 'M', 'y', 'F', 'r', 'i', 'E', 'n',
-     'd'},
-    {0xC9, 0x9B, 0x64, 0x96, 0x5C, 0xCE, 0x04, 0xF0, 0xF5, 0xCB, 0x54, 0xCA,
-     0xC9, 0xAB, 0x62, 0xC6},
-    {0x11, 0x14, 0x18, 0x14, 0x88, 0x82, 0x42, 0x82, 0x28, 0x24, 0x88, 0x82,
-     0x11, 0x18, 0x44, 0x11}};
+    {'G', 'o', 'o', 'd', 'L', 'U', 'c', 'K', 'M', 'y', 'F', 'r', 'i', 'E', 'n', 'd'},
+    {0xC9, 0x9B, 0x64, 0x96, 0x5C, 0xCE, 0x04, 0xF0, 0xF5, 0xCB, 0x54, 0xCA, 0xC9, 0xAB, 0x62, 0xC6},
+    {0x11, 0x14, 0x18, 0x14, 0x88, 0x82, 0x42, 0x82, 0x28, 0x24, 0x88, 0x82, 0x11, 0x18, 0x44, 0x11}
+};
 
 using UpdateState = void(void *a, void *b, void *c, void *d);
 UpdateState *g_update_state_trampoline{nullptr};
@@ -54,7 +51,7 @@ void HookUpdateState(void *a, void *b, void *c, void *d) {
     Max::get().inputs.pop_front();
   }
   g_update_state_trampoline(a, b, c, d);
-  if (Max::get().use_igt)
+  if(settings.options["cheat_igt"].value)
     *(Max::get().timer() + 1) = *Max::get().timer();
 }
 
@@ -116,7 +113,7 @@ using GetRoomParams = RoomParams(void *a, uint16_t b);
 GetRoomParams *g_room_params_trampoline{nullptr};
 RoomParams HookGetRoomParams(void *a, uint16_t b) {
   auto ret = g_room_params_trampoline(a, b);
-  auto pal = Max::get().force_palette;
+  auto pal = settings.forced_palette();
   if (pal.has_value() && pal.value() >= 0 && pal.value() <= 31)
     ret.palette = pal.value();
   return ret;
@@ -132,31 +129,11 @@ RoomParams HookGetRoomWater(void *a, uint16_t b) {
   return ret;
 }
 
-using GetAsset = AssetInfo(uint32_t id);
-GetAsset *g_get_asset_trampoline{nullptr};
-AssetInfo HookGetAsset(uint32_t id) {
-  auto asset = g_get_asset_trampoline(id);
-  Max::get().load_custom_asset(id, asset);
-  // DEBUG("GetAsset: {} {}", id, asset.data);
-  if (id == 255)
-    Max::get().load_tile_mods(asset);
-  return asset;
-}
-
-using DecryptAsset = AssetInfo *(uint32_t id, uint8_t *key);
-DecryptAsset *g_decrypt_asset_trampoline{nullptr};
-AssetInfo *HookDecryptAsset(uint32_t id, uint8_t *key) {
-  auto *asset = g_decrypt_asset_trampoline(id, key);
-  Max::get().load_custom_asset(id, *asset);
-  // DEBUG("DecryptAsset: {} {}", id, asset->data);
-  return asset;
-}
-
 using SetupGame = void(void *);
 SetupGame *g_setup_game_trampoline{nullptr};
 void HookSetupGame(void *a) {
+  Max::get().reload_mods(true);
   g_setup_game_trampoline(a);
-  Max::get().load_map_mods();
 }
 
 GAME_INPUT KeyToInput(uint8_t vk) {
@@ -244,8 +221,7 @@ GAME_INPUT IconToInput(BUTTON_ICON c) {
 using KeyPressed = bool(uint8_t);
 KeyPressed *g_key_pressed_trampoline{nullptr};
 bool HookKeyPressed(uint8_t vk) {
-  if (!Max::get().use_keymap || vk == VK_LBUTTON ||
-      (vk & VK_NUMPAD0) == VK_NUMPAD0)
+  if (!settings.options["input_custom"].value || vk == VK_LBUTTON || (vk & VK_NUMPAD0) == VK_NUMPAD0)
     return g_key_pressed_trampoline(vk);
   auto mk = GetMappedKey(vk);
   if (mk)
@@ -256,7 +232,7 @@ bool HookKeyPressed(uint8_t vk) {
 using KeyDown = uint8_t(uint8_t);
 KeyDown *g_key_down_trampoline{nullptr};
 uint8_t HookKeyDown(uint8_t vk) {
-  if (!Max::get().use_keymap || vk == VK_LBUTTON ||
+  if (!settings.options["input_custom"].value || vk == VK_LBUTTON ||
       (vk & VK_NUMPAD0) == VK_NUMPAD0)
     return g_key_down_trampoline(vk);
   auto mk = GetMappedKey(vk);
@@ -268,7 +244,7 @@ uint8_t HookKeyDown(uint8_t vk) {
 using DrawButton = void(int x, int y, BUTTON_ICON c);
 DrawButton *g_draw_action_button_trampoline{nullptr};
 void HookDrawActionButton(int x, int y, BUTTON_ICON c) {
-  if (Max::get().keymap.empty() || !Max::get().use_keymap ||
+  if (Max::get().keymap.empty() || !settings.options["input_custom"].value ||
       *(Max::get().options() + 0x10) != 3) {
     g_draw_action_button_trampoline(x, y, c);
     return;
@@ -293,7 +269,7 @@ void HookDrawActionButton(int x, int y, BUTTON_ICON c) {
 
 DrawButton *g_draw_button_trampoline{nullptr};
 void HookDrawButton(int x, int y, BUTTON_ICON c) {
-  if (Max::get().keymap.empty() || !Max::get().use_keymap ||
+  if (Max::get().keymap.empty() || !settings.options["input_custom"].value ||
       *(Max::get().options() + 0x10) != 3) {
     g_draw_button_trampoline(x, y, c);
     return;
@@ -398,27 +374,6 @@ Max &Max::get() {
         DEBUG("Failed hooking GetRoomWater: {}\n", error);
       }
     }*/
-
-    if (g_get_asset_trampoline = (GetAsset *)get_address("get_asset")) {
-      DetourTransactionBegin();
-      DetourUpdateThread(GetCurrentThread());
-      DetourAttach((void **)&g_get_asset_trampoline, HookGetAsset);
-      const LONG error = DetourTransactionCommit();
-      if (error != NO_ERROR) {
-        DEBUG("Failed hooking GetAsset: {}\n", error);
-      }
-    }
-
-    if (g_decrypt_asset_trampoline =
-            (DecryptAsset *)get_address("decrypt_asset")) {
-      DetourTransactionBegin();
-      DetourUpdateThread(GetCurrentThread());
-      DetourAttach((void **)&g_decrypt_asset_trampoline, HookDecryptAsset);
-      const LONG error = DetourTransactionCommit();
-      if (error != NO_ERROR) {
-        DEBUG("Failed hooking DecryptAsset: {}\n", error);
-      }
-    }
 
     if (g_setup_game_trampoline = (SetupGame *)get_address("setup_game")) {
       DetourTransactionBegin();
@@ -536,33 +491,39 @@ void Max::unhook() {
 
 State Max::state() {
   using GetStateFunc = State();
-  static GetStateFunc *get_state =
-      (GetStateFunc *)get_address("get_state_func");
+  static GetStateFunc *get_state = (GetStateFunc *)get_address("get_state_func");
   return get_state();
 }
 
+// application_state.render_data.minimap_data
 Minimap Max::minimap() { return *(size_t *)get_address("slots") + 0x2490b8; }
 
 SaveData *Max::save() {
   return (SaveData *)(*(size_t *)get_address("slots") + 0x400);
 }
 
+// application_state.current_save
 uint8_t *Max::slot_number() {
   return (uint8_t *)(*(size_t *)get_address("slots") + 0x40c);
 }
 
+// application_state.save_data[application_state.current_save]
 Slot Max::slot() {
-  return *(size_t *)get_address("slots") + SLOT_SIZE * (*slot_number());
+  return *(size_t *)get_address("slots") + 0x418 + SLOT_SIZE * (*slot_number());
 }
 
+// application_state.game_state.player_data
 Player Max::player() {
   return (Player)(*(size_t *)get_address("slots") + 0x93670);
 }
 
+// application_state.game_state.player_data.room_coordinates
 S32Vec2 *Max::player_room() { return (S32Vec2 *)(player() + 0x20); }
 
+// application_state.game_state.player_data.position
 FVec2 *Max::player_position() { return (FVec2 *)(player()); }
 
+// application_state.game_state.player_data.velocity
 FVec2 *Max::player_velocity() { return (FVec2 *)(player() + 0x8); }
 
 FVec2 *Max::player_wheel() {
@@ -596,82 +557,101 @@ Directions *Max::player_directions() {
   return (Directions *)(player() + 0x891c);
 }
 
-int8_t *Max::player_hp() { return (int8_t *)(slot() + 0x400 + 0x1cc); }
+// save_data.total_hearts
+int8_t *Max::player_hp() { return (int8_t *)(slot() + 0x1b4); }
 
-S32Vec2 *Max::spawn_room() { return (S32Vec2 *)(slot() + 0x400 + 0x1ec); }
+// save_data.save_position
+S32Vec2 *Max::spawn_room() { return (S32Vec2 *)(slot() + 0x1d4); }
 
-uint16_t *Max::equipment() { return (uint16_t *)(slot() + 0x400 + 0x1f4); }
+// save_data.opened_equipment
+uint16_t *Max::equipment() { return (uint16_t *)(slot() + 0x1dc); }
 
-uint8_t *Max::items() { return (uint8_t *)(slot() + 0x400 + 0x1f6); }
+// save_data.owned_items
+uint8_t *Max::items() { return (uint8_t *)(slot() + 0x1de); }
 
-uint32_t *Max::upgrades() { return (uint32_t *)(slot() + 0x400 + 0x204); }
+// save_data.upgrades
+uint32_t *Max::upgrades() { return (uint32_t *)(slot() + 0x1ec); }
 
-uint8_t *Max::keys() { return (uint8_t *)(slot() + 0x400 + 0x1c9); }
+// save_data.key_count
+uint8_t *Max::keys() { return (uint8_t *)(slot() + 0x1b1); }
 
-uint8_t *Max::item() { return (uint8_t *)(slot() + 0x400 + 0x202); }
+// save_data.selected_item
+uint8_t *Max::item() { return (uint8_t *)(slot() + 0x1ea); }
 
+// application_state.?
 uint8_t *Max::options() {
-  return (uint8_t *)(*(size_t *)get_address("slots") + 0x400 + 0x75048);
+  return (uint8_t *)(*(size_t *)get_address("slots") + 0x75448);
 }
 
-uint64_t *Max::eggs() { return (uint64_t *)(slot() + 0x418 + 0x188); }
+// save_data.eggs
+uint64_t *Max::eggs() { return (uint64_t *)(slot() + 0x188); }
 
-uint8_t *Max::flames() { return (uint8_t *)(slot() + 0x418 + 0x21e); }
+// save_data.flames
+uint8_t *Max::flames() { return (uint8_t *)(slot() + 0x21e); }
 
-uint64_t *Max::chests() { return (uint64_t *)(slot() + 0x418 + 0x120); }
+// save_data.opened_chests
+uint64_t *Max::chests() { return (uint64_t *)(slot() + 0x120); }
 
-uint16_t *Max::candles() { return (uint16_t *)(slot() + 0x418 + 0x1e0); }
+// save_data.candle_flags
+uint16_t *Max::candles() { return (uint16_t *)(slot() + 0x1e0); }
 
-uint32_t *Max::bunnies() { return (uint32_t *)(slot() + 0x418 + 0x198); }
+// save_data.bunnies_collected
+uint32_t *Max::bunnies() { return (uint32_t *)(slot() + 0x198); }
 
-uint16_t *Max::squirrels() { return (uint16_t *)(slot() + 0x418 + 0x19c); }
+// save_data.squirrels_collected
+uint16_t *Max::squirrels() { return (uint16_t *)(slot() + 0x19c); }
 
-Kangaroo *Max::kangaroo() { return (Kangaroo *)(slot() + 0x418 + 0x1f4); }
+// save_data.kangaroo_data
+Kangaroo *Max::kangaroo() { return (Kangaroo *)(slot() + 0x1f4); }
 
-uint8_t *Max::portals() { return (uint8_t *)(slot() + 0x418 + 0x223); }
+// save_data.teleports_seen
+uint8_t *Max::portals() { return (uint8_t *)(slot() + 0x223); }
 
-uint8_t *Max::shards() { return (uint8_t *)(slot() + 0x418 + 0x1F4 + 0xa); }
+// save_data.kangaroo_data.encounters[0].shard_state
+uint8_t *Max::shards() { return (uint8_t *)(slot() + 0x1F4 + 0xa); }
 
-uint16_t *Max::progress() { return (uint16_t *)(slot() + 0x418 + 0x21c); }
+// save_data.ui_flags
+uint16_t *Max::progress() { return (uint16_t *)(slot() + 0x21c); }
 
-uint8_t *Max::manticore() { return (uint8_t *)(slot() + 0x418 + 0x1F0); }
+// save_data.BlueManticore_state
+uint8_t *Max::manticore() { return (uint8_t *)(slot() + 0x1F0); }
 
 Pause *Max::pause() {
   return (Pause *)((*(size_t *)get_address("slots") + 0x93608));
 };
 
-uint32_t *Max::timer() { return (uint32_t *)(slot() + 0x400 + 0x1d4); }
+// save_data.frams_in_game
+uint32_t *Max::timer() { return (uint32_t *)(slot() + 0x1bc); }
 
-uint32_t *Max::steps() { return (uint32_t *)(slot() + 0x418 + 0x108); }
+// save_data.steps
+uint32_t *Max::steps() { return (uint32_t *)(slot() + 0x108); }
 
-uint8_t *Max::mural_selection() { return (uint8_t *)(slot() + 0x400 + 0x402); }
+// save_data.mural_cursor_pos
+uint8_t *Max::mural_selection() { return (uint8_t *)(slot() + 0x3ea); }
 
+// save_data.revealed_map / pencil_drawing / deleted_tiles
 std::bitset<0xce40 * 8> *Max::map_bits(int n) {
-  return (std::bitset<0xce40 * 8> *)(slot() + 0x400 + 0x404 + n * 0xce41);
+  return (std::bitset<0xce40 * 8> *)(slot() + 0x3ec + n * 0xce41);
 }
 
+// save_data.mural
 std::array<uint8_t, 200> *Max::mural() {
-  return (std::array<uint8_t, 200> *)(slot() + 0x400 + 0x26ec7);
+  return (std::array<uint8_t, 200> *)(slot() + 0x26eaf);
 }
 
+// globals.maps[m]
 Map *Max::map(int m) {
   if (m >= 0 && m <= 4)
-    return (Map *)(*(size_t *)get_address("layer_base") + 0x2d0 + m * 0x1b8f84);
+    return (Map *)(*(size_t *)get_address("layer_base") + 0x2d0 + m * sizeof(Map));
   return nullptr;
 }
 
+// globals.maps[m].rooms[room_lookup[y][x])]
 Room *Max::room(int m, int x, int y) {
-  if (!rooms.contains(m)) {
-    auto layer = Max::get().map(m);
-    if (!layer)
-      return nullptr;
-    for (int r = 0; r < layer->roomCount; ++r) {
-      auto *room = &layer->rooms[r];
-      rooms[m][room->x | (room->y << 8)] = &layer->rooms[r];
-    }
-  }
-  if (rooms.contains(m) && rooms[m].contains(x | (y << 8)))
-    return rooms[m][x | (y << 8)];
+  auto layer = Max::get().map(m);
+  int room_id = layer->room_lookup[y][x];
+  if(room_id != -1)
+    return &layer->rooms[room_id];
   return nullptr;
 }
 
@@ -682,8 +662,7 @@ LightingData *Max::lighting(int id) {
                // to sneak in our own pointer to be able to edit the data.
     data = std::make_unique<std::array<LightingData, 32>>();
 
-    auto data_addr =
-        (LightingData **)(*(size_t *)get_address("layer_base") + 0x89d470);
+    auto data_addr = (LightingData **)(*(size_t *)get_address("layer_base") + 0x89d470);
     memcpy(data->data(), *data_addr, data->size() * sizeof(LightingData));
     *data_addr = data->data();
   }
@@ -700,56 +679,78 @@ Tile *Max::tile(int m, int rx, int ry, int x, int y, int l) {
   return nullptr;
 }
 
-bool Max::import_map(std::string file, int m) {
+bool Max::import_map(const std::string& file, int m) {
   auto layer = Max::get().map(m);
   if (!layer)
     return false;
 
   MapHeader header;
-  std::ifstream f;
-
-  f.open(file.c_str(), std::ifstream::binary);
+  std::ifstream f {file, std::ios::binary};
   if (!f.good())
     return false;
 
-  f.read(reinterpret_cast<char *>(&header.signature1),
-         sizeof(header.signature1));
-  f.read(reinterpret_cast<char *>(&header.roomCount), sizeof(header.roomCount));
-  f.read(reinterpret_cast<char *>(&header.world_wrap_x_start),
-         sizeof(header.world_wrap_x_start));
-  f.read(reinterpret_cast<char *>(&header.world_wrap_x_end),
-         sizeof(header.world_wrap_x_end));
-  f.read(reinterpret_cast<char *>(&header.idk3), sizeof(header.idk3));
-  f.read(reinterpret_cast<char *>(&header.signature2),
-         sizeof(header.signature2));
+  f.read((char*)&header, sizeof(MapHeader));
+  if(header.signature1 != 0xF00DCAFE || header.signature2 != 0xF0F0CAFE) {
+    return false;
+  }
 
   // DEBUG("Room Count: {}", header.roomCount);
   layer->roomCount = header.roomCount;
   layer->world_wrap_x_start = header.world_wrap_x_start;
   layer->world_wrap_x_end = header.world_wrap_x_end;
-  f.read(reinterpret_cast<char *>(&layer->rooms), 0x1b8f84);
-  f.close();
+  f.read(reinterpret_cast<char *>(&layer->rooms), sizeof(layer->rooms) + sizeof(layer->room_lookup));
+
   return true;
 }
 
-void Max::load_map_from_asset(AssetInfo *asset, Map *map) {
-  if (asset && map)
-    Max::load_map_from_data(asset->data, map);
-}
-
-void Max::load_map_from_data(void *data, Map *map) {
-  using LoadFunc = void(void *data, Map *map);
-  static LoadFunc *load = (LoadFunc *)get_address("load_map_from_data");
-  load(data, map);
-}
-
-void Max::load_map(int m) {
+void Max::load_maps_from_asset() {
   static const std::array map_to_asset{300, 157, 193, 52, 222};
-  auto map = Max::get().map(m);
-  auto asset = Max::get().get_asset(map_to_asset[m]);
-  if (!map)
-    return;
-  Max::load_map_from_asset(asset, map);
+  using LoadFunc = void(void* data, Map* map);
+  static LoadFunc* load = (LoadFunc*)get_address("load_map_from_data");
+
+  for (size_t i = 0; i < 5; i++) {
+    auto map = this->map(i);
+    auto asset = get_asset(map_to_asset[i]);
+    load(asset->data, map);
+  }
+
+  {
+    auto lights = lighting(0); // maxwell replaces the lighting pointer so overwrite that with the loaded asset data
+    auto asset = get_asset(179);
+    std::memcpy(lights, (uint8_t*)asset->data + 0xC, sizeof(LightingData) * 32);
+  }
+
+  {
+      auto uvs = (uv_data**)((*(size_t*)get_address("layer_base")) + 0x89d068);
+      auto asset = get_asset(254);
+      *uvs = (uv_data*)((uint8_t*)asset->data + 0xC);
+  }
+
+  // doesn't work and idk why
+  /*{ // update texture atlas gpu memory
+      auto asset = get_asset(255);
+      Image img((char*)asset->data, asset->size);
+
+      auto s = img.size();
+      for(size_t i = 0; i < s.x * s.y; i++) {
+          img.data()[i] = 0;
+      }
+
+      // application_state.render_data.mainTextureAtlas
+      auto texture = *(size_t*)(*(size_t*)get_address("slots") + 0x248120 + 0x600);
+
+      using UploadFunc = void(void* texture, void* data);
+      static auto upload = (UploadFunc*)get_address("upload_texture");
+      upload((void*)texture, img.data());
+  }*/
+
+  update_room();
+}
+
+void Max::update_room() {
+    using WarpFunc = void(void* room, S32Vec2 room_coordinates, void* save_data);
+    static auto warp = (WarpFunc*)get_address("room_changed");
+    warp((void*)(*(size_t*)get_address("slots") + 0x754a8 + 0x28), *player_room(), (void*)slot());
 }
 
 void Max::save_game() {
@@ -758,177 +759,167 @@ void Max::save_game() {
   return save();
 }
 
-size_t Max::decrypt_layer(size_t asset, uint8_t *key, int layer) {
-  using DecryptFunc = size_t(size_t asset, uint8_t * key, int layer);
-  static DecryptFunc *decrypt = (DecryptFunc *)get_address("decrypt_layer");
-  return decrypt(asset, key, layer);
-}
-
-AssetInfo *Max::decrypt_asset(uint32_t id, uint8_t *key) {
-  using DecryptFunc = AssetInfo *(uint32_t id, uint8_t * key);
+AssetInfo *Max::decrypt_asset(uint32_t id, int key) {
+  using DecryptFunc = AssetInfo *(uint32_t id, const uint8_t * key);
   static DecryptFunc *decrypt = (DecryptFunc *)get_address("decrypt_asset");
-  return decrypt(id, key);
-}
-
-void Max::decrypt_stuff() {
-  static bool done{false};
-  if (!done) {
-    done = true;
-    decrypt_layer(193, (uint8_t *)&encryption_keys[0], 2); // space
-    decrypt_layer(52, (uint8_t *)&encryption_keys[1], 3);  // temple
-    decrypt_layer(222, (uint8_t *)&encryption_keys[2], 4); // island
-    // TODO
-    // decrypt_asset(30, (uint8_t *)&encryption_keys[1]); // chungus
-    // decrypt_asset(277, (uint8_t *)&encryption_keys[2]); // capsule
-    // decrypt_asset(377, (uint8_t *)&encryption_keys[2]); // tape
-  }
+  return decrypt(id, encryption_keys[key].data());
 }
 
 AssetInfo *Max::get_asset(uint32_t id) {
   return (AssetInfo *)(get_address("assets") + id * sizeof(AssetInfo));
 }
 
-std::vector<fs::path> get_sorted_mod_files() {
-  std::vector<fs::path> mod_files;
-  if (!fs::exists("MAXWELL\\Mods") || !fs::is_directory("MAXWELL\\Mods"))
-    return mod_files;
-  std::copy(fs::recursive_directory_iterator("MAXWELL\\Mods"),
-            fs::recursive_directory_iterator(), std::back_inserter(mod_files));
-  std::sort(mod_files.begin(), mod_files.end());
-  return mod_files;
+static bool isDigit(char c) {
+    return c >= '0' && c <= '9';
 }
 
-bool has_tile_mods() {
-  for (const auto &p : get_sorted_mod_files()) {
-    if (!fs::is_directory(p)) {
-      auto parent = p.parent_path().filename().string();
-      std::transform(parent.begin(), parent.end(), parent.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      auto ext = p.extension().string();
-      std::transform(ext.begin(), ext.end(), ext.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (parent == "tiles" && ext == ".png")
-        return true;
+static int readInt(const std::string& str) {
+    if(!isDigit(str[0]))
+        return -1;
+    int res = 0;
+    for (auto &c : str) {
+        if(isDigit(c)) {
+            res *= 10;
+            res += c - '0';
+        } else {
+            break;
+        }
     }
-  }
-  return false;
+    return res;
 }
 
-std::string get_custom_asset_path(uint32_t id) {
-  for (const auto &p : get_sorted_mod_files()) {
-    if (!fs::is_directory(p)) {
-      auto file = p.string();
-      auto parent = p.parent_path().filename().string();
-      std::transform(parent.begin(), parent.end(), parent.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      auto stem = p.stem().string();
-      auto ext = p.extension().string();
-      std::transform(ext.begin(), ext.end(), ext.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      auto fileId = StrToIntA(stem.c_str());
-      if (id == fileId && parent == "assets" && (fileId != 0 || stem == "0"))
-        return file;
-    }
-  }
-  return "";
+static std::vector<uint8_t> readFile(const std::string& path) {
+    if(!fs::exists(path))
+        throw std::runtime_error("File not found");
+
+    std::ifstream testFile(path, std::ios::binary);
+    testFile.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+    return std::vector<uint8_t>(std::istreambuf_iterator(testFile), std::istreambuf_iterator<char>());
 }
 
-void Max::load_custom_asset(uint32_t id, AssetInfo &asset) {
-  std::string file = get_custom_asset_path(id);
-  if (!assets.contains(id) && file != "") {
-    size_t s = fs::file_size(file);
-    char *buf = (char *)malloc(s);
-    std::ifstream f(file.c_str(), std::ios::in | std::ios::binary);
-    f.read(buf, s);
-    asset.type &= AssetType::Normal;
-    asset.data = buf;
-    asset.size = s;
-    assets[id] = asset;
-    DEBUG("Loaded custom asset {} from {}", id, asset.data);
-  }
-  if (assets.contains(id)) {
-    asset = assets[id];
-    // DEBUG("Found custom asset: {} {}", id, asset.data);
-  }
+static void toLower(std::string& str) {
+  std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
 }
 
-void Max::load_map_mods() {
-  for (const auto &p : get_sorted_mod_files()) {
-    if (!fs::is_directory(p)) {
-      auto file = p.string();
-      auto parent = p.parent_path().filename().string();
-      std::transform(parent.begin(), parent.end(), parent.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      auto stem = p.stem().string();
-      auto ext = p.extension().string();
-      std::transform(ext.begin(), ext.end(), ext.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      auto id = StrToIntA(stem.c_str());
-      if (ext == ".map" && id >= 0 && id <= 4) {
-        import_map(file, id);
-        DEBUG("Loaded map {} from {}", id, file);
-      }
-    }
-  }
-}
+static std::unordered_map<int, std::vector<uint8_t>> asset_cache;
+static std::array<AssetInfo, 676> original_assets;
 
-void Max::load_tile_mods(AssetInfo &asset) {
-  if (!has_tile_mods())
-    return;
+void Max::load_tile_mods() {
+  AssetInfo &asset = *get_asset(255);
 
-  Image *atlas = new Image((char *)asset.data, asset.size);
+  Image atlas((char *)asset.data, asset.size);
   DEBUG("Created atlas texture for tile mods");
 
-  for (const auto &p : get_sorted_mod_files()) {
-    if (!fs::is_directory(p)) {
-      auto file = p.string();
-      auto parent = p.parent_path().filename().string();
-      std::transform(parent.begin(), parent.end(), parent.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      auto stem = p.stem().string();
-      auto ext = p.extension().string();
-      std::transform(ext.begin(), ext.end(), ext.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      auto id = StrToIntA(stem.c_str());
-      if ((id != 0 || stem == "0") && parent == "tiles" && ext == ".png") {
-        size_t s = fs::file_size(file);
-        char *buf = (char *)malloc(s);
-        std::ifstream f(file.c_str(), std::ios::in | std::ios::binary);
-        f.read(buf, s);
-        f.close();
-        auto img = Image(buf, s);
-        auto size = img.size();
-        auto pos = (*tile_uvs())[id].pos;
-        for (int y1 = 0; y1 < size.y; y1++) {
-          for (int x1 = 0; x1 < size.x; x1++) {
-            (*atlas)(pos.x + x1, pos.y + y1) = img(x1, y1);
-          }
+  auto& uvs = *tile_uvs();
+
+  bool changed = false;
+  for(auto& [_, mod] : mods) {
+    if(!mod.enabled || !fs::exists(mod.path / "Tiles")) continue;
+
+    for (auto &file : fs::directory_iterator(mod.path / "Tiles")) {
+      auto ext = file.path().extension().string();
+      toLower(ext);
+      if(!file.is_regular_file() || ext != ".png") continue;
+      int id = readInt(file.path().filename().string());
+      if(id == -1) continue;
+
+      changed = true;
+      Image img(file.path().string());
+      auto size = img.size();
+      auto pos = uvs[id].pos;
+      for (int y1 = 0; y1 < size.y; y1++) {
+        for (int x1 = 0; x1 < size.x; x1++) {
+          atlas(pos.x + x1, pos.y + y1) = img(x1, y1);
         }
-        DEBUG("Loaded tile {} from {}", id, file);
       }
+      DEBUG("Loaded tile {} from {}", id, file.path().string());
     }
   }
 
-  {
+  if(changed) {
     int len;
-    auto image = atlas->get_png(&len);
-    asset.data = (char *)malloc(len);
-    memcpy(asset.data, image, len);
+    auto png = (uint8_t*)atlas.get_png(&len);;
+    asset_cache[255] = std::vector<uint8_t>(png, png + len);
+    asset.data = asset_cache[255].data();
+    asset.size = asset_cache[255].size();
     asset.type &= AssetType::Normal;
-    asset.size = len;
-    assets[255] = asset;
-    delete atlas;
+    free(png);
     DEBUG("Saved atlas texture to asset 255");
   }
 }
 
-// TODO: I don't know wtf this does
-void *Max::load_asset(uint32_t id, uint8_t b) {
-  using LoadFunc = void *(uint32_t id, uint8_t b);
-  static LoadFunc *load = (LoadFunc *)get_address("load_asset");
-  auto ret = load(id, b);
-  // DEBUG("LoadAsset: {} {} {}", id, b, ret);
-  return ret;
+void Max::restore_original() {
+  std::memcpy(get_asset(0), &original_assets, sizeof(original_assets));
+  load_maps_from_asset();
+}
+
+void Max::update_mod_list() {
+  fs::create_directories("MAXWELL/Mods");
+  for(auto& mod : fs::directory_iterator("MAXWELL/Mods")) {
+    if(!mod.is_directory()) continue;
+
+    auto name = mod.path().filename().string();
+    if(!mods.contains(name)) {
+      mods[name] = { true, mod.path(), false };
+    }
+  }
+
+  std::erase_if(mods, [](auto& kv) { return !fs::exists(kv.second.path); });
+}
+
+// on preload only load things into the asset array since the game has not yet populated the other data
+void Max::reload_mods(bool preload) {
+  if(preload) {
+    // pre decrypt all assets so we won't have to worry about it anymore
+    decrypt_asset(193, 0); // space
+    decrypt_asset(212, 0); // origami instructions
+    decrypt_asset(255, 0); // texture atlas
+    decrypt_asset(300, 0); // overworld
+
+    decrypt_asset(30, 1);  // space bunny
+    decrypt_asset(52, 1);  // bunny temple
+
+    decrypt_asset(222, 2); // time capsule
+    decrypt_asset(277, 2); // time capsule texture
+    decrypt_asset(377, 2); // time capsule audio
+
+    std::memcpy(&original_assets, get_asset(0), sizeof(original_assets));
+  } else {
+    std::memcpy(get_asset(0), &original_assets, sizeof(original_assets));
+  }
+
+  update_mod_list();
+
+  std::unordered_map<int, std::string> assets_;
+
+  for(auto& [_, mod] : mods) {
+    mod.overlap = false;
+    if(!mod.enabled || !fs::exists(mod.path / "assets")) continue;
+
+    for (auto &file : fs::directory_iterator(mod.path / "assets")) {
+      auto id = readInt(file.path().filename().string());
+      if(id == -1) continue;
+      if(assets_.contains(id)) {
+          mod.overlap = true;
+          continue;
+      }
+      assets_[id] = file.path().string();
+    }
+  }
+
+  for (auto &[id, file] : assets_) {
+    // keep track of allocated data to avoid memory leak
+    asset_cache[id] = readFile(file);
+    auto asset = get_asset(id);
+    asset->data = asset_cache[id].data();
+    asset->size = asset_cache[id].size();
+  }
+
+  load_tile_mods();
+
+  if(!preload) {
+    load_maps_from_asset();
+  }
 }
 
 using DrawTextFunc = void(int x, int y, const wchar_t *text);
@@ -938,17 +929,12 @@ void Max::draw_text_big(int x, int y, const wchar_t *text) {
   static DrawTextFunc *draw = (DrawTextFunc *)get_address("draw_text_big");
   draw(x, y, text);
 }
-void Max::draw_text_small(int x, int y, const wchar_t *text, uint32_t color,
-                          uint32_t shader) {
+void Max::draw_text_small(int x, int y, const wchar_t *text, uint32_t color, uint32_t shader) {
   static DrawTextFunc *draw = (DrawTextFunc *)get_address("draw_text_small");
-  static PushColorFunc *push_color =
-      (PushColorFunc *)get_address("draw_push_color");
-  static PopColorFunc *pop_color =
-      (PopColorFunc *)get_address("draw_pop_color");
-  static PushColorFunc *push_shader =
-      (PushColorFunc *)get_address("draw_push_shader");
-  static PopColorFunc *pop_shader =
-      (PopColorFunc *)get_address("draw_pop_shader");
+  static PushColorFunc *push_color = (PushColorFunc *)get_address("draw_push_color");
+  static PopColorFunc *pop_color = (PopColorFunc *)get_address("draw_pop_color");
+  static PushColorFunc *push_shader = (PushColorFunc *)get_address("draw_push_shader");
+  static PopColorFunc *pop_shader = (PopColorFunc *)get_address("draw_pop_shader");
   push_color(color);
   push_shader(shader);
   draw(x, y, text);
@@ -967,8 +953,7 @@ uint16_t Max::get_room_tile_flags(int x, int y, uint16_t mask) {
 }
 
 void Max::dump_lighting() {
-  CreateDirectory(L"MAXWELL\\Dump", NULL);
-  CreateDirectory(L"MAXWELL\\Dump\\Assets", NULL);
+  fs::create_directories("MAXWELL/Dump/Assets");
   std::string file = "MAXWELL\\Dump\\Assets\\179.ambient";
   std::ofstream out(file, std::ios::binary);
   out << "00 0B F0 00 20 00 00 00 00 00 00 00"_gh;
@@ -980,8 +965,7 @@ void Max::dump_map(uint8_t m) {
   static const std::array map_to_asset{300, 157, 193, 52, 222};
   auto map = Max::get().map(m);
   auto asset = Max::get().get_asset(map_to_asset[m]);
-  CreateDirectory(L"MAXWELL\\Dump", NULL);
-  CreateDirectory(L"MAXWELL\\Dump\\Maps", NULL);
+  fs::create_directories("MAXWELL/Dump/Maps");
   std::string file = fmt::format("MAXWELL\\Dump\\Maps\\{}.map", m);
   std::ofstream out(file, std::ios::binary);
   MapHeader header{0xF00DCAFE,
@@ -998,8 +982,7 @@ void Max::dump_map(uint8_t m) {
 
 void Max::dump_asset(uint32_t id) {
   auto asset = Max::get().get_asset(id);
-  CreateDirectory(L"MAXWELL\\Dump", NULL);
-  CreateDirectory(L"MAXWELL\\Dump\\Assets", NULL);
+  fs::create_directories("MAXWELL/Dump/Assets");
   auto ptr = (uint8_t *)asset->data;
   if (ptr == 0)
     return;
@@ -1017,7 +1000,7 @@ void Max::dump_asset(uint32_t id) {
   } else if (ptr[0] == 'D' && ptr[1] == 'X' && ptr[2] == 'B' && ptr[3] == 'C') {
     ext = ".shader";
   } else if (ptr[0] == 0 && ptr[1] == 0x0B && ptr[2] == 0xB0 && ptr[3] == 0) {
-    ext = ".uvs";
+    ext = ".tiles";
   } else if (ptr[0] == 'P' && ptr[1] == 'K' && ptr[2] == 3 && ptr[3] == 4) {
     ext = ".xps";
   } else if (ptr[0] == 0x00 && ptr[1] == 0x0B && ptr[2] == 0xF0 &&

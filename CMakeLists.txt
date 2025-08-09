@@ -3,43 +3,72 @@ project(MAXWELL)
 set(CMAKE_CXX_STANDARD 20)
 add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
+include(FetchContent)
+FetchContent_Declare(
+  detours
+  GIT_REPOSITORY https://github.com/microsoft/Detours.git
+  GIT_TAG        4b8c659f549b0ab21cf649377c7a84eb708f5e68
+)
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG        1768bf971409effd74346c61446ac4f31c2bedcd
+)
+FetchContent_Declare(
+  imgui
+  GIT_REPOSITORY https://github.com/ocornut/imgui.git
+  GIT_TAG        975beafafdcf8cdfa1b83261ce8c8cbeaa28091b
+)
+FetchContent_Declare(
+  toml11
+  GIT_REPOSITORY https://github.com/ToruNiina/toml11.git
+  GIT_TAG        85faca9cbe8d76324ff38c1801be44c63e12d5be
+)
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG        f0569113c93ad095470c54bf34a17b36646bbbb5 # master 06.05.2025
+)
+
+FetchContent_MakeAvailable(detours fmt imgui toml11 stb)
+
 # imgui
 add_library(imgui STATIC
-    imgui/imconfig.h
-    imgui/imgui.cpp
-    imgui/imgui.h
-    imgui/imgui_internal.h
-    imgui/backends/imgui_impl_dx12.cpp
-    imgui/backends/imgui_impl_dx12.h
-    imgui/backends/imgui_impl_win32.cpp
-    imgui/backends/imgui_impl_win32.h
-    imgui/imgui_widgets.cpp
-    imgui/imgui_draw.cpp
-    imgui/imgui_tables.cpp
-    imgui/misc/cpp/imgui_stdlib.h
-    imgui/misc/cpp/imgui_stdlib.cpp)
+    "${imgui_SOURCE_DIR}/imconfig.h"
+    "${imgui_SOURCE_DIR}/imgui.cpp"
+    "${imgui_SOURCE_DIR}/imgui.h"
+    "${imgui_SOURCE_DIR}/imgui_internal.h"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_dx12.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_dx12.h"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_win32.h"
+    "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
+    "${imgui_SOURCE_DIR}/imgui_draw.cpp"
+    "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+    "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.h"
+    "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp"
+)
 
-target_include_directories(imgui PUBLIC imgui)
+target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
 
 # detours
 add_library(detours STATIC
-    detours/src/creatwth.cpp
-    detours/src/detours.cpp
-    detours/src/detours.h
-    detours/src/detver.h
-    detours/src/disasm.cpp
-    detours/src/disolarm.cpp
-    detours/src/disolarm64.cpp
-    detours/src/disolia64.cpp
-    detours/src/disolx64.cpp
-    detours/src/disolx86.cpp
-    detours/src/image.cpp
-    detours/src/modules.cpp
-    detours/src/uimports.cpp)
+    "${detours_SOURCE_DIR}/src/creatwth.cpp"
+    "${detours_SOURCE_DIR}/src/detours.cpp"
+    "${detours_SOURCE_DIR}/src/detours.h"
+    "${detours_SOURCE_DIR}/src/detver.h"
+    "${detours_SOURCE_DIR}/src/disasm.cpp"
+    "${detours_SOURCE_DIR}/src/disolarm.cpp"
+    "${detours_SOURCE_DIR}/src/disolarm64.cpp"
+    "${detours_SOURCE_DIR}/src/disolia64.cpp"
+    "${detours_SOURCE_DIR}/src/disolx64.cpp"
+    "${detours_SOURCE_DIR}/src/disolx86.cpp"
+    "${detours_SOURCE_DIR}/src/image.cpp"
+    "${detours_SOURCE_DIR}/src/modules.cpp"
+    "${detours_SOURCE_DIR}/src/uimports.cpp"
+)
 
-set_property(
-    SOURCE detours/src/uimports.cpp
-    APPEND PROPERTY HEADER_FILE_ONLY true)
+set_property(SOURCE "${detours_SOURCE_DIR}/src/uimports.cpp" APPEND PROPERTY HEADER_FILE_ONLY true)
 
 if(MSVC)
     target_compile_options(detours PRIVATE /w /Zi /MT /Gy /Gm- /Zl /Od)
@@ -47,52 +76,46 @@ else()
     target_compile_options(detours PRIVATE -w)
 endif()
 
-target_include_directories(detours PUBLIC detours/src)
+target_include_directories(detours PUBLIC "${detours_SOURCE_DIR}/src")
 
 # fmt
 set(FMT_MASTER_PROJECT OFF)
-add_subdirectory(fmt)
-
-add_library(dll SHARED
-    dllmain.cpp
-    hook.cpp hook.h
-    ui.cpp ui.h
-    max.cpp max.h
-    memory.cpp memory.h
-    search.cpp search.h
-    virtual_table.cpp virtual_table.h
-    version.cpp version.h
-    image.cpp image.h
-    ghidra_byte_string.h
-    tokenize.h
-    logger.h
-    font.h
-    stb_image.h
-    stb_image_write.h
-    res/MAXWELL.rc)
-
-target_link_libraries(dll PRIVATE
-    detours
-    imgui
-    fmt
-    toml11::toml11)
-
-set_target_properties(dll PROPERTIES OUTPUT_NAME MAXWELL)
 
 # toml
 option(toml11_BUILD_TEST OFF)
-add_subdirectory(toml11)
+# add_subdirectory(toml11)
+
+add_library(dll SHARED
+    dll/dllmain.cpp
+    dll/hook.cpp dll/hook.h
+    dll/ui.cpp dll/ui.h
+    dll/max.cpp dll/max.h
+    dll/settings.cpp dll/settings.h
+    dll/memory.cpp dll/memory.h
+    dll/search.cpp dll/search.h
+    dll/virtual_table.cpp dll/virtual_table.h
+    dll/image.cpp dll/image.h
+    dll/ghidra_byte_string.h
+    dll/tokenize.h
+    dll/font.h
+    shared/version.cpp shared/version.h
+    shared/logger.h
+    res/MAXWELL.rc)
+
+target_include_directories(dll PUBLIC shared/ ${stb_SOURCE_DIR})
+target_link_libraries(dll PRIVATE detours imgui fmt toml11::toml11)
+set_target_properties(dll PROPERTIES OUTPUT_NAME MAXWELL)
 
 add_executable(exe
-    main.cpp
-    injector.cpp injector.h
-    cmd_line.cpp cmd_line.h
-    version.cpp version.h
-    logger.h
+    injector/main.cpp
+    injector/injector.cpp injector/injector.h
+    injector/cmd_line.cpp injector/cmd_line.h
+    shared/version.cpp shared/version.h
+    shared/logger.h
     res/MAXWELL.rc)
-target_link_libraries(exe PRIVATE
-    detours
-    fmt)
+
+target_include_directories(exe PUBLIC shared/)
+target_link_libraries(exe PRIVATE detours fmt)
 add_dependencies(exe dll)
 set_target_properties(exe PROPERTIES OUTPUT_NAME MAXWELL)
 
@@ -105,9 +128,5 @@ execute_process(
     OUTPUT_VARIABLE MAXWELL_GIT_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-target_compile_definitions(exe PRIVATE
-    GIT_VERSION=${MAXWELL_GIT_VERSION}
-)
-target_compile_definitions(dll PRIVATE
-    GIT_VERSION=${MAXWELL_GIT_VERSION}
-)
+target_compile_definitions(exe PRIVATE GIT_VERSION=${MAXWELL_GIT_VERSION})
+target_compile_definitions(dll PRIVATE GIT_VERSION=${MAXWELL_GIT_VERSION})
